@@ -39,6 +39,13 @@ import java.util.function.Predicate;
  * several are chosen with check boxes instead of Ctrl/Shift, the bien shows its
  * marca, modelo, serie and ubicación to recognise it, every answer can be undone,
  * and steps 2 and 3 have the colors of «Avance de las áreas».
+ *
+ * <p>Also 9-nov-2026: Patrimonio attends the avisos «No es del área» right here.
+ * In that list each one says what the área wrote and has «Pasar a otra área»
+ * (Transferir, with that bien ticked and the aviso as motivo), «Es suyo» (back to
+ * the área's «Por revisar», with a message the área reads next to the bien) and
+ * «Ver» (its ficha: who had it, its photos and movements). Before, the only thing
+ * here was «Cambiar», and moving it meant closing and looking for it again.
  */
 public final class RevisarBienesDialog {
 
@@ -75,12 +82,23 @@ public final class RevisarBienesDialog {
     private final Button siNuestros = new Button("Sí son de mi área");
     private final Button noNuestros = new Button("No son de mi área…");
     private final Button etiquetados = new Button("Ya tienen etiqueta");
-    private final Button quitarRevision = new Button("Quitar la revisión");
+    private final Button quitarRevision = new Button("Que lo revisen otra vez");
+    private final Button pasar = new Button("Pasar a otra área");
     private final Button desmarcar = new Button("Quitar las marcas");
     private final CheckBox todosMarcados = new CheckBox();
     private final Label pista = new Label("Marca varios con su casilla para responderlos juntos");
+    private final Label ayuda = new Label();
+    /** For the área: what Patrimonio said of the bienes it sent back, whole (a row only fits the start). */
+    private final VBox mensajes = new VBox(3);
     /** The bienes ticked with their check box (by id): what the buttons below act on. */
     private final Set<String> marcados = new LinkedHashSet<>();
+    private final boolean admin = SessionManager.isAdmin();
+    /** Every bien, also of other áreas: what Transferir needs to number them in the área that receives them. */
+    private List<Producto> inventario = List.of();
+    private Vista vista = Vista.POR_REVISAR;
+    private TableColumn<Producto, Producto> colCodigo, colBien, colArea, colResguardante, colRevision, colEtiqueta, colFalta, colAtender;
+    /** Which set of columns is showing: the área's answers, or Patrimonio's «Qué hacer» (null before the first). */
+    private Boolean columnasAtender;
     private Dialog<ButtonType> dialog;
     private boolean cambio = false;
 
@@ -106,7 +124,8 @@ public final class RevisarBienesDialog {
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-check-multiple-outline", titulo,
-            "Di si cada bien sí es de tu área, completa lo que le falte y confirma los que ya tienen su etiqueta",
+            admin ? "Lo que contestó cada área de sus bienes; en «No son del área» atiendes sus avisos"
+                  : "Di si cada bien sí es de tu área, completa lo que le falte y confirma los que ya tienen su etiqueta",
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         // ── Avance: steps 2 and 3, with the colors of «Avance de las áreas» ──
@@ -114,8 +133,6 @@ public final class RevisarBienesDialog {
             paso("2", "Revisar tus bienes", "avance-revisar", barraRevision, textoRevision, pctRevision),
             paso("3", "Confirmar etiquetas", "avance-etiquetar", barraEtiquetas, textoEtiquetas, pctEtiquetas));
 
-        Label ayuda = new Label("Responde con los botones de cada renglón. Para responder varios a la vez, márcalos con su casilla "
-            + "y usa los botones de abajo. «Completar» le pone foto, ubicación y estado físico.");
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
@@ -159,13 +176,21 @@ public final class RevisarBienesDialog {
         colMarca.setResizable(false);
         colMarca.setMaxWidth(44);
         tabla.getColumns().add(colMarca);
-        tabla.getColumns().add(columna("Código", 104, p -> texto(p.getCodigo(), "revisar-codigo")));
-        tabla.getColumns().add(columna("Bien", 260, RevisarBienesDialog::celdaBien));
-        if (area == null) tabla.getColumns().add(columna("Área", 160, p -> texto(p.getArea(), null)));
-        tabla.getColumns().add(columna("Resguardante", 150, p -> texto(p.getResguardante(), null)));
-        tabla.getColumns().add(columna("¿Es de tu área?", 230, this::celdaRevision));
-        tabla.getColumns().add(columna("Etiqueta", 140, this::celdaEtiqueta));
-        tabla.getColumns().add(columna("Le falta", 180, this::celdaFalta));
+        colCodigo = columna("Código", 104, p -> texto(p.getCodigo(), "revisar-codigo"));
+        colBien = columna("Bien", 260, RevisarBienesDialog::celdaBien);
+        colArea = columna("Área", 160, p -> texto(p.getArea(), null));
+        colResguardante = columna("Resguardante", 150, p -> texto(p.getResguardante(), null));
+        tabla.getColumns().addAll(List.of(colCodigo, colBien));
+        if (area == null) tabla.getColumns().add(colArea);
+        tabla.getColumns().add(colResguardante);
+        colRevision = columna(admin ? "¿Es del área?" : "¿Es de tu área?", 230, this::celdaRevision);
+        colEtiqueta = columna("Etiqueta", 140, this::celdaEtiqueta);
+        colFalta = columna("Le falta", 180, this::celdaFalta);
+        // Patrimonio, in «No son del área»: what to do with each aviso, instead of the label and the data.
+        colAtender = columna("Qué hacer", 285, this::celdaAtender);
+        colAtender.setMinWidth(280);
+        colAtender.setVisible(false);
+        tabla.getColumns().addAll(List.of(colRevision, colEtiqueta, colFalta, colAtender));
         Label vacia = new Label("No hay bienes en esta lista");
         vacia.getStyleClass().add("muted");
         tabla.setPlaceholder(vacia);
@@ -202,16 +227,17 @@ public final class RevisarBienesDialog {
         etiquetados.getStyleClass().add("btn-secondary");
         etiquetados.setTooltip(new Tooltip("Los marcados ya tienen su etiqueta pegada"));
         etiquetados.setOnAction(e -> etiquetas(marcadosVisibles()));
-        quitarRevision.setGraphic(new FontIcon("mdi2u-undo-variant"));
-        quitarRevision.getStyleClass().add("btn-ghost");
-        quitarRevision.setTooltip(new Tooltip("Borra la respuesta del área para que lo revise de nuevo (por ejemplo, ya que Patrimonio atendió el aviso)"));
-        quitarRevision.setOnAction(e -> quitar(marcadosVisibles().stream().filter(Producto::isRevisadoPorArea).toList()));
-        boolean admin = SessionManager.isAdmin();
-        quitarRevision.setVisible(admin);
-        quitarRevision.setManaged(admin);
+        quitarRevision.setGraphic(new FontIcon("mdi2k-keyboard-return"));
+        quitarRevision.getStyleClass().add("btn-secondary");
+        quitarRevision.setTooltip(new Tooltip("Regresa los marcados a «Por revisar» de su área, con lo que le quieras decir"));
+        quitarRevision.setOnAction(e -> regresar(marcadosVisibles()));
+        pasar.setGraphic(icono("mdi2s-swap-horizontal"));
+        pasar.getStyleClass().add("btn-primary");
+        pasar.setTooltip(new Tooltip("Están en otra área: se transfieren con su número y su resguardo nuevos, y esa área los revisa"));
+        pasar.setOnAction(e -> pasarAOtraArea(marcadosVisibles()));
         desmarcar.getStyleClass().add("btn-ghost");
         desmarcar.setOnAction(e -> { marcados.clear(); actualizarMarcas(); });
-        for (Button b : List.of(siNuestros, noNuestros, etiquetados, quitarRevision, desmarcar)) b.setMinWidth(Region.USE_PREF_SIZE);
+        for (Button b : List.of(siNuestros, noNuestros, etiquetados, quitarRevision, pasar, desmarcar)) b.setMinWidth(Region.USE_PREF_SIZE);
         botones();
 
         resumen.getStyleClass().add("table-count-label");
@@ -219,11 +245,14 @@ public final class RevisarBienesDialog {
         Region hueco = new Region();
         HBox.setHgrow(hueco, Priority.ALWAYS);
         pista.getStyleClass().add("muted-sm");
-        HBox acciones = new HBox(8, resumen, desmarcar, pista, hueco, quitarRevision, etiquetados, noNuestros, siNuestros);
+        HBox acciones = new HBox(8, resumen, desmarcar, pista, hueco, quitarRevision, etiquetados, noNuestros, siNuestros, pasar);
         acciones.setAlignment(Pos.CENTER_LEFT);
         acciones.getStyleClass().add("revisar-acciones");
 
-        VBox cuerpo = new VBox(10, avance, ayuda, barraFiltros, tabla, acciones);
+        mensajes.getStyleClass().add("revisar-mensajes");
+        mensajes.setVisible(false);
+        mensajes.setManaged(false);
+        VBox cuerpo = new VBox(10, avance, ayuda, mensajes, barraFiltros, tabla, acciones);
         cuerpo.setPadding(new Insets(0, 22, 14, 22));
         VBox.setVgrow(cuerpo, Priority.ALWAYS);
         dialog.getDialogPane().setContent(new VBox(12, header, cuerpo));
@@ -259,6 +288,7 @@ public final class RevisarBienesDialog {
     private void cargar() {
         DialogUtil.runAsync(service::getAll,
             lista -> {
+                inventario = lista;
                 todos.setAll(lista.stream().filter(p -> p.getFechaBaja() == null)
                     .filter(p -> area == null || area.equals(p.getArea()))
                     .sorted(Comparator.comparing(p -> Objects.requireNonNullElse(p.getCodigo(), ""),
@@ -275,6 +305,17 @@ public final class RevisarBienesDialog {
     private void filtrar() {
         Vista v = chips.entrySet().stream().filter(e -> e.getValue().isSelected()).map(Map.Entry::getKey)
             .findFirst().orElse(Vista.TODOS);
+        vista = v;
+        boolean atender = atendiendo();
+        columnas(atender);
+        colRevision.setText(atender ? "Lo que dijo el área" : admin ? "¿Es del área?" : "¿Es de tu área?");
+        pintarMensajes();
+        ayuda.setText(atender
+            ? "Estos bienes, según su área, no son suyos o no los encuentran. Si está en otra área, «Pasar a otra área» lo "
+              + "transfiere con su número y su resguardo nuevos, y esa área lo revisa. Si sí es suyo, «Es suyo» se lo regresa "
+              + "a «Por revisar» con lo que le quieras decir. «Ver» muestra quién lo tenía y sus movimientos."
+            : "Responde con los botones de cada renglón. Para responder varios a la vez, márcalos con su casilla "
+              + "y usa los botones de abajo. «Completar» le pone foto, ubicación y estado físico.");
         List<Producto> base = todos.stream().filter(v.filtro).toList();
         Set<Producto> coinciden = new HashSet<>(DialogUtil.coincidencias(base,
             p -> String.join(" ", Objects.requireNonNullElse(p.getCodigo(), ""), Objects.requireNonNullElse(p.getNombre(), ""),
@@ -314,21 +355,86 @@ public final class RevisarBienesDialog {
         tabla.refresh();
     }
 
+    /** The columns of each set, with their widths. Shown or hidden on a table already laid
+     *  out, the constrained policy split the room unevenly («Có…», «Bien» cut to a word):
+     *  the widths are set with the policy off and it goes back on, giving the rest to the last. */
+    private void columnas(boolean atender) {
+        if (columnasAtender != null && columnasAtender == atender) return;
+        columnasAtender = atender;
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        colAtender.setVisible(atender);
+        colEtiqueta.setVisible(!atender);
+        colFalta.setVisible(!atender);
+        // What the área wrote is what Patrimonio reads to decide: more room for it.
+        // With the «Área» column (all áreas at once) the others make room for it.
+        double[] anchos = atender
+            ? new double[]{96, 220, 150, 140, 250, 285}
+            : area == null ? new double[]{100, 200, 150, 120, 230, 130, 200}
+                           : new double[]{104, 260, 160, 150, 230, 140, 180};
+        List<TableColumn<Producto, Producto>> cols = atender
+            ? List.of(colCodigo, colBien, colArea, colResguardante, colRevision, colAtender)
+            : List.of(colCodigo, colBien, colArea, colResguardante, colRevision, colEtiqueta, colFalta);
+        for (int i = 0; i < cols.size(); i++) cols.get(i).setPrefWidth(anchos[i]);
+        Platform.runLater(() -> tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN));
+    }
+
+    /** Patrimonio looking at the avisos «No es del área». */
+    private boolean atendiendo() {
+        return admin && vista == Vista.OBSERVADOS;
+    }
+
+    /** The área: Patrimonio's messages on the bienes it sent back, whole, above the list. */
+    private void pintarMensajes() {
+        List<Producto> con = admin ? List.of() : todos.stream().filter(p -> p.getMensajePatrimonio() != null).toList();
+        mensajes.getChildren().clear();
+        mensajes.setVisible(!con.isEmpty());
+        mensajes.setManaged(!con.isEmpty());
+        if (con.isEmpty()) return;
+        Label titulo = new Label(con.size() == 1 ? "Patrimonio te regresó 1 bien para que lo revises otra vez"
+            : "Patrimonio te regresó " + con.size() + " bienes para que los revises otra vez",
+            new FontIcon("mdi2m-message-text-outline"));
+        titulo.getStyleClass().add("revisar-mensajes-titulo");
+        mensajes.getChildren().add(titulo);
+        for (Producto p : con.subList(0, Math.min(3, con.size()))) {
+            Label l = new Label(p.getCodigo() + " · " + p.getNombre() + ": «" + p.getMensajePatrimonio() + "»");
+            l.setWrapText(true);
+            l.getStyleClass().add("revisar-mensajes-texto");
+            mensajes.getChildren().add(l);
+        }
+        if (con.size() > 3) {
+            Label mas = new Label("… y " + (con.size() - 3) + " más: están en «Por revisar», cada uno con su mensaje");
+            mas.getStyleClass().add("revisar-mensajes-texto");
+            mensajes.getChildren().add(mas);
+        }
+    }
+
     private void botones() {
         List<Producto> sel = marcadosVisibles();
         boolean hay = !sel.isEmpty();
+        boolean atender = atendiendo();
+        // Attending avisos: move them or send them back; the área's own answers make no sense there.
+        for (Button b : List.of(siNuestros, noNuestros, etiquetados)) { b.setVisible(!atender); b.setManaged(!atender); }
+        pasar.setVisible(atender);
+        pasar.setManaged(atender);
+        quitarRevision.setVisible(admin);
+        quitarRevision.setManaged(admin);
         siNuestros.setDisable(!hay);
         noNuestros.setDisable(!hay);
         etiquetados.setDisable(sel.stream().allMatch(Producto::isEtiquetado));
         quitarRevision.setDisable(sel.stream().noneMatch(Producto::isRevisadoPorArea));
+        pasar.setDisable(!hay);
         desmarcar.setVisible(!marcados.isEmpty());
         desmarcar.setManaged(!marcados.isEmpty());
         pista.setVisible(marcados.isEmpty());
         pista.setManaged(marcados.isEmpty());
+        pista.setText(atender ? "Marca varios con su casilla para atenderlos juntos" : "Marca varios con su casilla para responderlos juntos");
         String n = sel.size() > 1 ? " (" + sel.size() + ")" : "";
-        siNuestros.setText("Sí son de mi área" + n);
-        noNuestros.setText("No son de mi área" + n + "…");
+        String de = admin ? "del área" : "de mi área";
+        siNuestros.setText("Sí son " + de + n);
+        noNuestros.setText("No son " + de + n + "…");
         etiquetados.setText("Ya tienen etiqueta" + n);
+        quitarRevision.setText((atender ? "Son suyos: que los revise otra vez" : "Que los revisen otra vez") + n);
+        pasar.setText("Pasar a otra área" + n);
     }
 
     /** The ticked bienes that are in the list now (a filter can hide some). */
@@ -391,26 +497,63 @@ public final class RevisarBienesDialog {
             no.setOnAction(e -> pedirNota(1).ifPresent(n -> responder(List.of(p), n)));
             HBox h = new HBox(6, si, no);
             h.setAlignment(Pos.CENTER_LEFT);
-            return h;
+            String mensaje = p.getMensajePatrimonio();
+            if (mensaje == null) return h;
+            // Sent back by Patrimonio: why, so the área doesn't answer "no es" again blindly.
+            Label m = new Label("Patrimonio: «" + mensaje + "»", new FontIcon("mdi2m-message-text-outline"));
+            m.getStyleClass().add("revisar-mensaje");
+            m.setTooltip(new Tooltip("Patrimonio te lo regresó para que lo revises otra vez:\n" + mensaje));
+            m.setMaxWidth(Double.MAX_VALUE);
+            VBox v = new VBox(3, h, m);
+            v.setAlignment(Pos.CENTER_LEFT);
+            return v;
         }
         Label estado = new Label(p.isObservadoPorArea() ? "No es del área" : "Sí es del área",
             new FontIcon(p.isObservadoPorArea() ? "mdi2a-alert-circle-outline" : "mdi2c-check-circle"));
         estado.getStyleClass().addAll("revisar-estado", p.isObservadoPorArea() ? "revisar-estado-no" : "revisar-estado-si");
-        Hyperlink cambiar = new Hyperlink("Cambiar");
-        cambiar.getStyleClass().add("revisar-cambiar");
-        cambiar.setTooltip(new Tooltip("Borra esta respuesta para volver a responder"));
-        cambiar.setOnAction(e -> quitar(List.of(p)));
-        HBox arriba = new HBox(6, estado, cambiar);
+        HBox arriba = new HBox(6, estado);
         arriba.setAlignment(Pos.CENTER_LEFT);
+        // Attending avisos, «Qué hacer» has the way back; elsewhere, «Cambiar» takes the answer back.
+        if (!atendiendo()) {
+            Hyperlink cambiar = new Hyperlink("Cambiar");
+            cambiar.getStyleClass().add("revisar-cambiar");
+            cambiar.setTooltip(new Tooltip("Borra esta respuesta para volver a responder"));
+            cambiar.setOnAction(e -> quitar(List.of(p)));
+            arriba.getChildren().add(cambiar);
+        }
         VBox v = new VBox(0, arriba);
         v.setAlignment(Pos.CENTER_LEFT);
         if (p.isObservadoPorArea() && p.getRevisionAreaNota() != null) {
             Label nota = new Label("«" + p.getRevisionAreaNota() + "»");
-            nota.getStyleClass().add("revisar-bien-detalle");
-            Tooltip.install(nota, new Tooltip(p.getRevisionAreaNota()));
+            nota.getStyleClass().add(atendiendo() ? "revisar-nota" : "revisar-bien-detalle");
+            if (atendiendo()) {
+                // Two lines of it fit in the row; the whole note is in the tooltip.
+                nota.setWrapText(true);
+                nota.setMaxHeight(30);
+            }
+            Tooltip.install(nota, new Tooltip(p.getRevisionAreaNota()
+                + (p.getRevisadoAreaPor() != null ? "\n— " + p.getRevisadoAreaPor() : "")
+                + (p.getRevisadoAreaEn() != null ? ", " + FormatUtils.formatDateTime(p.getRevisadoAreaEn()) : "")));
             v.getChildren().add(nota);
         }
         return v;
+    }
+
+    /** Patrimonio, on an aviso «No es del área»: move it, send it back, or look at its ficha. */
+    private Node celdaAtender(Producto p) {
+        if (!p.isObservadoPorArea()) return new Region();
+        Button aOtra = boton("Pasar a otra área", "mdi2s-swap-horizontal", "revisar-pasar",
+            "Está en otra área: se transfiere con su número y su resguardo nuevos, y esa área lo revisa");
+        aOtra.setOnAction(e -> pasarAOtraArea(List.of(p)));
+        Button suyo = boton("Es suyo", "mdi2k-keyboard-return", "revisar-es-suyo",
+            "Regresarlo a «Por revisar» de " + Objects.requireNonNullElse(p.getArea(), "su área") + ", con lo que le quieras decir");
+        suyo.setOnAction(e -> regresar(List.of(p)));
+        Button ver = boton("Ver", "mdi2e-eye-outline", "revisar-ver", "Su ficha: quién lo tenía, sus fotos y sus movimientos");
+        ver.setOnAction(e -> ProductoDetailDialog.show(p, escena(), new com.sibim.service.MovimientoService(),
+            org.slf4j.LoggerFactory.getLogger(RevisarBienesDialog.class)));
+        HBox h = new HBox(6, aOtra, suyo, ver);
+        h.setAlignment(Pos.CENTER_LEFT);
+        return h;
     }
 
     private Node celdaEtiqueta(Producto p) {
@@ -471,7 +614,8 @@ public final class RevisarBienesDialog {
             nota == null ? (copia.size() == 1 ? copia.get(0).getCodigo() + ": sí es de tu área"
                     : FormatUtils.plural(copia.size(), "bien marcado como de tu área", "bienes marcados como de tu área"))
                 : "Avisado a Patrimonio: " + FormatUtils.plural(copia.size(), "bien que no es del área", "bienes que no son del área"),
-            () -> service.quitarRevision(copia), copia);
+            // As it was, with Patrimonio's message if it had one.
+            () -> service.restaurarRevision(copia), copia);
     }
 
     private void etiquetas(List<Producto> bienes) {
@@ -484,10 +628,42 @@ public final class RevisarBienesDialog {
 
     private void quitar(List<Producto> bienes) {
         if (bienes.isEmpty()) return;
-        hacer(() -> service.quitarRevision(bienes),
-            bienes.size() == 1 ? bienes.get(0).getCodigo() + ": vuelve a «Por revisar»"
-                : "Se quitó la revisión de " + FormatUtils.plural(bienes.size(), "bien", "bienes"),
-            null, bienes);
+        List<Producto> copia = List.copyOf(bienes);
+        hacer(() -> service.quitarRevision(copia),
+            copia.size() == 1 ? copia.get(0).getCodigo() + ": vuelve a «Por revisar»"
+                : "Se quitó la revisión de " + FormatUtils.plural(copia.size(), "bien", "bienes"),
+            () -> service.restaurarRevision(copia), copia);
+    }
+
+    /** Patrimonio: back to the área's «Por revisar», with what it wants to tell the área. */
+    private void regresar(List<Producto> bienes) {
+        List<Producto> copia = bienes.stream().filter(Producto::isRevisadoPorArea).toList();
+        if (copia.isEmpty()) return;
+        String area = unaArea(copia);
+        pedirMensaje(copia, area).ifPresent(m -> hacer(() -> service.quitarRevision(copia, m),
+            (copia.size() == 1 ? copia.get(0).getCodigo() + " regresó" : FormatUtils.plural(copia.size(), "bien regresó", "bienes regresaron"))
+                + " a «Por revisar»" + (area != null ? " de " + area : "") + (m.isBlank() ? "" : ", con tu mensaje"),
+            () -> service.restaurarRevision(copia), copia));
+    }
+
+    /** Patrimonio: Transferir, with these bienes ticked and the área's aviso as the motivo.
+     *  Whatever is moved leaves this list on its own: in another área it is reviewed again. */
+    private void pasarAOtraArea(List<Producto> bienes) {
+        if (bienes.isEmpty()) return;
+        String area = unaArea(bienes);
+        String nota = bienes.size() == 1 ? bienes.get(0).getRevisionAreaNota() : null;
+        String motivo = (area != null ? "Aviso de " + area : "Aviso de las áreas") + ": "
+            + (nota != null && !nota.isBlank() ? nota.trim() : bienes.size() == 1 ? "no es suyo" : "no son suyos");
+        TransferenciaArrastreDialog.show(inventario.isEmpty() ? new ArrayList<>(todos) : inventario,
+            bienes.stream().map(Producto::getId).toList(), motivo, () -> cambio = true);
+        cargar();
+    }
+
+    /** The área of all of them, or null when they are from several. */
+    private static String unaArea(List<Producto> bienes) {
+        Set<String> areas = new HashSet<>();
+        bienes.forEach(p -> areas.add(p.getArea()));
+        return areas.size() == 1 ? areas.iterator().next() : null;
     }
 
     private void completar(Producto p) {
@@ -527,6 +703,27 @@ public final class RevisarBienesDialog {
         ok.setText("Avisar a Patrimonio");
         ok.disableProperty().bind(d.getEditor().textProperty().isEmpty());
         return d.showAndWait().map(String::trim).filter(s -> !s.isEmpty());
+    }
+
+    /** What Patrimonio tells the área when sending bienes back; empty to say nothing,
+     *  nothing when it was cancelled. */
+    private Optional<String> pedirMensaje(List<Producto> bienes, String area) {
+        TextInputDialog d = new TextInputDialog();
+        DialogUtil.applyOwner(d);
+        DialogUtil.applyStylesheet(d.getDialogPane());
+        d.setTitle("Que lo revise otra vez");
+        Producto uno = bienes.size() == 1 ? bienes.get(0) : null;
+        String dijo = uno != null && uno.isObservadoPorArea() ? "\nEl área dijo: «" + uno.getRevisionAreaNota() + "»" : "";
+        d.setHeaderText((uno != null ? uno.getCodigo() + " · " + uno.getNombre() + " vuelve"
+                : FormatUtils.plural(bienes.size(), "bien vuelve", "bienes vuelven"))
+            + " a «Por revisar»" + (area != null ? " de " + area : "") + dijo);
+        d.setContentText("¿Qué le dices al área? (opcional)");
+        d.getEditor().setPromptText("Ej. sí es suyo, está en la bodega del 2º piso; búscalo por su etiqueta");
+        d.getEditor().setPrefColumnCount(38);
+        d.getEditor().setTextFormatter(new TextFormatter<String>(c -> c.getControlNewText().length() <= 300 ? c : null));
+        Button ok = (Button) d.getDialogPane().lookupButton(ButtonType.OK);
+        ok.setText(bienes.size() == 1 ? "Regresárselo" : "Regresárselos");
+        return d.showAndWait().map(String::trim);
     }
 
     private Scene escena() {

@@ -362,4 +362,75 @@ class ProductoServiceTest {
         assertTrue(ProductoService.cambios(antes, despues).equals("factura (sin dato → A1B2C3D4-0000-4000-8000-000000000001-00…)"),
             ProductoService.cambios(antes, despues));
     }
+
+    // ── Patrimonio regresa un aviso «No es del área» (9-nov-2026) ─────────────
+
+    private Producto avisado(String id, String nota) {
+        Producto p = productoExistente();
+        p.setId(id);
+        p.setCodigo("SGM/" + id);
+        p.setRevisadoAreaEn(java.time.LocalDateTime.of(2026, 11, 9, 10, 30));
+        p.setRevisadoAreaPor("Secretaría General");
+        p.setRevisionAreaNota(nota);
+        return p;
+    }
+
+    @Test void regresarAlArea_conMensaje_loGuardaParaQueElAreaLoLea() throws Exception {
+        Producto p = avisado("p-01", "No está en la oficina");
+        service.quitarRevision(List.of(p), "  Sí es suyo, está en la bodega  ");
+        verify(mockProductoRepo).marcarRevision(List.of("p-01"), null, null, "Sí es suyo, está en la bodega");
+        verify(mockAuditRepo).log(eq("producto"), isNull(), eq(p.getArea()), eq("revision_area"),
+            argThat((String d) -> d.contains("mensaje al área: «Sí es suyo, está en la bodega»")));
+    }
+
+    @Test void regresarAlArea_sinMensaje_quedaSinNada() throws Exception {
+        service.quitarRevision(List.of(avisado("p-01", "No es nuestro")), "   ");
+        verify(mockProductoRepo).marcarRevision(List.of("p-01"), null, null, null);
+    }
+
+    @Test void regresarAlArea_mensajeLargo_seRechaza() throws Exception {
+        assertThrows(ProductoService.ValidationException.class,
+            () -> service.quitarRevision(List.of(avisado("p-01", "x")), "a".repeat(301)));
+        verify(mockProductoRepo, never()).marcarRevision(any(), any(), any(), any());
+    }
+
+    @Test void deshacer_dejaCadaBienComoEstaba() throws Exception {
+        Producto a = avisado("p-01", "Lo tiene Obras Públicas");
+        Producto b = avisado("p-02", null);
+        Producto c = productoExistente(); c.setId("p-03"); c.setCodigo("SGM/p-03"); c.setRevisionAreaNota("Búscalo en la bodega");
+        service.restaurarRevision(List.of(a, b, c));
+        verify(mockProductoRepo).marcarRevision(List.of("p-01"), a.getRevisadoAreaEn(), "Secretaría General", "Lo tiene Obras Públicas");
+        verify(mockProductoRepo).marcarRevision(List.of("p-02"), b.getRevisadoAreaEn(), "Secretaría General", null);
+        verify(mockProductoRepo).marcarRevision(List.of("p-03"), null, null, "Búscalo en la bodega");
+    }
+
+    @Test void deshacer_losQueEstabanIgual_vanEnUnaSolaVuelta() throws Exception {
+        List<Producto> sinRevisar = new java.util.ArrayList<>();
+        for (int i = 1; i <= 200; i++) {
+            Producto p = productoExistente(); p.setId("p-" + i); p.setCodigo("SGM/" + i);
+            sinRevisar.add(p);
+        }
+        service.restaurarRevision(sinRevisar);
+        verify(mockProductoRepo, times(1)).marcarRevision(any(), isNull(), isNull(), isNull());
+    }
+
+    @Test void unArea_noRegresaBienesDeOtra() throws Exception {
+        SessionManager.setCurrentUser(director);
+        assertThrows(ProductoService.ValidationException.class,
+            () -> service.quitarRevision(List.of(avisado("p-01", "x")), "hola"));
+        assertThrows(ProductoService.ValidationException.class,
+            () -> service.restaurarRevision(List.of(avisado("p-01", "x"))));
+        verify(mockProductoRepo, never()).marcarRevision(any(), any(), any(), any());
+    }
+
+    @Test void mensajeDePatrimonio_soloMientrasElAreaNoContesta() {
+        Producto p = new Producto();
+        assertNull(p.getMensajePatrimonio());
+        p.setRevisionAreaNota("Está en la bodega");
+        assertEquals("Está en la bodega", p.getMensajePatrimonio());
+        assertFalse(p.isObservadoPorArea(), "sin respuesta del área no es un aviso");
+        p.setRevisadoAreaEn(java.time.LocalDateTime.now());
+        assertNull(p.getMensajePatrimonio(), "ya contestó: la nota es suya");
+        assertTrue(p.isObservadoPorArea());
+    }
 }

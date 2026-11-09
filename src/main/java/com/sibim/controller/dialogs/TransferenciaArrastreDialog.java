@@ -96,7 +96,14 @@ public final class TransferenciaArrastreDialog {
     private final List<Node> pasoBienes = new ArrayList<>();
     private Dialog<Void> dialog;
 
-    private TransferenciaArrastreDialog(Runnable alTransferir) { this.alTransferir = alTransferir; }
+    /** The motivo to start with when none was written for that destino yet: an área's
+     *  aviso «no es nuestro» says why it goes (RevisarBienesDialog, 9-nov-2026). */
+    private final String motivoSugerido;
+
+    private TransferenciaArrastreDialog(Runnable alTransferir, String motivoSugerido) {
+        this.alTransferir = alTransferir;
+        this.motivoSugerido = motivoSugerido == null || motivoSugerido.isBlank() ? null : motivoSugerido.trim();
+    }
 
     /** @param alTransferir run after each batch, to refresh the screen behind */
     public static void show(List<Producto> productos, Runnable alTransferir) {
@@ -106,7 +113,12 @@ public final class TransferenciaArrastreDialog {
     /** @param preseleccion ids of bienes to start with selected (Bienes › Transferir):
      *  their área becomes the origen; ones from another área are left out */
     public static void show(List<Producto> productos, List<String> preseleccion, Runnable alTransferir) {
-        new TransferenciaArrastreDialog(alTransferir).abrir(productos, preseleccion);
+        show(productos, preseleccion, null, alTransferir);
+    }
+
+    /** @param motivo written in for the first transfer, to change if wanted (null for none) */
+    public static void show(List<Producto> productos, List<String> preseleccion, String motivo, Runnable alTransferir) {
+        new TransferenciaArrastreDialog(alTransferir, motivo).abrir(productos, preseleccion);
     }
 
     private void abrir(List<Producto> productos, List<String> preseleccion) {
@@ -655,6 +667,8 @@ public final class TransferenciaArrastreDialog {
             motivo.setText(ultimoMotivo);
             resguardante.getEditor().setText(ultimoQuien);
             cargo.setText(ultimoCargo);
+        } else if (motivoSugerido != null && ultimoMotivo == null) {
+            motivo.setText(motivoSugerido);
         }
 
         String notaBase = "Cada bien sale de su resguardo actual y toma el número que ves arriba, el siguiente libre de "

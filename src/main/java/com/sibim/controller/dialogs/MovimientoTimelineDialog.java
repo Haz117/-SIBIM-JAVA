@@ -172,14 +172,14 @@ public final class MovimientoTimelineDialog {
                 + (pr.getAreaDestino() != null ? "  ·  " + pr.getAreaDestino() : "")
                 + "  ·  " + com.sibim.util.FormatUtils.estado(pr.getEstado());
             LocalDateTime fecha = pr.getFechaPrestamo() != null ? pr.getFechaPrestamo().atStartOfDay() : pr.getCreadoEn();
-            entradas.add(new Entrada(fecha, Fuente.PRESTAMO, "mdi2h-hand-extended-outline",
+            entradas.add(new Entrada(fecha, Fuente.PRESTAMO, "mdi2h-handshake-outline",
                 "audit-pill-blue", "Préstamo " + (pr.getNumero() != null ? pr.getNumero() : ""), detalle));
         }
 
         for (AuditLog a : data.auditoria()) {
             String detalle = (a.getDetalle() != null && !a.getDetalle().isBlank() ? a.getDetalle() : "—")
                 + "  ·  " + (a.getUsuarioNombre() != null ? a.getUsuarioNombre() : "—");
-            entradas.add(new Entrada(a.getCreadoEn(), Fuente.AUDITORIA, "mdi2s-shield-search-outline",
+            entradas.add(new Entrada(a.getCreadoEn(), Fuente.AUDITORIA, "mdi2s-shield-search",
                 "audit-pill-orange", a.getAccion() != null ? a.getAccion() : "Auditoría", detalle));
         }
 

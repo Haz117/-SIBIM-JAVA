@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -179,12 +180,42 @@ public class ProductoService {
 
     /** Takes back the área's review, so it is reviewed again (Patrimonio, once it looked into an aviso). */
     public void quitarRevision(List<Producto> bienes) throws SQLException, ValidationException {
+        quitarRevision(bienes, null);
+    }
+
+    /** Sends these bienes back to the área's «Por revisar» with what Patrimonio tells it
+     *  ("es suyo, está en la bodega"), shown to the área next to the bien until it answers
+     *  (Producto#getMensajePatrimonio); {@code mensaje} null or blank for none. */
+    public void quitarRevision(List<Producto> bienes, String mensaje) throws SQLException, ValidationException {
         if (bienes.isEmpty()) return;
         exigirPropios(bienes, "corregir la revisión de");
-        productoRepo.marcarRevision(bienes.stream().map(Producto::getId).toList(), null, null, null);
+        String m = mensaje == null || mensaje.isBlank() ? null : mensaje.trim();
+        if (m != null && m.length() > 300) throw new ValidationException("El mensaje no puede exceder 300 caracteres");
+        productoRepo.marcarRevision(bienes.stream().map(Producto::getId).toList(), null, null, m);
         ProductosEnMemoria.invalidar();
         auditRepo.log("producto", null, bienes.get(0).getArea(), "revision_area",
-            "Se quitó la revisión del área de " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " (" + codigos(bienes) + ")");
+            "Se quitó la revisión del área de " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " (" + codigos(bienes) + ")"
+                + (m != null ? "; mensaje al área: «" + m + "»" : ""));
+    }
+
+    /** Deshacer of any change to the área's review: puts back each bien's answer
+     *  (or Patrimonio's message) exactly as it was in {@code antes}, the bienes as
+     *  they were read before the change. */
+    public void restaurarRevision(List<Producto> antes) throws SQLException, ValidationException {
+        if (antes.isEmpty()) return;
+        exigirPropios(antes, "corregir la revisión de");
+        // One update for each state they were in: undoing 200 «Sí es» is one round-trip, not 200.
+        record Estado(java.time.LocalDateTime en, String por, String nota) {}
+        Map<Estado, List<String>> porEstado = new LinkedHashMap<>();
+        for (Producto p : antes)
+            porEstado.computeIfAbsent(new Estado(p.getRevisadoAreaEn(), p.getRevisadoAreaPor(), p.getRevisionAreaNota()),
+                k -> new ArrayList<>()).add(p.getId());
+        for (var e : porEstado.entrySet())
+            productoRepo.marcarRevision(e.getValue(), e.getKey().en(), e.getKey().por(), e.getKey().nota());
+        ProductosEnMemoria.invalidar();
+        auditRepo.log("producto", null, antes.get(0).getArea(), "revision_area",
+            "Se deshizo el cambio en la revisión del área de " + FormatUtils.plural(antes.size(), "bien", "bienes")
+                + " (" + codigos(antes) + ")");
     }
 
     /** Phase 3: the área says the label is stuck on these bienes (or, with false, that it isn't). */

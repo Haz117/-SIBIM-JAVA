@@ -74,7 +74,11 @@ class DesignConsistencyTest {
     @Test
     void todosLosIconos_existenEnLaLibreria() throws Exception {
         Pattern fxmlIcon = Pattern.compile("iconLiteral=\"([^\"]+)\"");
-        Pattern javaIcon = Pattern.compile("(?:new FontIcon|setIconLiteral)\\(\"([a-z0-9]+-[a-z0-9-]+)\"\\)");
+        // Any icon name written in the code, also the ones handed to a helper (boton(…, "mdi2…"),
+        // gradientHeader, a record): only new FontIcon("…") was checked, and on 9-nov-2026
+        // three names that don't exist were found that way, in a bien's history (préstamos,
+        // auditoría) and in «Agregar mantenimiento», which failed to draw.
+        Pattern javaIcon = Pattern.compile("(?:new FontIcon|setIconLiteral)\\(\"([a-z0-9]+-[a-z0-9-]+)\"\\)|\"(mdi2[a-z]-[a-z0-9-]*[a-z0-9])\"");
         List<String> malos = new ArrayList<>();
         // By reflection: resolve() returns ikonli-core's IkonHandler, which the
         // IDE's compiler does not see from this module ("The type IkonHandler is
@@ -89,7 +93,7 @@ class DesignConsistencyTest {
                 for (Path f : files.filter(x -> x.toString().endsWith(".fxml") || x.toString().endsWith(".java")).toList()) {
                     Matcher m = (f.toString().endsWith(".fxml") ? fxmlIcon : javaIcon).matcher(Files.readString(f));
                     while (m.find()) {
-                        String icon = m.group(1);
+                        String icon = m.group(1) != null ? m.group(1) : m.group(2);
                         try {
                             resolverIcono.invoke(
                                 resolver.invoke(org.kordamp.ikonli.javafx.IkonResolver.getInstance(), icon), icon);

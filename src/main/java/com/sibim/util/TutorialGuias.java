@@ -113,7 +113,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el avance de las áreas y los datos de los formatos; luego pasar un resguardo a otra persona",
+                "Primero lo más nuevo: el avance de las áreas, los datos de los formatos y los avisos de las áreas; luego pasar un resguardo a otra persona",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
             p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
@@ -138,6 +138,12 @@ final class TutorialGuias {
                 "Ya no hace falta Ctrl ni Shift: varios se marcan con su casilla",
                 "Debajo del nombre sale marca, modelo, serie y ubicación, para reconocerlo",
                 "Cada respuesta se puede deshacer; tú lo ves desde el detalle de cada área en «Avance de las áreas»"));
+            p.add(probar(paso("mdi2a-alert-circle-outline", DORADO, DORADO_D, "Los avisos «No es de mi área», ahí mismo", "dashboard", null,
+                "Cuando un área dice que un bien no es suyo, en «Por hacer» de tu Inicio sale «Revisar avisos», con lo que escribió",
+                "Cada aviso tiene «Pasar a otra área»: abre Transferir con ese bien ya marcado y el aviso como motivo",
+                "«Es suyo» se lo regresa a «Por revisar» con un mensaje tuyo, que el área lee junto al bien",
+                "«Ver» abre su ficha: quién lo tenía, sus fotos y sus movimientos; cada cosa se puede deshacer"),
+                "Abrir los avisos", abrir("productos", "observados")));
             p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
                 "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
                 "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
@@ -301,7 +307,8 @@ final class TutorialGuias {
                 "El paso que toca tiene su botón: «Revisar mis bienes» y después «Confirmar etiquetas»",
                 "Al revisar, cada bien tiene sus botones: «Sí es» o «No es» (y escribes por qué); «Ya la tiene» para la etiqueta",
                 "Para responder varios a la vez, márcalos con su casilla y usa los botones de abajo; cada respuesta se puede deshacer",
-                "Ahí mismo «Actualizar datos» les pone foto, ubicación y estado físico",
+                "Ahí mismo «Completar» les pone foto, ubicación y estado físico; lo que les falta está en una sola tarjeta de tu Inicio",
+                "Si Patrimonio te regresa un bien para revisarlo otra vez, junto a él ves su mensaje",
                 "Patrimonio ve en el organigrama cómo va tu área"));
             p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Pide una baja", "productos", "#btnEliminar",
                 "En Bienes selecciona el bien y pulsa «Solicitar baja»: escoge el motivo y di cómo está",
@@ -349,8 +356,8 @@ final class TutorialGuias {
                 "Los recuadros son clicables: llevan directo a lo que cuentan",
                 "Da clic en una categoría de la gráfica para ver sus bienes"
             } : new String[]{
-                "«Pendientes de tu área»: los bienes sin foto, sin ubicación o sin estado físico",
-                "Da clic en un pendiente, elige el bien y «Actualizar datos»",
+                "«Pendientes de tu área»: tus tres pasos, con el botón del que te toca",
+                "«Datos por completar» abre «Revisar mis bienes»: cada bien con su botón «Completar»",
                 "Si Patrimonio te transfirió bienes, ahí mismo confirmas que los recibiste"
             }));
         p.add(new Paso("mdi2p-package-variant", GUINDA, GUINDA_D, "Bienes", "Ctrl + 3", "productos", null, null, null, new String[]{
@@ -564,8 +571,8 @@ final class TutorialGuias {
     private static Guia misBienes() {
         return new Guia("mis-bienes", "Mantener al día los bienes de mi área", "Ubicación, estado físico, descripción y fotos", "mdi2p-package-variant", List.of(
             paso("mdi2v-view-dashboard-outline", GUINDA, GUINDA_D, "1. Ve qué falta", "dashboard", null,
-                "En Inicio, «Pendientes de tu área» dice qué bienes no tienen foto, ubicación o estado físico",
-                "Da clic en un pendiente para ver sus bienes"),
+                "En Inicio, «Pendientes de tu área» dice cuántos bienes no tienen foto, ubicación o estado físico",
+                "Da clic en esa tarjeta: se abre «Revisar mis bienes» con los que les falta algo, cada uno con «Completar»"),
             paso("mdi2p-package-variant", GUINDA, GUINDA_D, "2. Actualízalo", "productos", null,
                 "Selecciona el bien y «Actualizar datos» (Ctrl+E)",
                 "Cambias ubicación, estado físico, descripción y fotos",

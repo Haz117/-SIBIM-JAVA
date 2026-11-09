@@ -316,6 +316,36 @@
 .revisar-estado-no .ikonli-font-icon { -fx-icon-color: #C98A1B; -fx-icon-size: 15; }
 .revisar-cambiar { -fx-font-size: 11px; -fx-padding: 0 2; }
 .revisar-acciones .btn-primary .revisar-boton-icono { -fx-icon-color: white; }
+/* Patrimonio atiende los avisos «No es del área» ahí mismo (9-nov-2026). */
+.revisar-pasar { -fx-border-color: #F2BCC0; -fx-text-fill: #891D26; }
+.revisar-pasar .revisar-boton-icono { -fx-icon-color: #A2232D; }
+.revisar-pasar:hover { -fx-background-color: #FCF0F1; -fx-border-color: #A2232D; }
+.revisar-es-suyo { -fx-border-color: #7FB3A5; -fx-text-fill: #1B4A3F; }
+.revisar-es-suyo .revisar-boton-icono { -fx-icon-color: #235B4E; }
+.revisar-es-suyo:hover { -fx-background-color: #EEF5F2; -fx-border-color: #235B4E; }
+.revisar-ver { -fx-padding: 3 9 3 7; }
+.revisar-ver:hover { -fx-background-color: sibim-slate-100; -fx-border-color: sibim-slate-500; }
+.revisar-nota { -fx-font-size: 11px; -fx-text-fill: #8A5A12; }
+/* Lo que Patrimonio le dijo al área al regresarle un bien. */
+.revisar-mensaje {
+    -fx-font-size: 11px;
+    -fx-text-fill: #1B4A3F;
+    -fx-background-color: #EEF5F2;
+    -fx-background-radius: 6;
+    -fx-padding: 1 7 1 5;
+    -fx-graphic-text-gap: 4;
+}
+.revisar-mensaje .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 12; }
+.revisar-mensajes {
+    -fx-background-color: #EEF5F2;
+    -fx-background-radius: 10;
+    -fx-border-color: #CFE3DC;
+    -fx-border-radius: 10;
+    -fx-padding: 9 12 10 12;
+}
+.revisar-mensajes-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1B4A3F; -fx-graphic-text-gap: 6; }
+.revisar-mensajes-titulo .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 15; }
+.revisar-mensajes-texto { -fx-font-size: 12px; -fx-text-fill: #1B4A3F; -fx-padding: 0 0 0 21; }
 
 /* ── «Cuentas de las áreas» (9-nov-2026) ──────────────────────────────────────── */
 .cuentas-renglon {

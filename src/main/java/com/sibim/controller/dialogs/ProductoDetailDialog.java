@@ -679,7 +679,7 @@ public final class ProductoDetailDialog {
         ButtonType okType = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
 
-        HBox header = DialogUtil.gradientHeader("mdi2w-wrench-clock",
+        HBox header = DialogUtil.gradientHeader("mdi2w-wrench-outline",
             "Agregar alerta de mantenimiento", p.getNombre(),
             AppColors.CYAN, AppColors.CYAN_D);
 

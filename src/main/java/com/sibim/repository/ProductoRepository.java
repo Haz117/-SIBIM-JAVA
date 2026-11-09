@@ -155,7 +155,8 @@ public class ProductoRepository {
     }
 
     /** The área's review of these bienes (see Producto#isRevisadoPorArea): {@code en}
-     *  null takes it back. updated_at stays: it isn't the bien's data, and an
+     *  null takes it back, and then {@code nota} is what Patrimonio tells the área
+     *  (Producto#getMensajePatrimonio). updated_at stays: it isn't the bien's data, and an
      *  "Actualizar datos" opened right after must not say someone else changed it. */
     public void marcarRevision(List<String> ids, LocalDateTime en, String por, String nota) throws SQLException {
         if (ids == null || ids.isEmpty()) return;
@@ -167,7 +168,7 @@ public class ProductoRepository {
                 Producto p = opt.get();
                 p.setRevisadoAreaEn(en);
                 p.setRevisadoAreaPor(en == null ? null : por);
-                p.setRevisionAreaNota(en == null ? null : nota);
+                p.setRevisionAreaNota(nota);
                 local.saveProducto(p);
             }
             return;
@@ -178,7 +179,7 @@ public class ProductoRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, en);
             ps.setString(2, en == null ? null : por);
-            ps.setString(3, en == null ? null : nota);
+            ps.setString(3, nota);
             ps.setArray(4, conn.createArrayOf("text", ids.toArray(new String[0])));
             ps.executeUpdate();
         }

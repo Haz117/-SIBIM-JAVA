@@ -15,8 +15,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** The Inicio of an área account starts with "Pendientes de tu área": what
- *  its bienes lack (photo, ubicación, estado físico), each a click away. */
+/** The Inicio of an área account starts with "Pendientes de tu área": its three
+ *  steps and what is left to do, each a click away. What its bienes lack (photo,
+ *  ubicación, estado físico) is one card to «Revisar mis bienes» (9-nov-2026). */
 class DashboardMiAreaSmokeTest extends ControllerSmokeTestBase {
 
     @Override
@@ -39,7 +40,8 @@ class DashboardMiAreaSmokeTest extends ControllerSmokeTestBase {
     void unaDireccion_veSusPendientes_yCadaUnoAbreAlgo() {
         VBox seccion = lookup("#miAreaSection").query();
         assertTrue(seccion.isVisible() && seccion.isManaged());
-        FlowPane tarjetas = (FlowPane) seccion.getChildren().get(1);
+        FlowPane tarjetas = (FlowPane) seccion.getChildren().stream().filter(n -> n instanceof FlowPane)
+            .findFirst().orElseThrow();
         for (int i = 0; i < 40 && tarjetas.getChildren().isEmpty(); i++) sleep(100);
         assertFalse(tarjetas.getChildren().isEmpty(), "una tarjeta por pendiente, o \"Todo al día\"");
         for (Node t : tarjetas.getChildren()) {
@@ -63,16 +65,23 @@ class DashboardMiAreaSmokeTest extends ControllerSmokeTestBase {
     }
 
     @Test
-    void losPendientes_sonLoQueFaltaDeVerdad() {
+    void loQueFalta_esLoQueFaltaDeVerdad_enUnaSolaTarjeta() {
         com.sibim.model.Producto completo = new com.sibim.model.Producto();
         completo.setFotoUrl("https://x/foto.jpg");
         completo.setUbicacion("Oficina 2");
         completo.setEstadoFisico("BUENO");
         com.sibim.model.Producto vacio = new com.sibim.model.Producto();
         vacio.setUbicacion("   ");
-        for (MiAreaPanel.Pendiente p : MiAreaPanel.PENDIENTES) {
-            assertFalse(p.falta().test(completo), p.titulo());
-            assertTrue(p.falta().test(vacio), p.titulo());
-        }
+        com.sibim.model.Producto sinFoto = new com.sibim.model.Producto();
+        sinFoto.setUbicacion("Bodega");
+        sinFoto.setEstadoFisico("REGULAR");
+        com.sibim.model.Producto deBaja = new com.sibim.model.Producto();
+        deBaja.setFechaBaja(java.time.LocalDate.of(2026, 1, 5));
+
+        MiAreaPanel.Faltas f = MiAreaPanel.faltas(java.util.List.of(completo, vacio, sinFoto, deBaja));
+        assertEquals(new MiAreaPanel.Faltas(2, 2, 1, 1), f, "el de baja no cuenta; el completo tampoco");
+        assertEquals("sin foto 2 · sin ubicación 1 · sin estado físico 1", f.texto());
+        assertEquals("sin foto 1", MiAreaPanel.faltas(java.util.List.of(sinFoto)).texto(), "solo lo que falta");
+        assertEquals(0, MiAreaPanel.faltas(java.util.List.of(completo)).bienes());
     }
 }

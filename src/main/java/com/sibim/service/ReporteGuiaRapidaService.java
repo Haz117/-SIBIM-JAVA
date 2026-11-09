@@ -39,7 +39,7 @@ public class ReporteGuiaRapidaService extends ReporteService {
             "Los documentos que Patrimonio haga sin conexión llevan un folio provisional (por ejemplo RSG-PROV-3F2A1C); el definitivo se asigna al sincronizar.",
             "Sin conexión solo ves lo que esa computadora ya había consultado con internet."},
         {"3. Mantener al día los bienes de mi área",
-            "En Inicio, \"Pendientes de tu área\" dice qué bienes no tienen foto, ubicación o estado físico: da clic en uno y elige el bien.",
+            "En Inicio, \"Pendientes de tu área\" dice cuántos bienes no tienen foto, ubicación o estado físico: da clic en esa tarjeta y en cada bien pulsa \"Completar\".",
             "En Bienes, selecciona el bien y pulsa \"Actualizar datos\": cambias ubicación, estado físico, descripción y fotos.",
             "Dar de alta, dar de baja y los movimientos los hace Patrimonio.",
             "La etiqueta de cada bien tiene un código QR: al escanearlo con la cámara de cualquier celular se ve su ficha."},

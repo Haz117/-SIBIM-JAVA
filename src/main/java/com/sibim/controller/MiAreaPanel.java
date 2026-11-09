@@ -6,38 +6,56 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AccessibilityUtils;
-import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
- * "Pendientes de tu área", at the top of the Inicio of an área account: what
- * is missing from its bienes (photo, ubicación, estado físico) and what
- * Patrimonio sent it to confirm, each one a click away from being fixed.
- * Patrimonio sees the pendientes of the whole inventory in Alertas.
+ * "Pendientes de tu área", at the top of the Inicio of an área account: its three
+ * steps with the button of the one to do now, what Patrimonio sent it to confirm,
+ * its solicitudes de baja, and the bienes with data to fill in. Patrimonio sees
+ * the pendientes of the whole inventory in Alertas.
+ *
+ * <p>9-nov-2026: «sin foto», «sin ubicación» and «sin estado físico» were three
+ * cards with a list of their own (pick the bien, then «Actualizar datos») next to
+ * «Revisar mis bienes», which shows the same with a «Completar» on each row: two
+ * ways to the same thing for people who don't use a computer every day. Now they
+ * are one card that opens «Revisar mis bienes» on «Faltan datos».
  */
 final class MiAreaPanel {
 
-    /** Something a bien of the área lacks, which the área itself can fill in. */
-    record Pendiente(String icono, String estilo, String titulo, String accion, Predicate<Producto> falta) {}
+    /** How many of the área's bienes lack each thing the área itself can fill in. */
+    record Faltas(int bienes, int foto, int ubicacion, int estado) {
+        /** "sin foto 12 · sin ubicación 3 · sin estado físico 5" (only what is missing). */
+        String texto() {
+            List<String> t = new ArrayList<>();
+            if (foto > 0) t.add("sin foto " + foto);
+            if (ubicacion > 0) t.add("sin ubicación " + ubicacion);
+            if (estado > 0) t.add("sin estado físico " + estado);
+            return String.join(" · ", t);
+        }
+    }
 
-    static final List<Pendiente> PENDIENTES = List.of(
-        new Pendiente("mdi2c-camera-off", "qa-card-icon-amber", "sin foto",
-            "Agrégales una foto", p -> vacio(p.getFotoUrl())),
-        new Pendiente("mdi2m-map-marker-question-outline", "qa-card-icon-blue", "sin ubicación",
-            "Indica dónde están", p -> vacio(p.getUbicacion())),
-        new Pendiente("mdi2c-clipboard-alert-outline", "qa-card-icon-violet", "sin estado físico",
-            "Registra cómo están", p -> vacio(p.getEstadoFisico())));
+    /** What the active bienes lack: the same as the «Faltan datos» list of «Revisar mis bienes». */
+    static Faltas faltas(List<Producto> bienes) {
+        int n = 0, foto = 0, ubicacion = 0, estado = 0;
+        for (Producto p : bienes) {
+            if (p.getFechaBaja() != null || com.sibim.service.AvanceAreasService.conDatos(p)) continue;
+            n++;
+            if (vacio(p.getFotoUrl())) foto++;
+            if (vacio(p.getUbicacion())) ubicacion++;
+            if (vacio(p.getEstadoFisico())) estado++;
+        }
+        return new Faltas(n, foto, ubicacion, estado);
+    }
 
     private record Datos(List<Producto> bienes, List<Movimiento> porRecibir, List<com.sibim.model.Solicitud> bajas) {}
 
@@ -113,9 +131,10 @@ final class MiAreaPanel {
             ? SessionManager.getAccessibleAreas().iterator().next() : null;
         long revisados = d.bienes().stream().filter(Producto::isRevisadoPorArea).count();
         long etiquetados = d.bienes().stream().filter(Producto::isEtiquetado).count();
+        long regresados = d.bienes().stream().filter(p -> p.getMensajePatrimonio() != null).count();
         // The three steps on one line, the one to do now with its button: five cards of the
         // same size didn't say which came first nor that it was a path of three.
-        pintarAvance(d.bienes().size(), revisados, etiquetados,
+        pintarAvance(d.bienes().size(), revisados, etiquetados, regresados,
             () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
                 com.sibim.controller.dialogs.RevisarBienesDialog.Vista.POR_REVISAR, this::cargar),
             () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
@@ -137,12 +156,16 @@ final class MiAreaPanel {
                 () -> com.sibim.controller.dialogs.SolicitudesDialog.show(tarjetas.getScene(),
                     com.sibim.controller.dialogs.SolicitudesDialog.BAJAS, this::cargar)));
         }
-        for (Pendiente p : PENDIENTES) {
-            List<Producto> faltan = d.bienes().stream().filter(p.falta()).toList();
-            if (faltan.isEmpty()) continue;
-            tarjetas.getChildren().add(tarjeta(p.icono(), p.estilo(),
-                FormatUtils.plural(faltan.size(), "bien", "bienes") + " " + p.titulo(), p.accion(),
-                () -> abrirLista(p, faltan)));
+        // One card, to the same window as the steps: each row there has its «Completar».
+        Faltas f = faltas(d.bienes());
+        if (f.bienes() > 0) {
+            VBox datos = tarjeta("mdi2p-pencil-outline", "qa-card-icon-amber",
+                FormatUtils.plural(f.bienes(), "bien con datos por completar", "bienes con datos por completar"),
+                f.texto() + " · Complétalos en «Revisar mis bienes»",
+                () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
+                    com.sibim.controller.dialogs.RevisarBienesDialog.Vista.FALTAN_DATOS, this::cargar));
+            datos.setPrefWidth(360);   // what it lacks, in two lines rather than four
+            tarjetas.getChildren().add(datos);
         }
         if (tarjetas.getChildren().isEmpty() && d.bienes().isEmpty()) {
             tarjetas.getChildren().add(tarjeta("mdi2c-check-circle-outline", "qa-card-icon-green", "Todo al día",
@@ -154,7 +177,7 @@ final class MiAreaPanel {
 
     /** ① Entrar a SIBIM ─ ② Revisar tus bienes ─ ③ Confirmar etiquetas: done in green, the
      *  current one in gold with its button, the rest in gray. */
-    private void pintarAvance(int total, long revisados, long etiquetados, Runnable revisar, Runnable etiquetar) {
+    private void pintarAvance(int total, long revisados, long etiquetados, long regresados, Runnable revisar, Runnable etiquetar) {
         avance.getChildren().clear();
         boolean hay = total > 0;
         avance.setVisible(hay); avance.setManaged(hay);
@@ -166,7 +189,10 @@ final class MiAreaPanel {
             linea(true),
             paso(2, "Revisar tus bienes",
                 revisado ? "Los " + total + " revisados"
-                         : revisados + " de " + total + " · di si son de tu área y llena lo que falte",
+                         : revisados + " de " + total + (regresados > 0
+                             // Patrimonio sent some back with a message: that is what to look at first.
+                             ? " · Patrimonio te regresó " + regresados + " con un mensaje"
+                             : " · di si son de tu área y llena lo que falte"),
                 revisado, actual == 2, "Revisar mis bienes", revisar),
             linea(revisado),
             paso(3, "Confirmar etiquetas",
@@ -239,76 +265,6 @@ final class MiAreaPanel {
             card.getStyleClass().add("quick-action-card-static");
         }
         return card;
-    }
-
-    /** The bienes that lack {@code p}, with "Actualizar datos" one click away. */
-    private void abrirLista(Pendiente p, List<Producto> faltan) {
-        Dialog<ButtonType> dlg = DialogUtil.createButtonDialog(760);
-        dlg.setTitle("Bienes " + p.titulo());
-        DialogPane pane = dlg.getDialogPane();
-        pane.getButtonTypes().setAll(ButtonType.CLOSE);
-        pane.setHeader(DialogUtil.gradientHeader(p.icono(), "Bienes " + p.titulo(),
-            FormatUtils.plural(faltan.size(), "bien", "bienes") + " — elige uno y da «Actualizar datos»",
-            AppColors.PRIMARY_D, AppColors.INDIGO));
-
-        TableView<Producto> tabla = new TableView<>(javafx.collections.FXCollections.observableArrayList(faltan));
-        tabla.getStyleClass().add("data-table");
-        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tabla.getColumns().add(columna("Código", 110, Producto::getCodigo));
-        tabla.getColumns().add(columna("Bien", 260, Producto::getNombre));
-        tabla.getColumns().add(columna("Ubicación", 160, Producto::getUbicacion));
-        tabla.getColumns().add(columna("Estado físico", 110, Producto::getEstadoFisico));
-        tabla.setPrefHeight(380);
-        tabla.setPlaceholder(new Label("Ya no queda ninguno: ¡listo!"));
-
-        Button actualizar = new Button("Actualizar datos");
-        actualizar.setGraphic(new FontIcon("mdi2p-pencil-outline"));
-        actualizar.getStyleClass().add("btn-primary");
-        actualizar.disableProperty().bind(tabla.getSelectionModel().selectedItemProperty().isNull());
-        Runnable abrir = () -> {
-            Producto sel = tabla.getSelectionModel().getSelectedItem();
-            if (sel == null) return;
-            Scene escena = pane.getScene();
-            GuardarBien.actualizarDatos(escena, productos, sel, log, saved -> {
-                int i = tabla.getItems().indexOf(sel);
-                if (i < 0) return;
-                if (p.falta().test(saved)) tabla.getItems().set(i, saved);
-                else tabla.getItems().remove(i);
-            });
-        };
-        actualizar.setOnAction(e -> abrir.run());
-        tabla.setRowFactory(tv -> {
-            TableRow<Producto> row = new TableRow<>();
-            row.setOnMouseClicked(e -> { if (e.getClickCount() == 2 && !row.isEmpty()) abrir.run(); });
-            return row;
-        });
-        tabla.setOnKeyPressed(e -> { if (e.getCode() == javafx.scene.input.KeyCode.ENTER) abrir.run(); });
-
-        Label ayuda = new Label("Doble clic o Enter en un bien también lo abre.");
-        ayuda.getStyleClass().add("muted-sm");
-        Region espacio = new Region();
-        HBox.setHgrow(espacio, Priority.ALWAYS);
-        HBox acciones = new HBox(10, ayuda, espacio, actualizar);
-        acciones.setAlignment(Pos.CENTER_LEFT);
-        VBox contenido = new VBox(10, tabla, acciones);
-        contenido.setPadding(new Insets(16, 20, 12, 20));
-        // DialogPane gives its content the "content" class, whose CSS padding (0) would win over ours.
-        pane.setContent(new StackPane(contenido));
-        javafx.application.Platform.runLater(() -> {
-            tabla.requestFocus();
-            if (!tabla.getItems().isEmpty()) tabla.getSelectionModel().selectFirst();
-        });
-        dlg.showAndWait();
-        cargar();
-    }
-
-    private static TableColumn<Producto, String> columna(String titulo, double ancho,
-                                                         java.util.function.Function<Producto, String> valor) {
-        TableColumn<Producto, String> c = new TableColumn<>(titulo);
-        c.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(
-            vacio(valor.apply(cd.getValue())) ? "—" : valor.apply(cd.getValue())));
-        c.setPrefWidth(ancho);
-        return c;
     }
 
     static boolean vacio(String s) { return s == null || s.isBlank(); }

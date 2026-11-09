@@ -286,6 +286,13 @@ public class Producto implements Cloneable {
     public boolean isRevisadoPorArea() { return revisadoAreaEn != null; }
     /** The área said it isn't theirs or they don't have it: Patrimonio has to look. */
     public boolean isObservadoPorArea() { return revisadoAreaEn != null && revisionAreaNota != null && !revisionAreaNota.isBlank(); }
+    /** What Patrimonio told the área when it sent the bien back to «Por revisar»
+     *  (9-nov-2026: "it is yours, it's in the bodega"), so the área doesn't answer
+     *  "no es" again without knowing why. The same column as the área's note,
+     *  while the bien waits for the área's answer; null when there is none. */
+    public String getMensajePatrimonio() {
+        return revisadoAreaEn == null && revisionAreaNota != null && !revisionAreaNota.isBlank() ? revisionAreaNota : null;
+    }
 
     // ── Inventario físico MLA ─────────────────────────────────────────
     private String estadoFisico;   // BUENO / REGULAR / MALO / DEFICIENTE
