@@ -207,7 +207,14 @@ public class ConfiguracionController {
             if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 315);
         }
 
-        if (isAdmin) new ConfigAreasSectionBuilder(backupSection, this::refrescarAvisoFormatos).build();
+        if (isAdmin) {
+            areasBuilder = new ConfigAreasSectionBuilder(backupSection, this::refrescarAvisoFormatos)
+                .conCapturarTitulares(() -> abrirDatosFormatos(com.sibim.controller.dialogs.DatosFormatosDialog.Seccion.TITULARES));
+            areasBuilder.build();
+            // «Completar datos» in the Inicio's Por hacer opens the window right away.
+            if ("formatos".equals(com.sibim.session.NavigationContext.consumePendingAbrir()))
+                javafx.application.Platform.runLater(() -> abrirDatosFormatos(null));
+        }
 
         if (isAdmin) {
             AppExecutor.submit(() -> {
@@ -291,6 +298,26 @@ public class ConfiguracionController {
     }
 
     @FXML private VBox avisoFormatos;
+    private ConfigAreasSectionBuilder areasBuilder;
+
+    /** RFC, domicilio, firmas and titulares in one window (9-nov-2026); on saving, this
+     *  screen's fields, the warning and the áreas table show what was saved. */
+    private void abrirDatosFormatos(com.sibim.controller.dialogs.DatosFormatosDialog.Seccion seccion) {
+        javafx.scene.Scene escena = configCard != null ? configCard.getScene() : null;
+        com.sibim.controller.dialogs.DatosFormatosDialog.abrir(escena, seccion, () -> {
+            refrescarAvisoFormatos();
+            if (areasBuilder != null) areasBuilder.recargarTitulares();
+            // What is being typed in the card is not overwritten.
+            if (!configDirty) DialogUtil.runAsync(() -> configRepo.findAll(), cfg -> {
+                if (tfRfc          != null) tfRfc.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_RFC, ""));
+                if (tfDomicilio    != null) tfDomicilio.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_DOMICILIO, ""));
+                if (tfFirmaElabora != null) tfFirmaElabora.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_ELABORA, ""));
+                if (tfFirmaVoBo    != null) tfFirmaVoBo.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_VOBO, ""));
+                firmantes().forEach((tf, clave) -> tf.setText(cfg.getOrDefault(clave, "")));
+                clearConfigDirty();
+            }, e -> { });
+        });
+    }
 
     /** What the official formats print and nobody has typed. It wasn't said anywhere:
      *  the PDFs just came out with those blanks. */
@@ -306,17 +333,23 @@ public class ConfiguracionController {
         Label que = new Label("Para los formatos oficiales falta: " + String.join(", ", faltan));
         que.setWrapText(true);
         que.getStyleClass().add("rsg-tarjeta-titulo");
-        Label porque = new Label("Sin estos datos, la hoja de resguardo de vehículos y el Anexo V.4 salen con esos espacios en blanco.");
+        Label porque = new Label("Sin estos datos, la hoja de resguardo de vehículos y el Anexo V.4 salen con esos espacios en blanco. "
+            + "Se capturan todos en una sola ventana, con sugerencias de quién es titular de cada área.");
         porque.setWrapText(true);
         porque.getStyleClass().add("muted-sm");
-        Hyperlink irDatos = new Hyperlink("Ir a los datos");
-        irDatos.setOnAction(e -> irA(configCard));
-        Hyperlink irAreas = new Hyperlink("Ir a los titulares");
-        irAreas.setOnAction(e -> {
-            javafx.scene.Node areas = avisoFormatos.getScene() != null ? avisoFormatos.getScene().lookup("#cardAreas") : null;
-            if (areas != null) irA(areas);
-        });
-        avisoFormatos.getChildren().addAll(que, porque, new javafx.scene.layout.HBox(8, irDatos, irAreas));
+        porque.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        Button completar = new Button("Completar los datos");
+        completar.getStyleClass().addAll("btn-primary", "btn-sm");
+        FontIcon icono = new FontIcon("mdi2f-file-document-edit-outline");
+        icono.getStyleClass().add("avance-aviso-boton-icono");
+        completar.setGraphic(icono);
+        completar.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        completar.setOnAction(e -> abrirDatosFormatos(null));
+        javafx.scene.layout.VBox textos = new javafx.scene.layout.VBox(2, que, porque);
+        javafx.scene.layout.HBox.setHgrow(textos, javafx.scene.layout.Priority.ALWAYS);
+        javafx.scene.layout.HBox fila = new javafx.scene.layout.HBox(14, textos, completar);
+        fila.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        avisoFormatos.getChildren().add(fila);
     }
 
     /** Once something was saved: the warning has to stop asking for it right away. */

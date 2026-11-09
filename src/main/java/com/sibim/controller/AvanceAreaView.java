@@ -1,6 +1,5 @@
 package com.sibim.controller;
 
-import com.sibim.config.AreaCatalog;
 import com.sibim.config.Areas;
 import com.sibim.controller.dialogs.RevisarBienesDialog;
 import com.sibim.service.AvanceAreasService.Avance;
@@ -302,36 +301,13 @@ final class AvanceAreaView {
         }
     }
 
-    static final String AUTONOMOS = OrganigramaAcomodoBuilder.AUTONOMOS;
+    static final String AUTONOMOS = Areas.AUTONOMOS;
 
-    /** Where an área hangs in the organigrama: its secretaría (or the Presidencia), the
-     *  área itself when it heads one, or the organismos autónomos. */
-    static String dependenciaDe(String area) {
-        Optional<AreaCatalog.Entrada> e = Areas.catalogo().buscar(area);
-        if (e.isEmpty()) return AUTONOMOS;
-        return switch (e.get().grupo()) {
-            case PRESIDENCIA, SECRETARIA -> area;
-            case DIRECCION -> e.get().padre() != null && !e.get().padre().isBlank() ? e.get().padre() : AUTONOMOS;
-            case AUTONOMO -> AUTONOMOS;
-        };
-    }
+    static String dependenciaDe(String area) { return Areas.dependenciaDe(area); }
 
-    /** The áreas in groups by dependencia: each group in the order its head comes in the
-     *  organigrama, the head first, and the organismos autónomos at the end. */
+    /** The áreas in groups by dependencia (Areas#porDependencia). */
     static LinkedHashMap<String, List<Avance>> agrupar(List<Avance> filas) {
-        Map<String, List<Avance>> grupos = new LinkedHashMap<>();
-        for (Avance a : filas) grupos.computeIfAbsent(dependenciaDe(a.area()), k -> new ArrayList<>()).add(a);
-        List<String> orden = new ArrayList<>(Areas.getAllAreaNames());
-        Comparator<String> porOrganigrama = Comparator
-            .comparing((String g) -> g.equals(AUTONOMOS))
-            .thenComparingInt(g -> orden.indexOf(g) < 0 ? Integer.MAX_VALUE : orden.indexOf(g));
-        LinkedHashMap<String, List<Avance>> out = new LinkedHashMap<>();
-        grupos.keySet().stream().sorted(porOrganigrama).forEach(g -> {
-            List<Avance> l = new ArrayList<>(grupos.get(g));
-            l.sort(Comparator.comparing((Avance a) -> !a.area().equals(g)));
-            out.put(g, l);
-        });
-        return out;
+        return Areas.porDependencia(filas, Avance::area);
     }
 
     private static final double ANCHO_AVANCE = 330, ANCHO_ACCESO = 120, ANCHO_MAXIMO = 1320;

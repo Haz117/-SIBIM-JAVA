@@ -113,7 +113,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el avance de las áreas, más claro; luego pasar un resguardo a otra persona y avisos más claros",
+                "Primero lo más nuevo: el avance de las áreas y los datos de los formatos; luego pasar un resguardo a otra persona",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
             p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
@@ -122,6 +122,12 @@ final class TutorialGuias {
                 "Cada área dice si ya tiene cuenta: sin cuenta no puede entrar; «Crear las cuentas» te lleva a hacerlo",
                 "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado"),
                 "Abrir el avance", abrir("organigrama", "avance")));
+            p.add(probar(paso("mdi2f-file-document-edit-outline", GUINDA, GUINDA_D, "Los datos de los formatos, en un solo lugar", "configuracion", null,
+                "RFC, domicilio, quién firma cada formato y el titular de cada área, en una sola ventana con tres tarjetas",
+                "Cada área tiene su campo, agrupadas por secretaría, y «Solo las que faltan» deja las pendientes",
+                "Debajo de cada campo salen sugerencias de quién firma resguardos ahí como director o titular: un clic lo escribe",
+                "Guarda las veces que quieras sin cerrar; también se abre desde «Por hacer» del Inicio"),
+                "Abrir Datos de los formatos", abrir("configuracion", "formatos")));
             p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
                 "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
                 "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
@@ -534,13 +540,14 @@ final class TutorialGuias {
 
     private static Guia prepararFormatos() {
         return new Guia("formatos", "Preparar los formatos oficiales", "Los datos que los PDF necesitan y aún no se han capturado", "mdi2f-file-certificate-outline", List.of(
-            paso("mdi2c-cog-outline", GRIS, GRIS_D, "1. Datos del municipio", "configuracion", null,
-                "En Configuración captura RFC, domicilio, Elaboró y Vo. Bo.",
-                "Se usan en la hoja de resguardo de cada vehículo"),
+            probar(paso("mdi2c-cog-outline", GRIS, GRIS_D, "1. Datos del municipio y firmas", "configuracion", null,
+                "En Configuración, «Completar los datos» abre una sola ventana: RFC, domicilio y quién firma cada formato",
+                "Elaboró y Vo. Bo. van en casi todos; las firmas vacías salen como «Nombre y firma»"),
+                "Abrir Datos de los formatos", abrir("configuracion", "formatos")),
             paso("mdi2o-office-building-outline", GRIS, GRIS_D, "2. Titular de cada área", "configuracion", null,
-                "En Configuración › Áreas y prefijos, doble clic en la celda Titular: escríbelo y Enter",
-                "Es el responsable en el Anexo V.4: sin él, esa columna sale vacía",
-                "También lo propone el Resguardo general del área")));
+                "En la misma ventana, «Titulares de las áreas»: cada área con su campo, por secretaría",
+                "Debajo salen sugerencias (quien firma resguardos ahí como director o titular); un clic lo escribe",
+                "Es el responsable en el Anexo V.4: sin él, esa columna sale vacía")));
     }
 
     private static Guia misBienes() {

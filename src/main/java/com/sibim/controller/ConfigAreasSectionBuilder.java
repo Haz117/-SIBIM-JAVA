@@ -43,6 +43,19 @@ class ConfigAreasSectionBuilder {
         this.config = config;
     }
 
+    private Runnable capturarTitulares;
+
+    /** A button that opens every titular at once (Datos de los formatos). */
+    ConfigAreasSectionBuilder conCapturarTitulares(Runnable abrir) {
+        this.capturarTitulares = abrir;
+        return this;
+    }
+
+    /** After the titulares were saved somewhere else. */
+    void recargarTitulares() {
+        if (table != null) refrescar();
+    }
+
     void build() {
         if (anchorSection == null || !(anchorSection.getParent() instanceof VBox rootVBox)) return;
 
@@ -61,7 +74,7 @@ class ConfigAreasSectionBuilder {
         Label hint = new Label("El organigrama y el prefijo con el que se numeran los bienes nuevos de cada área "
             + "(p. ej. TICS/01). Al cambiar un prefijo puedes renumerar los bienes activos del área o dejarlo solo para los nuevos; "
             + "el nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. "
-            + "Para capturar el titular, doble clic en su celda: escríbelo y Enter.");
+            + "Los titulares se capturan todos juntos con «Capturar titulares» (o doble clic en su celda).");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted-sm");
 
@@ -134,6 +147,14 @@ class ConfigAreasSectionBuilder {
             }
         });
         HBox actions = new HBox(8, btnNueva, btnEditar);
+        if (capturarTitulares != null) {
+            Button btnTitulares = new Button("Capturar titulares");
+            btnTitulares.getStyleClass().add("btn-secondary");
+            btnTitulares.setGraphic(new FontIcon("mdi2a-account-check-outline"));
+            btnTitulares.setOnAction(e -> capturarTitulares.run());
+            btnTitulares.setDisable(!editable);
+            actions.getChildren().add(btnTitulares);
+        }
         actions.setAlignment(Pos.CENTER_LEFT);
         if (!editable) {
             btnNueva.setDisable(true);

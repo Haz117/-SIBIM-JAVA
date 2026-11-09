@@ -44,6 +44,39 @@ public final class Areas {
         return Collections.unmodifiableSet(names);
     }
 
+    /** The group of the áreas that hang from no one, as the organigrama names it. */
+    public static final String AUTONOMOS = "Organismos Autónomos";
+
+    /** Where an área hangs in the organigrama: its secretaría (or the Presidencia), the
+     *  área itself when it heads one, or the organismos autónomos. */
+    public static String dependenciaDe(String area) {
+        Optional<AreaCatalog.Entrada> e = catalogo.buscar(area);
+        if (e.isEmpty()) return AUTONOMOS;
+        return switch (e.get().grupo()) {
+            case PRESIDENCIA, SECRETARIA -> area;
+            case DIRECCION -> e.get().padre() != null && !e.get().padre().isBlank() ? e.get().padre() : AUTONOMOS;
+            case AUTONOMO -> AUTONOMOS;
+        };
+    }
+
+    /** {@code items} in groups by dependencia: each group in the order its head comes in
+     *  the organigrama, the head first, and the organismos autónomos at the end. */
+    public static <T> LinkedHashMap<String, List<T>> porDependencia(Collection<T> items, java.util.function.Function<T, String> areaDe) {
+        Map<String, List<T>> grupos = new LinkedHashMap<>();
+        for (T x : items) grupos.computeIfAbsent(dependenciaDe(areaDe.apply(x)), k -> new ArrayList<>()).add(x);
+        List<String> orden = new ArrayList<>(getAllAreaNames());
+        Comparator<String> porOrganigrama = Comparator
+            .comparing((String g) -> g.equals(AUTONOMOS))
+            .thenComparingInt(g -> orden.indexOf(g) < 0 ? Integer.MAX_VALUE : orden.indexOf(g));
+        LinkedHashMap<String, List<T>> out = new LinkedHashMap<>();
+        grupos.keySet().stream().sorted(porOrganigrama).forEach(g -> {
+            List<T> l = new ArrayList<>(grupos.get(g));
+            l.sort(Comparator.comparing((T x) -> !areaDe.apply(x).equals(g)));
+            out.put(g, l);
+        });
+        return out;
+    }
+
     /** Returns the list of direction names under a given secretariat name, or empty if not found */
     public static List<String> getDireccionesDeSecretaria(String secretariaNombre) {
         for (SecretariaInfo s : secretarias()) {

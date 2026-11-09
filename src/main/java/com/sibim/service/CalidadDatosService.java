@@ -538,7 +538,7 @@ public class CalidadDatosService {
         agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && !p.isEtiquetado()).count(),
             "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
         agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),
-            "datos faltan para los formatos", "Ir a Configuración", "configuracion", null);
+            "datos faltan para los formatos", "Completar datos", "configuracion", "formatos");
         return out;
     }
 
