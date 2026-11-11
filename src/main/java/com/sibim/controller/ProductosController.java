@@ -248,7 +248,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -416,6 +416,7 @@ public class ProductosController {
             case "observados" -> Platform.runLater(() -> com.sibim.controller.dialogs.RevisarBienesDialog.show(null,
                 com.sibim.controller.dialogs.RevisarBienesDialog.Vista.OBSERVADOS, this::alCorregirDatos));
             case "series"    -> Platform.runLater(this::onSeriesRepetidas);
+            case "factura"   -> Platform.runLater(this::onMismaFactura);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
@@ -581,6 +582,7 @@ public class ProductosController {
     @FXML private MenuItem btnUnirPersonas;
     @FXML private MenuItem btnQuitarTitulos;
     @FXML private MenuItem btnSeriesRepetidas;
+    @FXML private MenuItem btnMismaFactura;
     @FXML private MenuItem btnCostoLotes;
     @FXML private MenuItem btnEtiquetasArea;
     @FXML private SeparatorMenuItem sepRevisarDatos;
@@ -628,6 +630,12 @@ public class ProductosController {
     @FXML
     private void onSeriesRepetidas() {
         conInventario(bienes -> com.sibim.controller.dialogs.SeriesRepetidasDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onMismaFactura() {
+        conInventario(bienes -> com.sibim.controller.dialogs.MismaFacturaDialog.pendientes(table.getScene(), productoService,
+            bienes, this::alCorregirDatos));
     }
 
     @FXML
@@ -1201,15 +1209,25 @@ public class ProductosController {
                     seccionDeLaSerie = seguir != null && seguir.pedido() && !isNew ? seguir.pestana() : 0;
                     // Once this window is really gone: opening another while its event
                     // loop unwinds freezes the app.
-                    if (seguir != null && seguir.pedido() && !aLaOtraPagina) Platform.runLater(() -> {
-                        if (isNew) {
-                            showProductDialog(plantillaDe(saved));
-                        } else {
-                            table.getSelectionModel().clearSelection();
-                            table.getSelectionModel().select(siguiente);
-                            showProductDialog(siguiente);
-                        }
-                    });
+                    Runnable seguirConOtro = () -> {
+                        if (seguir != null && seguir.pedido() && !aLaOtraPagina) Platform.runLater(() -> {
+                            if (isNew) {
+                                showProductDialog(plantillaDe(saved));
+                            } else {
+                                table.getSelectionModel().clearSelection();
+                                table.getSelectionModel().select(siguiente);
+                                showProductDialog(siguiente);
+                            }
+                        });
+                    };
+                    // What it got, to the other bienes of its factura (11-nov-2026: half of
+                    // Patrimonio's edits repeated a sibling's proveedor, folio, cost…).
+                    if (com.sibim.session.Permisos.editaFichaCompleta()) {
+                        com.sibim.controller.dialogs.MismaFacturaDialog.ofrecer(table.getScene(), productoService,
+                            isNew ? null : existing, saved, this::loadData, seguirConOtro);
+                    } else {
+                        seguirConOtro.run();
+                    }
                     new javafx.animation.Timeline(new javafx.animation.KeyFrame(
                         javafx.util.Duration.seconds(1.8), e2 -> {
                             pendingHighlightId = null;

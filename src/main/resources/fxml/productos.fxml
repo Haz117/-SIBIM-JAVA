@@ -59,6 +59,9 @@
                 <MenuItem fx:id="btnSeriesRepetidas" text="Series repetidas" onAction="#onSeriesRepetidas">
                     <graphic><FontIcon iconLiteral="mdi2b-barcode-scan"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnMismaFactura" text="Copiar datos de la misma factura" onAction="#onMismaFactura">
+                    <graphic><FontIcon iconLiteral="mdi2r-receipt"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnEtiquetasArea" text="Etiquetas por área" onAction="#onEtiquetasArea">
                     <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
                 </MenuItem>

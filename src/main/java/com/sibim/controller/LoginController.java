@@ -128,7 +128,37 @@ public class LoginController {
             else          { lblCapsLock.setVisible(false); lblCapsLock.setManaged(false); }
         });
 
+        // The last account that entered on this PC is already written (11-nov-2026: 14 failed
+        // sign-ins in two weeks were "superusario" and "supurusuario"); the cursor goes to
+        // the password. Another account is typed over it.
+        String recordado = UltimoUsuario.leer();
+        if (recordado != null && usernameField.getText().isBlank()) {
+            usernameField.setText(recordado);
+            javafx.application.Platform.runLater(passwordField::requestFocus);
+        }
+
         playEntrance();
+    }
+
+    /** The user name of the last sign-in on this PC (not the password). */
+    static final class UltimoUsuario {
+        private static final String NODO = "sibim/login", CLAVE = "ultimoUsuario";
+        private UltimoUsuario() {}
+        static String leer() {
+            try {
+                String u = java.util.prefs.Preferences.userRoot().node(NODO).get(CLAVE, null);
+                return u == null || u.isBlank() ? null : u;
+            } catch (Exception | Error e) {
+                return null;
+            }
+        }
+        static void guardar(String usuario) {
+            try {
+                java.util.prefs.Preferences.userRoot().node(NODO).put(CLAVE, usuario.trim());
+            } catch (Exception | Error ignored) {
+                // a PC that can't keep preferences just asks for the name again
+            }
+        }
     }
 
     /** The panels slide/fade in as a whole first (primary arrival motion);
@@ -203,6 +233,7 @@ public class LoginController {
                 setLoading(false);
                 com.sibim.service.AuthService.LoginResult result = getValue();
                 Usuario user = SessionManager.getCurrentUser();
+                UltimoUsuario.guardar(username);
                 // Can't push a password change anywhere while offline (user
                 // management isn't in the sync scope — see the offline-mode
                 // plan), so the mandatory dialog is deferred rather than

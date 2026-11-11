@@ -525,6 +525,8 @@ public class CalidadDatosService {
             "Quitar títulos", "productos", "titulos");
         agregar(out, personasRepetidas(resguardos, bienes, distintas).size(), "personas con el nombre repetido", "Unir personas", "productos", "unir");
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
+        agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
+            "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
         agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
         agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");

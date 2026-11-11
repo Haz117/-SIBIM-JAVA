@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.25";
+    public static final String VERSION_NOVEDADES = "1.0.26";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -113,9 +113,19 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el avance de las áreas, los datos de los formatos y los avisos de las áreas; luego pasar un resguardo a otra persona",
+                "Primero lo más nuevo: los datos de una factura van a todos sus bienes, y el IVA en un clic; luego el avance de las áreas y los datos de los formatos",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(probar(paso("mdi2r-receipt", GUINDA, GUINDA_D, "Lo mismo para toda la factura", "productos", "#btnMasBienes",
+                "Al guardar un bien con su número de factura, SIBIM te ofrece ponerles lo que capturaste a los demás bienes de esa factura",
+                "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil y color, solo a los del mismo nombre",
+                "Solo llena los que no lo tienen o tenían lo mismo; un dato distinto que alguien ya capturó no se toca",
+                "Puedes quitar la marca de lo que no quieras pasar, y deshacerlo desde el aviso",
+                "Bienes › Más › «Copiar datos de la misma factura» llena de una vez lo que ya tiene un bien y a sus hermanos les falta"),
+                "Ver qué se puede copiar", abrir("productos", "factura")));
+            p.add(paso("mdi2c-cash-plus", VERDE, VERDE_D, "Menos tecleo", "productos", "#btnEditar",
+                "Debajo del costo de un bien, «Sumarle el IVA (16 %)» hace la cuenta y la escribe; se usa una sola vez por costo",
+                "Al abrir SIBIM, tu usuario ya está escrito: solo pones la contraseña"));
             p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
                 "Arriba, cinco tarjetas: cuántas áreas faltan por entrar, cuántas revisan sus bienes, cuántas ponen etiquetas y cuántas terminaron; un clic filtra",
                 "Las áreas van agrupadas por secretaría, cada una con sus tres pasos en una sola barra",
@@ -294,9 +304,9 @@ final class TutorialGuias {
                 "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
                 "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
                 "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
-            // After the intro: 1.0.25 (el avance de las áreas), then 1.0.24 (pasar a otra persona, botones),
-            // then everything before (1.0.22: resguardo … corregir nombre; 1.0.21 and older).
-            int anterior = indice(p, "Pasar un resguardo a otra persona"), antes = indice(p, "Resguardo con marca, serie y precio");
+            // After the intro: 1.0.26 (la misma factura, el IVA), then 1.0.25 (el avance de las áreas…),
+            // then everything before (1.0.24: pasar a otra persona; 1.0.22 and older).
+            int anterior = indice(p, "El avance de las áreas, más claro"), antes = indice(p, "Pasar un resguardo a otra persona");
             enGrupo(p, 1, anterior, NUEVO);
             enGrupo(p, anterior, antes, ANTERIOR);
             enGrupo(p, antes, p.size(), ANTES);
@@ -304,6 +314,9 @@ final class TutorialGuias {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Cada paso te lleva a la pantalla y marca dónde está",
                 "Con «Probarlo ahora» abres la ventana de verdad"));
+            p.add(paso("mdi2a-account-check-outline", GUINDA, GUINDA_D, "Tu usuario ya está escrito", null, null,
+                "Al abrir SIBIM en esta computadora, el usuario con el que entraste la última vez ya está escrito: solo pones la contraseña",
+                "Si es otra cuenta, escribe encima"));
             p.add(paso("mdi2c-clipboard-check-multiple-outline", VERDE, VERDE_D, "Tu avance, en tres pasos", "dashboard", "#miAreaSection",
                 "En tu Inicio ves tus tres pasos: entrar a SIBIM, revisar tus bienes y confirmar sus etiquetas",
                 "El paso que toca tiene su botón: «Revisar mis bienes» y después «Confirmar etiquetas»",

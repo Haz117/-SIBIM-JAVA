@@ -34,6 +34,7 @@ class ProductoTabStockFields {
     final Label               lblStockBloqueado;
     final Label               lblLote;
     final Hyperlink           lnkDividir;
+    final Hyperlink           lnkIva;
 
     ProductoTabStockFields(Producto existing) {
 
@@ -135,6 +136,29 @@ class ProductoTabStockFields {
         fStock.getEditor().textProperty().addListener((o, a, b) -> explicarLote.run());
         explicarLote.run();
 
+        // From 28-oct to 11-nov-2026, 99 of 178 cost changes were the cost times 1.16, done
+        // by hand. Once added it hides, until another cost is typed: never twice by mistake.
+        lnkIva = new Hyperlink();
+        lnkIva.getStyleClass().add("field-hint");
+        lnkIva.setPadding(javafx.geometry.Insets.EMPTY);
+        String[] conIva = {null};
+        Runnable explicarIva = () -> {
+            BigDecimal precio = precioEscrito();
+            boolean ver = precio != null && precio.signum() > 0 && !fPrecioC.getText().equals(conIva[0]);
+            lnkIva.setVisible(ver);
+            lnkIva.setManaged(ver);
+            if (ver) lnkIva.setText("Sumarle el IVA (16 %): " + FormatUtils.formatCurrency(conIva(precio)));
+        };
+        lnkIva.setOnAction(e -> {
+            BigDecimal precio = precioEscrito();
+            if (precio == null || precio.signum() <= 0) return;
+            conIva[0] = conIva(precio).toPlainString();
+            fPrecioC.setText(conIva[0]);
+            fPrecioC.positionCaret(conIva[0].length());
+        });
+        fPrecioC.textProperty().addListener((o, a, b) -> explicarIva.run());
+        explicarIva.run();
+
         fVenc = new DatePicker(existing != null ? existing.getFechaVencimiento() : null);
         fVenc.setConverter(FormatUtils.datePickerConverter());
         fVenc.setMaxWidth(Double.MAX_VALUE);
@@ -145,7 +169,7 @@ class ProductoTabStockFields {
         principal.add(DialogUtil.fieldLabelWithHelp("Costo de adquisición",
             "Precio de compra por unidad, según factura.\n"
             + "Es el valor patrimonial del bien en reportes y actas."),
-                                                                  0, rs); principal.add(new VBox(2, fPrecioC, lblPrecioCHint, lote), 1, rs++);
+                                                                  0, rs); principal.add(new VBox(2, fPrecioC, lblPrecioCHint, lnkIva, lote), 1, rs++);
         principal.add(DialogUtil.fieldLabel("Cantidad"),          0, rs); principal.add(new VBox(2, fStock, lblStockBloqueado), 1, rs++);
         principal.add(DialogUtil.fieldLabel("Unidad"),            0, rs); principal.add(fUnidad,   1, rs++);
         principal.add(DialogUtil.fieldLabelWithHelp("Garantía hasta",
@@ -165,6 +189,11 @@ class ProductoTabStockFields {
         } catch (NumberFormatException e) {
             return fStock.getValue() == null ? 1 : fStock.getValue();
         }
+    }
+
+    /** The cost plus 16 % IVA, to the centavo. */
+    static BigDecimal conIva(BigDecimal precio) {
+        return precio.multiply(new BigDecimal("1.16")).setScale(2, RoundingMode.HALF_UP);
     }
 
     /** The cost as typed, or null while it isn't a number. */
