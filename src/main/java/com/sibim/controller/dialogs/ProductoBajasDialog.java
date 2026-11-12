@@ -313,12 +313,20 @@ public final class ProductoBajasDialog {
 
         row.getChildren().addAll(info, btnReactivar);
 
-        // double-click → detail
+        // double-click → detail; with the keyboard, Tab to the row and Enter (12-nov-2026: only the mouse could)
         row.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 ProductoDetailDialog.show(p, dialog.getDialogPane().getScene(), movimientoService, log);
                 e.consume();
             }
+        });
+        row.setFocusTraversable(true);
+        row.getStyleClass().add("a11y-focusable");
+        row.setAccessibleText(p.getCodigo() + " " + java.util.Objects.requireNonNullElse(p.getNombre(), "") + ": Enter para ver el detalle");
+        row.setOnKeyPressed(e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.getTarget() != row) return;
+            ProductoDetailDialog.show(p, dialog.getDialogPane().getScene(), movimientoService, log);
+            e.consume();
         });
 
         // context menu
