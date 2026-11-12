@@ -288,8 +288,12 @@ class ProductoTabPatrimonioFields {
     /** Puts the costo (its label and its box, built by the other tab with its IVA and lot
      *  hints) in «Compra», between the fecha and the vida útil. */
     void ponerCosto(javafx.scene.Node etiqueta, javafx.scene.Node caja) {
-        grid.add(etiqueta, 0, filaCosto);
-        grid.add(caja, 1, filaCosto);
+        GridPane.setConstraints(etiqueta, 0, filaCosto);
+        GridPane.setConstraints(caja, 1, filaCosto);
+        // Right after the fecha among the children too: Tab follows the children's order,
+        // not the rows, and added at the end the costo came after the póliza.
+        int i = grid.getChildren().indexOf(fFechaAdq) + 1;
+        grid.getChildren().addAll(i, List.of(etiqueta, caja));
     }
 
     /** Attaches dirty-tracking listeners on all editable fields. Call AFTER
