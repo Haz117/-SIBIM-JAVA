@@ -181,6 +181,16 @@ public final class EtiquetasAreaDialog {
         lista.getStyleClass().addAll("cnt-lista", "rsg-lista");
         lista.setCellFactory(lv -> new CeldaBien(lv));
         lista.setPlaceholder(new Label("No hay bienes aquí"));
+        // Space ticks the bien the keyboard is on, as a click does: the check box inside
+        // the row never gets the focus, so only the mouse could (12-nov-2026).
+        lista.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.SPACE) return;
+            Producto p = lista.getSelectionModel().getSelectedItem();
+            if (p == null) return;
+            if (!marcados.remove(p.getId())) marcados.add(p.getId());
+            actualizar();
+            e.consume();
+        });
         VBox.setVgrow(lista, Priority.ALWAYS);
 
         panel.getChildren().setAll(arriba, pestanas, buscar, lista);
@@ -404,7 +414,7 @@ public final class EtiquetasAreaDialog {
             detalle.setText(p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "Sin resguardante");
             ver(hecho, p.isEtiquetado());
             casilla.setSelected(marcados.contains(p.getId()));
-            casilla.setAccessibleText(p.getCodigo());
+            casilla.setAccessibleText(p.getCodigo() + " " + java.util.Objects.requireNonNullElse(p.getNombre(), ""));
             fila.getStyleClass().remove("rsg-fila-sel");
             if (casilla.isSelected()) fila.getStyleClass().add("rsg-fila-sel");
             setGraphic(fila);

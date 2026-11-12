@@ -121,10 +121,24 @@ public final class FotosRepetidasDialog {
         img.setFitWidth(120);
         img.setFitHeight(120);
         img.setPreserveRatio(true);
-        img.setImage(imagen(g.url()));
-        StackPane marco = new StackPane(img);
+        Image im = imagen(g.url());
+        img.setImage(im);
+        // Without the backup's copy nor internet the photo can't load: say so instead of a blank.
+        Label sinVista = new Label("Sin vista previa", new FontIcon("mdi2i-image-off-outline"));
+        sinVista.setContentDisplay(ContentDisplay.TOP);
+        sinVista.getStyleClass().add("muted-sm");
+        if (im == null) sinVista.setVisible(true);
+        else sinVista.visibleProperty().bind(im.errorProperty());
+        StackPane marco = new StackPane(sinVista, img);
         marco.setMinSize(124, 124);
         marco.setPrefSize(124, 124);
+        // Deciding whether it is the photo of another bien needs it big.
+        if (g.url() != null) {
+            marco.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(g.url(), g.bienes().get(0).getNombre()));
+            marco.setCursor(javafx.scene.Cursor.HAND);
+            Tooltip.install(marco, new Tooltip("Ver la foto en grande"));
+            com.sibim.util.AccessibilityUtils.asButton(marco, "Ver la foto en grande");
+        }
 
         VBox filas = new VBox(6);
         for (Producto p : g.bienes()) filas.getChildren().add(fila(g, p));
@@ -162,9 +176,12 @@ public final class FotosRepetidasDialog {
         HBox.setHgrow(textos, Priority.ALWAYS);
         Button ver = new Button("Ver");
         ver.getStyleClass().add("btn-ghost");
+        // Several «Ver» in a row: each one says which bien, for a screen reader.
+        ver.setAccessibleText("Ver " + p.getCodigo() + " " + Objects.requireNonNullElse(p.getNombre(), ""));
         ver.setOnAction(e -> ProductoDetailDialog.show(p, dialog.getDialogPane().getScene(), new com.sibim.service.MovimientoService(), log));
         Button quitar = new Button("Quitar la foto");
         quitar.getStyleClass().add("btn-ghost");
+        quitar.setAccessibleText("Quitar la foto de " + p.getCodigo());
         quitar.setOnAction(e -> quitarFoto(g, p));
         HBox f = new HBox(8, textos, ver, quitar);
         f.setAlignment(Pos.CENTER_LEFT);

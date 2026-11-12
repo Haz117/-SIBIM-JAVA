@@ -812,12 +812,16 @@ public final class ProductoDetailDialog {
 
         Button btnPrev = new Button();
         btnPrev.setGraphic(new FontIcon("mdi2c-chevron-left"));
+        btnPrev.setTooltip(new Tooltip("Foto anterior"));
+        btnPrev.setAccessibleText("Foto anterior");
         btnPrev.getStyleClass().addAll("btn-secondary", "lightbox-nav");
         btnPrev.setDisable(fotos.size() <= 1);
         btnPrev.setOnAction(e -> { idx[0] = (idx[0] - 1 + fotos.size()) % fotos.size(); refresh.run(); });
 
         Button btnNext = new Button();
         btnNext.setGraphic(new FontIcon("mdi2c-chevron-right"));
+        btnNext.setTooltip(new Tooltip("Foto siguiente"));
+        btnNext.setAccessibleText("Foto siguiente");
         btnNext.getStyleClass().addAll("btn-secondary", "lightbox-nav");
         btnNext.setDisable(fotos.size() <= 1);
         btnNext.setOnAction(e -> { idx[0] = (idx[0] + 1) % fotos.size(); refresh.run(); });

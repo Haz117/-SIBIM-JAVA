@@ -100,6 +100,33 @@ class ElegirDialogosVentanaTest extends ApplicationTest {
         assertEquals(List.of("TES/2", "TES/10"), elegidos.get().stream().map(Producto::getCodigo).toList());
     }
 
+    /** 12-nov-2026: with the keyboard on the list, Space ticks and unticks the bien, as a click. */
+    @Test
+    void bienes_espacioMarcaYDesmarcaElBienDeLaLista() throws Exception {
+        AtomicReference<List<Producto>> elegidos = new AtomicReference<>();
+        Platform.runLater(() -> elegidos.set(ElegirBienesDialog.show("Solicitud de baja", "prueba", inventario())));
+        DialogPane panel = panelAbierto();
+        @SuppressWarnings("unchecked")
+        javafx.scene.control.ListView<Producto> lista = (javafx.scene.control.ListView<Producto>) panel.lookup(".rsg-lista");
+        Button generar = (Button) panel.lookupButton(ButtonType.OK);
+        interact(() -> { lista.requestFocus(); lista.getSelectionModel().select(1); });
+        WaitForAsyncUtils.waitForFxEvents();
+        Runnable espacio = () -> {
+            for (var tipo : List.of(KeyEvent.KEY_PRESSED, KeyEvent.KEY_RELEASED))
+                interact(() -> javafx.event.Event.fireEvent(lista, new KeyEvent(tipo, " ", " ", KeyCode.SPACE, false, false, false, false)));
+            WaitForAsyncUtils.waitForFxEvents();
+        };
+
+        espacio.run();
+        assertFalse(generar.isDisabled(), "marcado con la barra espaciadora");
+        espacio.run();
+        assertTrue(generar.isDisabled(), "y desmarcado");
+        espacio.run();
+        interact(generar::fire);
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> elegidos.get() != null);
+        assertEquals(List.of(lista.getItems().get(1).getCodigo()), elegidos.get().stream().map(Producto::getCodigo).toList());
+    }
+
     @Test
     void bienes_alCancelar_noDevuelveNada_yNoOfreceBajas() throws Exception {
         Producto baja = bien("p-9", "TES/9", "Ana García");

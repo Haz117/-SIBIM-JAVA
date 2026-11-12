@@ -68,7 +68,8 @@ public final class UnirProveedoresDialog {
         si.setMinWidth(60);
         si.setMaxWidth(70);
         TableColumn<ProveedorRepetido, String> antes = columna("Se escribe así", 330, ProveedorRepetido::variante);
-        TableColumn<ProveedorRepetido, String> cuantos = columna("Bienes", 70, r -> String.valueOf(r.bienes()));
+        TableColumn<ProveedorRepetido, String> cuantos = columna("Bienes", 90, r -> String.valueOf(r.bienes()));
+        cuantos.setMinWidth(90);
         TableColumn<ProveedorRepetido, String> queda = columna("Queda como", 380, ProveedorRepetido::queda);
         tabla.getColumns().addAll(List.of(si, antes, cuantos, queda));
         VBox.setVgrow(tabla, Priority.ALWAYS);

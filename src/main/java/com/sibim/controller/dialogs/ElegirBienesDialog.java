@@ -88,6 +88,16 @@ public final class ElegirBienesDialog {
         lista.getStyleClass().addAll("cnt-lista", "rsg-lista");
         lista.setCellFactory(lv -> new CeldaBien(lv));
         lista.setPlaceholder(new Label("Ningún bien coincide con lo escrito"));
+        // Space ticks the bien the keyboard is on, as a click does: the check box inside
+        // the row never gets the focus, so only the mouse could (12-nov-2026).
+        lista.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.SPACE) return;
+            Producto p = lista.getSelectionModel().getSelectedItem();
+            if (p == null) return;
+            if (!marcados.remove(p.getId())) marcados.add(p.getId());
+            actualizar();
+            e.consume();
+        });
         VBox.setVgrow(lista, Priority.ALWAYS);
 
         resumen.getStyleClass().add("table-count-label");
@@ -177,10 +187,12 @@ public final class ElegirBienesDialog {
             codigo.setText(p.getCodigo());
             nombre.setText(p.getNombre());
             nombre.setTooltip(new Tooltip(p.getNombre()));
+            // The old number too: vehicles and labels still go by it (12-nov-2026).
+            String anterior = com.sibim.util.ProductoUtils.inventarioAnterior(p);
             detalle.setText((p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "Sin resguardante")
-                + (p.getArea() != null ? " · " + p.getArea() : ""));
+                + (p.getArea() != null ? " · " + p.getArea() : "") + (anterior != null ? " · Anterior: " + anterior : ""));
             casilla.setSelected(marcados.contains(p.getId()));
-            casilla.setAccessibleText(p.getCodigo());
+            casilla.setAccessibleText(p.getCodigo() + " " + Objects.requireNonNullElse(p.getNombre(), ""));
             fila.getStyleClass().remove("rsg-fila-sel");
             if (casilla.isSelected()) fila.getStyleClass().add("rsg-fila-sel");
             setGraphic(fila);

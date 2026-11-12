@@ -407,6 +407,8 @@ public abstract class BaseDocumentController<T> {
         Button btnLimpiar = new Button();
         btnLimpiar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
         btnLimpiar.getStyleClass().add("btn-ghost");
+        // Only an icon: the tooltip is also its name for a screen reader.
+        btnLimpiar.setTooltip(new Tooltip("Limpiar fechas y área"));
         btnLimpiar.setOnAction(e -> {
             dpDesde.setValue(null); dpHasta.setValue(null);
             if (cbArea != null) cbArea.setValue(null);

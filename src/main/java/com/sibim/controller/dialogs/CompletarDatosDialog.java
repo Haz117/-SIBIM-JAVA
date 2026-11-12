@@ -757,6 +757,7 @@ public final class CompletarDatosDialog {
             ver(fecha, dato == Dato.FECHA);
             ver(foto, dato == Dato.FOTO);
             campo.setText(f.texto);
+            campo.setAccessibleText(dato.etiqueta.replaceFirst("^Sin ", "") + " de " + p.getCodigo());
             fecha.setValue(f.fecha);
             double ancho = dato == Dato.FOLIO || dato == Dato.PROVEEDOR ? 300 : dato.esTexto() ? 200 : 150;
             campo.setPrefWidth(ancho);
