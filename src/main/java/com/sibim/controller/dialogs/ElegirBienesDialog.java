@@ -30,6 +30,8 @@ public final class ElegirBienesDialog {
     private final ListView<Producto> lista = new ListView<>(visibles);
     private final Label resumen = new Label();
     private Button generar;
+    /** What comes out for each bien: «una página por bien», «una hoja por vehículo». */
+    private String cadaUno = "una página por bien";
 
     private ElegirBienesDialog(List<Producto> bienes) {
         this.bienes = bienes.stream().filter(p -> p.getFechaBaja() == null)
@@ -39,10 +41,18 @@ public final class ElegirBienesDialog {
 
     /** @return the bienes ticked, by número; empty when cancelled */
     public static List<Producto> show(String titulo, String subtitulo, List<Producto> bienes) {
-        return new ElegirBienesDialog(bienes).abrir(titulo, subtitulo);
+        return show(titulo, subtitulo, "mdi2f-file-remove-outline", "una página por bien", bienes);
     }
 
-    private List<Producto> abrir(String titulo, String subtitulo) {
+    /** @param icono   the header's icon
+     *  @param cadaUno what comes out for each bien, said under the list («una hoja por vehículo») */
+    public static List<Producto> show(String titulo, String subtitulo, String icono, String cadaUno, List<Producto> bienes) {
+        ElegirBienesDialog d = new ElegirBienesDialog(bienes);
+        d.cadaUno = cadaUno;
+        return d.abrir(titulo, subtitulo, icono);
+    }
+
+    private List<Producto> abrir(String titulo, String subtitulo, String icono) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle(titulo);
@@ -51,7 +61,7 @@ public final class ElegirBienesDialog {
         dialog.getDialogPane().setPrefSize(Math.min(760, pantalla.getWidth() * 0.94), Math.min(620, pantalla.getHeight() * 0.88));
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
-        HBox header = DialogUtil.gradientHeader("mdi2f-file-remove-outline", titulo, subtitulo,
+        HBox header = DialogUtil.gradientHeader(icono, titulo, subtitulo,
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         generar = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
@@ -111,7 +121,7 @@ public final class ElegirBienesDialog {
         resumen.getStyleClass().remove("trf-seleccion-activa");
         if (n > 0) resumen.getStyleClass().add("trf-seleccion-activa");
         resumen.setText(n == 0 ? "Escribe un código y pulsa Enter, o haz clic en los bienes"
-            : FormatUtils.plural(n, "bien elegido", "bienes elegidos") + " · una página por bien");
+            : FormatUtils.plural(n, "bien elegido", "bienes elegidos") + " · " + cadaUno);
         generar.setDisable(n == 0);
         lista.refresh();
     }

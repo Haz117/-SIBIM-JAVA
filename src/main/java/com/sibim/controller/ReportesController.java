@@ -165,16 +165,27 @@ public class ReportesController {
         List<Node> oficiales = new ArrayList<>();
         if (control) {
             oficiales.add(ReporteFila.crear("mdi2c-clipboard-text-outline", "red", "Entrega-Recepción (ANEXO V.4)",
-                "Todos los bienes con resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción.",
-                null, null, List.of(pdf(completo(
-                    () -> reporteService.exportEntregaRecepcionPdf(productoService.getAll()))))));
+                "Los bienes con resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición: de todo el inventario o de las áreas que elijas. Para actos formales de entrega-recepción.",
+                null, "Generar", List.of(
+                    new ReporteFila.Formato("Todo el inventario", "mdi2f-file-pdf-box", "report-export-icon-pdf", completo(
+                        () -> reporteService.exportEntregaRecepcionPdf(productoService.getAll()))),
+                    new ReporteFila.Formato("De una o varias áreas…", "mdi2m-magnify", "report-export-icon-pdf",
+                        this::entregaRecepcionPorArea))));
             oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque Vehicular",
                 "El anexo V.6 de entrega-recepción (una ficha por vehículo con su lista de verificación) o el resguardo individual de cada vehículo, con fotos, responsiva y firmas. Incluye el equipo de transporte (clave 1.2.4.4) y la maquinaria.",
                 null, "Generar", List.of(
-                    new ReporteFila.Formato("Inventario (anexo V.6)", "mdi2f-file-pdf-box", "report-export-icon-pdf",
+                    new ReporteFila.Formato("Anexo V.6 de todos los vehículos", "mdi2f-file-pdf-box", "report-export-icon-pdf",
                         completo(this::exportarParqueVehicular)),
-                    new ReporteFila.Formato("Resguardo por vehículo", "mdi2c-car-outline", "report-export-icon-pdf",
-                        completo(this::exportarResguardosVehiculares)))));
+                    new ReporteFila.Formato("Anexo V.6 de uno o varios…", "mdi2m-magnify", "report-export-icon-pdf",
+                        () -> elegirYGenerar("Parque vehicular · anexo V.6", "Elige de qué vehículos generar la ficha del anexo V.6",
+                            "mdi2c-car-outline", "una ficha por vehículo", com.sibim.service.ReporteParqueVehicularService::esVehiculo,
+                            reporteService::exportParqueVehicularPdf)),
+                    new ReporteFila.Formato("Resguardo de todos los vehículos", "mdi2c-car-outline", "report-export-icon-pdf",
+                        completo(this::exportarResguardosVehiculares)),
+                    new ReporteFila.Formato("Resguardo de uno o varios…", "mdi2m-magnify", "report-export-icon-pdf",
+                        () -> elegirYGenerar("Resguardo por vehículo", "Elige de qué vehículos generar su resguardo individual",
+                            "mdi2c-car-outline", "una hoja por vehículo", com.sibim.service.ReporteParqueVehicularService::esVehiculo,
+                            v -> new com.sibim.service.ReporteResguardoVehicularService().exportar(v))))));
             com.sibim.service.ReporteCuentasConacService conac = new com.sibim.service.ReporteCuentasConacService();
             oficiales.add(ReporteFila.crear("mdi2s-scale-balance", "teal", "Saldos por cuenta contable (CONAC)",
                 "Costo, depreciación acumulada y valor en libros de los bienes muebles por cuenta del Plan de Cuentas (1.2.4…), para conciliar con la contabilidad de Tesorería. En Excel trae también los bienes de cada cuenta.",
@@ -246,11 +257,29 @@ public class ReportesController {
         if (scene == null) return;
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
             () -> productoService.getAll(),
-            bienes -> elegirAreas(bienes, conFotos, scene),
+            bienes -> elegirAreas(bienes, conFotos ? "mdi2c-camera-outline" : "mdi2f-file-document-outline",
+                conFotos ? "Inventario por área, con fotos" : "Inventario por área, sin fotos",
+                conFotos ? com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos() : 0, scene,
+                elegidos -> exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
+                                                    : reporteService.exportInventarioSinFotos(elegidos), false)),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
-    private void elegirAreas(List<Producto> bienes, boolean conFotos, Scene scene) {
+    /** The ANEXO V.4 of the áreas picked: what an entrega-recepción of one área signs. */
+    private void entregaRecepcionPorArea() {
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> productoService.getAll(),
+            bienes -> elegirAreas(bienes, "mdi2c-clipboard-text-outline", "Entrega-Recepción (anexo V.4)", 0, scene,
+                elegidos -> exportar(() -> reporteService.exportEntregaRecepcionPdf(elegidos), false)),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    /** @param maxBienes most bienes one document can take (the photos'), 0 for no limit
+     *  @param generar   called with the bienes of the áreas picked */
+    private void elegirAreas(List<Producto> bienes, String icono, String titulo, int maxBienes, Scene scene,
+                             Consumer<List<Producto>> generar) {
         Map<String, List<Producto>> porArea = bienes.stream()
             .filter(p -> p.getArea() != null && p.getFechaBaja() == null)
             .collect(java.util.stream.Collectors.groupingBy(Producto::getArea));
@@ -259,14 +288,12 @@ public class ReportesController {
 
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
-        dlg.setTitle("Inventario por área");
+        dlg.setTitle(titulo);
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dlg.getDialogPane().setPrefWidth(560);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
-            conFotos ? "mdi2c-camera-outline" : "mdi2f-file-document-outline",
-            conFotos ? "Inventario por área, con fotos" : "Inventario por área, sin fotos",
-            "Elige una o varias áreas; cada una sale con su encabezado",
+        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(icono, titulo,
+            "Elige una o varias áreas",
             com.sibim.util.AppColors.PRIMARY, com.sibim.util.AppColors.PRIMARY_D);
 
         TextField buscar = new TextField();
@@ -326,11 +353,10 @@ public class ReportesController {
         Runnable actualizar = () -> {
             List<String> elegidas = casillas.stream().filter(CheckBox::isSelected).map(cb -> (String) cb.getUserData()).toList();
             int total = elegidas.stream().mapToInt(a -> porArea.get(a).size()).sum();
-            int max = com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos();
-            boolean demasiados = conFotos && total > max;
+            boolean demasiados = maxBienes > 0 && total > maxBienes;
             resumen.setText(elegidas.isEmpty() ? "Ninguna área elegida"
                 : FormatUtils.plural(elegidas.size(), "área", "áreas") + " · " + FormatUtils.plural(total, "bien", "bienes")
-                    + (demasiados ? " — con fotos caben hasta " + max + " bienes por documento: elige menos áreas o hazlo sin fotos" : ""));
+                    + (demasiados ? " — con fotos caben hasta " + maxBienes + " bienes por documento: elige menos áreas o hazlo sin fotos" : ""));
             ok.setDisable(elegidas.isEmpty() || demasiados);
         };
         casillas.forEach(cb -> cb.selectedProperty().addListener((o, a, b) -> actualizar.run()));
@@ -340,12 +366,9 @@ public class ReportesController {
         dlg.getDialogPane().setContent(DialogUtil.conEncabezadoArriba(content));
         Platform.runLater(buscar::requestFocus);
 
-        dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
-            List<Producto> elegidos = casillas.stream().filter(CheckBox::isSelected)
-                .flatMap(cb -> porArea.get((String) cb.getUserData()).stream()).toList();
-            exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
-                                    : reporteService.exportInventarioSinFotos(elegidos), false);
-        });
+        dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> generar.accept(
+            casillas.stream().filter(CheckBox::isSelected)
+                .flatMap(cb -> porArea.get((String) cb.getUserData()).stream()).toList()));
     }
 
     // ── Resguardos por resguardante ────────────────────────────────────────────
@@ -522,18 +545,29 @@ public class ReportesController {
 
     /** Picks the bien(es) from a search and generates the format — one page per bien. */
     private void formatoDeBaja(String titulo, String elFormato, FormatoPorBienes formato) {
+        elegirYGenerar(titulo, "Elige de qué bienes generar " + elFormato + "; sale una página por bien",
+            "mdi2f-file-remove-outline", "una página por bien", p -> true, formato);
+    }
+
+    /** One, some or all of the bienes that {@code cuales} takes, picked from a search, and
+     *  the document of just those (12-nov-2026: «dar la opción de escoger uno, no todos»). */
+    private void elegirYGenerar(String titulo, String subtitulo, String icono, String cadaUno,
+                                java.util.function.Predicate<Producto> cuales, FormatoPorBienes formato) {
         Scene scene = spinner.getScene();
         if (scene == null) return;
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
-            () -> productoService.getAll(),
+            () -> productoService.getAll().stream().filter(cuales).toList(),
             bienes -> {
-                List<Producto> elegidos = com.sibim.controller.dialogs.ElegirBienesDialog.show(titulo,
-                    "Elige de qué bienes generar " + elFormato + "; sale una página por bien", bienes);
+                if (bienes.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay bienes para este documento"); return; }
+                List<Producto> elegidos = com.sibim.controller.dialogs.ElegirBienesDialog.show(titulo, subtitulo, icono, cadaUno, bienes);
                 if (elegidos.isEmpty()) return;
-                DialogUtil.runAsyncWithProgress(scene, "Generando " + elFormato + "…",
+                DialogUtil.runAsyncWithProgress(scene, "Generando…",
                     () -> formato.generar(elegidos),
-                    file -> DialogUtil.showExportResultDialog(scene, file),
-                    e -> NotificacionUtil.error(scene, "No se pudo generar " + elFormato));
+                    file -> {
+                        if (file == null) NotificacionUtil.advertencia(scene, "No hay datos para este reporte.");
+                        else DialogUtil.showExportResultDialog(scene, file);
+                    },
+                    e -> NotificacionUtil.error(scene, "No se pudo generar el documento: " + com.sibim.util.MensajeError.de(e)));
             },
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }

@@ -53,8 +53,9 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
     }
 
     /** Each report offers its formats: three for the listings (the Inventario General's
-     *  PDF alphabetical or by área), con/sin fotos for the inventario por área, PDF
-     *  only for the official forms, two variants of the dictamen. */
+     *  PDF alphabetical or by área), con/sin fotos for the inventario por área, the
+     *  V.4 of everything or of some áreas, the V.6 and the vehicle resguardo of every
+     *  vehicle or of the ones picked (12-nov-2026), two variants of the dictamen. */
     @Test
     void cadaReporte_ofreceSusFormatos() {
         java.util.List<Integer> formatos = new java.util.ArrayList<>();
@@ -63,7 +64,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
                 javafx.scene.Node boton = ((javafx.scene.layout.HBox) fila).getChildren().get(2);
                 formatos.add(boton instanceof javafx.scene.control.MenuButton m ? m.getItems().size() : 1);
             }
-        assertEquals(java.util.List.of(1, 4, 2, 3, 3, 3, 3, 1, 2, 2, 2, 1, 1, 2), formatos);
+        assertEquals(java.util.List.of(1, 4, 2, 3, 3, 3, 3, 2, 4, 2, 2, 1, 1, 2), formatos);
     }
 
     /** The resguardos of a person, without going to Resguardos: first row of the page,
@@ -110,6 +111,39 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
             // The export ends in its own window; that is what the row promised.
             org.testfx.util.WaitForAsyncUtils.waitFor(30, java.util.concurrent.TimeUnit.SECONDS, () ->
                 javafx.stage.Window.getWindows().stream().anyMatch(v -> v.getScene().getRoot() instanceof javafx.scene.control.DialogPane));
+        } finally {
+            interact(() -> new java.util.ArrayList<>(javafx.stage.Window.getWindows()).stream()
+                .filter(v -> !antes.contains(v)).forEach(javafx.stage.Window::hide));
+        }
+    }
+
+    /** 12-nov-2026: «dar la opción de escoger uno, no todos». The vehicle resguardo of
+     *  the vehicles picked: the list offers vehicles only, and nothing is generated
+     *  until one is ticked. */
+    @Test
+    void parqueVehicular_deUnoOVarios_ofreceSoloVehiculos() throws Exception {
+        javafx.scene.control.MenuButton generar = null;
+        for (javafx.scene.Node fila : lookup("#listaFormatos").<javafx.scene.layout.VBox>query().getChildren())
+            if ("Parque Vehicular".equals(((javafx.scene.control.Label) fila.lookup(".report-title")).getText()))
+                generar = (javafx.scene.control.MenuButton) ((javafx.scene.layout.HBox) fila).getChildren().get(2);
+        org.junit.jupiter.api.Assertions.assertNotNull(generar);
+        javafx.scene.control.MenuItem deUno = generar.getItems().stream()
+            .filter(i -> "Resguardo de uno o varios…".equals(i.getText())).findFirst().orElseThrow();
+        java.util.Set<javafx.stage.Window> antes = new java.util.HashSet<>(javafx.stage.Window.getWindows());
+        interact(() -> javafx.application.Platform.runLater(deUno::fire));
+        try {
+            org.testfx.util.WaitForAsyncUtils.waitFor(15, java.util.concurrent.TimeUnit.SECONDS, () ->
+                javafx.stage.Window.getWindows().stream().anyMatch(v -> v.getScene().getRoot() instanceof javafx.scene.control.DialogPane d
+                    && d.lookup("#buscarBien") != null));
+            javafx.scene.control.DialogPane panel = dialogoAbierto();
+            @SuppressWarnings("unchecked")
+            javafx.scene.control.ListView<com.sibim.model.Producto> lista =
+                (javafx.scene.control.ListView<com.sibim.model.Producto>) panel.lookup(".rsg-lista");
+            org.junit.jupiter.api.Assertions.assertFalse(lista.getItems().isEmpty(), "la camioneta de la demo");
+            org.junit.jupiter.api.Assertions.assertTrue(lista.getItems().stream()
+                .allMatch(com.sibim.service.ReporteParqueVehicularService::esVehiculo), "solo vehículos");
+            org.junit.jupiter.api.Assertions.assertTrue(panel.lookupButton(javafx.scene.control.ButtonType.OK).isDisabled(),
+                "sin elegir no se genera");
         } finally {
             interact(() -> new java.util.ArrayList<>(javafx.stage.Window.getWindows()).stream()
                 .filter(v -> !antes.contains(v)).forEach(javafx.stage.Window::hide));
