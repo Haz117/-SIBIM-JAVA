@@ -11,6 +11,7 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.AreaBreak;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
@@ -23,9 +24,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Genera el ANEXO V.4 de Entrega-Recepción: tabla completa con datos
- *  patrimoniales, depreciación y condición de cada bien. Formato oficial
- *  para respaldar actos de entrega-recepción en el Ayuntamiento. */
+/** Genera el ANEXO V.4 de Entrega-Recepción: datos patrimoniales, depreciación y
+ *  condición de cada bien, UNO POR HOJA como el formato oficial (12-nov-2026: «es un
+ *  bien por hoja»; antes salía una tabla corrida, ~6 bienes por hoja). Al final, el
+ *  total del anexo y las firmas. Para respaldar actos de entrega-recepción. */
 public class ReporteEntregaRecepcionService extends ReporteService {
 
     public ReporteEntregaRecepcionService() { super(); }
@@ -43,22 +45,20 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             doc.setMargins(28, 28, 28, 28);
 
             String folio = generateFolio("ERV");
-            // As the official sheet: its name at the top right and the grid, nothing else
-            // above it; folio, date and total go in the footer.
-            doc.add(new Paragraph("ANEXO V.4").setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD))
-                .setFontSize(15f).setTextAlignment(TextAlignment.RIGHT).setMargin(0).setMarginBottom(10));
-
-            Table table = buildDataTable();
-            // A large table, drawn as it fills: laid out whole, the 3,138 bienes of
-            // 28-oct-2026 took 11.5 s and 370 MB, enough to fail on a PC with little memory.
-            doc.add(table);
+            PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             java.util.Map<String, String> folios = foliosDeResguardoVigente();
             java.util.Map<String, String> titulares = TitularesArea.todos(configRepo);
             BigDecimal totalAdq = BigDecimal.ZERO, totalDep = BigDecimal.ZERO, totalLibros = BigDecimal.ZERO;
-            int idx = 0;
+            boolean primero = true;
             for (Producto p : bienes) {
                 boolean alt = false;
-                idx++;
+                // One bien per sheet, as the official one: its name at the top right and the
+                // grid with that bien alone; each page is drawn and let go before the next.
+                if (!primero) doc.add(new AreaBreak());
+                primero = false;
+                doc.add(new Paragraph("ANEXO V.4").setFont(bold)
+                    .setFontSize(15f).setTextAlignment(TextAlignment.RIGHT).setMargin(0).setMarginBottom(10));
+                Table table = buildDataTable();
                 // The whole renglón, as the municipio's inventory writes its IMPORTE:
                 // a lot of 140 chairs is listed once, at what the 140 cost.
                 BigDecimal[] v = valores(p);
@@ -86,10 +86,14 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                 addRow(table, moneda(depAcum),                                  alt, TextAlignment.RIGHT);
                 addRow(table, moneda(valorLibros),                              alt, TextAlignment.RIGHT);
                 addRow(table, p.getEstadoFisico(),                              alt, TextAlignment.CENTER);
-                if (idx % 50 == 0) table.flush();
+                doc.add(table);
             }
-            addTotales(table, bienes.size(), totalAdq, totalDep, totalLibros);
-            table.complete();
+            // The whole anexo's total, under the last bien, in the columns of the values.
+            if (bienes.size() > 1) {
+                Table totales = tablaDeColumnas().setMarginTop(10);
+                addTotales(totales, bienes.size(), totalAdq, totalDep, totalLibros);
+                doc.add(totales);
+            }
 
             addFirmasBlock(doc,
                 new String[]{"ENTREGÓ", null, "Titular saliente / Responsable"},
@@ -116,11 +120,16 @@ public class ReporteEntregaRecepcionService extends ReporteService {
 
     private static final DeviceRgb LINEA = new DeviceRgb(0, 0, 0);
 
+    /** 17 columnas — anchos relativos pensados para A4 apaisado. */
+    private static Table tablaDeColumnas() {
+        return new Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{
+                5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 10.8f, 6f, 5.2f, 5.6f, 5.2f, 5.8f, 6.0f, 6.8f, 6.2f, 6.4f, 6f, 5.4f}))
+            .useAllAvailableWidth().setFixedLayout();
+    }
+
     private Table buildDataTable() throws Exception {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-        // 17 columnas — anchos relativos pensados para A4 apaisado
-        Table t = tablaGrande(5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 10.8f, 6f, 5.2f,
-                        5.6f, 5.2f, 5.8f, 6.0f, 6.8f, 6.2f, 6.4f, 6f, 5.4f).setMarginTop(4);
+        Table t = tablaDeColumnas().setMarginTop(4);
 
         String[] headers = {
             "No. de\ninventario", "Clave\nArmonizada", "No. de\nresguardo",
@@ -132,7 +141,6 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             "Valor de\nadquisición", "Depreciación\nacumulada",
             "Valor en\nlibros", "Condición\ndel bien"
         };
-        // Repeats on every page: the official format is a full grid, as here.
         for (String h : headers) {
             // White with black bold text and a heavier line under it, as on paper.
             t.addHeaderCell(new Cell()

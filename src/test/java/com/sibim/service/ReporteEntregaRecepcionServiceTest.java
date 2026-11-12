@@ -170,7 +170,27 @@ class ReporteEntregaRecepcionServiceTest {
         File pdf = service.exportEntregaRecepcionPdf(bienes);
 
         assertNotNull(pdf);
-        assertTrue(paginas(pdf) > 1, "120 bienes no caben en una sola hoja apaisada");
+        assertTrue(paginas(pdf) >= 120, "un bien por hoja, como el formato oficial");
+    }
+
+    /** 12-nov-2026: «es un bien por hoja». Each sheet has the anexo's name and one bien;
+     *  the total of the anexo and the signatures come after the last one. */
+    @Test
+    void unBienPorHoja_yAlFinalElTotalYLasFirmas() throws Exception {
+        File pdf = service.exportEntregaRecepcionPdf(List.of(bienCompleto("MOB-0001"), bienCompleto("MOB-0002"), bienCompleto("MOB-0003")));
+
+        assertEquals(3, paginas(pdf));
+        for (int i = 1; i <= 3; i++) {
+            String t = textoDePagina(pdf, i);
+            assertTrue(t.contains("ANEXO V.4"), "página " + i);
+            assertTrue(t.contains("MOB-000" + i), "página " + i + ": su bien");
+            for (int j = 1; j <= 3; j++)
+                if (j != i) assertFalse(t.contains("MOB-000" + j), "página " + i + " sin el bien " + j);
+        }
+        assertFalse(textoDePagina(pdf, 1).contains("TOTAL"), "el total no va en la primera hoja");
+        String ultima = textoDePagina(pdf, 3);
+        assertTrue(ultima.contains("TOTAL") && ultima.contains("3 bienes"), ultima);
+        assertTrue(ultima.contains("TESTIGO"), "las firmas al final");
     }
 
     /** The "No. resguardo" column was always printed empty: it says the folio of
