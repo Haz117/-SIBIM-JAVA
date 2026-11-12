@@ -65,6 +65,21 @@ class CompletarDatosTextoTest {
         assertFalse(CalidadDatosService.falta(p, Dato.FOLIO_REVISAR));
     }
 
+    /** 12-nov-2026: 12 bienes had their factura's own number in «Folio fiscal» and no N° Factura. */
+    @Test
+    void elNumeroDeLaFacturaEscritoEnElFolioSeReconoce() {
+        Producto p = new Producto();
+        p.setFolioFiscal(" O1329 ");
+        assertTrue(CalidadDatosService.esNumeroDeFactura(p));
+        assertEquals("01329", CalidadDatosService.numeroDeFactura(p.getFolioFiscal()), "una O entre números es un cero");
+        assertEquals("AAA4B", CalidadDatosService.numeroDeFactura("aaa4b"));
+        p.setNumeroFactura("A 667");
+        assertFalse(CalidadDatosService.esNumeroDeFactura(p), "si ya tiene número de factura, no se toca");
+        Producto uuid = new Producto();
+        uuid.setFolioFiscal("AAA1EC97-00B3-4CO7-B2E2-E1A11491D3E");
+        assertFalse(CalidadDatosService.esNumeroDeFactura(uuid), "un folio largo mal escrito se corrige, no se mueve");
+    }
+
     @Test
     void elRespaldoAtrasadoSeCuentaEnDias_ySinAnotarNoAvisa() {
         java.time.LocalDate hoy = java.time.LocalDate.of(2026, 11, 14);

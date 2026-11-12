@@ -58,6 +58,26 @@ class FolioFiscalIntegrationTest extends IntegrationTestBase {
         assertNull(valor("SELECT folio_fiscal FROM products WHERE id = 'camara'"));
     }
 
+    /** The factura's number typed in «Folio fiscal» goes to «N° Factura»; Deshacer puts it back. */
+    @Test
+    void elNumeroDeFacturaEscritoEnElFolioPasaASuLugar() throws Exception {
+        sql("INSERT INTO products (id, nombre, codigo, categoria_id, area, unidad, folio_fiscal) "
+            + "VALUES ('ventilador', 'VENTILADOR', 'IMM/02', 'cat-1', 'Instancia Municipal de la Mujer', 'pieza', 'O1329')");
+        List<Producto> todos = List.of(productos.findById("ventilador").orElseThrow(), productos.findById("normal").orElseThrow());
+        CalidadDatosService servicio = new CalidadDatosService();
+
+        var hecho = servicio.pasarNumeroAFactura(todos);
+
+        assertEquals(1, hecho.size());
+        assertEquals("01329", valor("SELECT numero_factura FROM products WHERE id = 'ventilador'"));
+        assertNull(valor("SELECT folio_fiscal FROM products WHERE id = 'ventilador'"));
+        assertEquals("A 667", valor("SELECT numero_factura FROM products WHERE id = 'normal'"), "el que ya tenía número no se toca");
+
+        assertEquals(1, servicio.regresarNumeroAFolio(hecho));
+        assertEquals("O1329", valor("SELECT folio_fiscal FROM products WHERE id = 'ventilador'"));
+        assertNull(valor("SELECT numero_factura FROM products WHERE id = 'ventilador'"));
+    }
+
     private void sql(String... sentencias) throws SQLException {
         try (Connection c = getConnection(); Statement st = c.createStatement()) {
             for (String s : sentencias) st.execute(s);

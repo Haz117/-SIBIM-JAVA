@@ -68,6 +68,8 @@ public final class CompletarDatosDialog {
     private final Label tituloArea = new Label();
     private final Label ayuda = new Label();
     private final HBox barraConac = new HBox(10);
+    /** The bar's button: «Revisar y aplicar» (CONAC), «Pasarlos a N° Factura» (folios). */
+    private final Button revisarConac = new Button("Revisar y aplicar");
     private final Label textoConac = new Label();
     private final HBox barraTodos = new HBox(10);
     private final Label textoTodos = new Label();
@@ -210,7 +212,7 @@ public final class CompletarDatosDialog {
         textoConac.setWrapText(true);
         textoConac.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(textoConac, Priority.ALWAYS);
-        Button revisar = new Button("Revisar y aplicar");
+        Button revisar = revisarConac;
         revisar.setGraphic(new FontIcon("mdi2c-calendar-check-outline"));
         revisar.getStyleClass().add("btn-secondary");
         revisar.setMinWidth(Region.USE_PREF_SIZE);
@@ -440,6 +442,21 @@ public final class CompletarDatosDialog {
             pestanas.get(d).setText(d.etiqueta + " (" + n + ")");
         }
         List<Producto> sinVida = base.stream().map(f -> f.producto).toList();
+        revisarConac.setText("Revisar y aplicar");
+        revisarConac.setGraphic(new FontIcon("mdi2c-calendar-check-outline"));
+        if (datoElegido() == Dato.FOLIO_REVISAR) {
+            // The factura's own number typed in «Folio fiscal» (12 bienes on 12-nov-2026).
+            int n = numerosEnFolio().size();
+            ver(barraConac, n > 0);
+            if (n > 0) {
+                textoConac.setText(FormatUtils.plural(n, "bien tiene", "bienes tienen") + " en «Folio fiscal» un número corto y «N° Factura» "
+                    + "vacía: es su número de factura.");
+                revisarConac.setText("Pasarlos a N° Factura");
+                revisarConac.setGraphic(new FontIcon("mdi2f-file-swap-outline"));
+            }
+            actualizarTodos();
+            return;
+        }
         if (datoElegido() == Dato.TIPO) {
             int n = conTipoSugerido().size();
             ver(barraConac, n > 0);
@@ -457,7 +474,62 @@ public final class CompletarDatosDialog {
         actualizarTodos();
     }
 
+    /** The rows of what is chosen whose «Folio fiscal» holds the factura's number. */
+    private List<Fila> numerosEnFolio() {
+        return delArea().stream().filter(f -> !f.guardado && !f.guardando && CalidadDatosService.esNumeroDeFactura(f.producto)).toList();
+    }
+
+    /** «Pasarlos a N° Factura», after showing which; undone from the notice. */
+    private void pasarNumerosAFactura() {
+        List<Fila> filas = numerosEnFolio();
+        if (filas.isEmpty()) return;
+        List<Producto> bienes = filas.stream().map(f -> f.producto).toList();
+        String muestra = bienes.stream().limit(8)
+            .map(p -> "• " + p.getCodigo() + ": «" + p.getFolioFiscal().trim() + "» → N° Factura «"
+                + CalidadDatosService.numeroDeFactura(p.getFolioFiscal()) + "»")
+            .collect(Collectors.joining("\n")) + (bienes.size() > 8 ? "\n…" : "");
+        if (!ConfirmacionUtil.confirmar("Es su número de factura",
+                FormatUtils.plural(bienes.size(), "bien tiene", "bienes tienen") + " en «Folio fiscal» un número corto y «N° Factura» vacía:\n\n"
+                    + muestra + "\n\nPasan a «N° Factura» y «Folio fiscal» queda vacío para el UUID, si lo tienes. ¿Pasarlos?", "Pasarlos")) return;
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Pasando los números…",
+            () -> calidad.pasarNumeroAFactura(bienes),
+            hecho -> {
+                for (var c : hecho)
+                    for (Fila f : filas)
+                        if (f.producto.getId().equals(c.id())) {
+                            f.producto.setNumeroFactura(c.numero());
+                            f.producto.setFolioFiscal(null);
+                            f.guardado = true;
+                        }
+                cambio = true;
+                cargarAreas();
+                refiltrar();
+                actualizarConteos();
+                lista.refresh();
+                NotificacionUtil.exitoConAccion(scene, FormatUtils.plural(hecho.size(), "número pasó", "números pasaron") + " a «N° Factura»",
+                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.regresarNumeroAFolio(hecho),
+                        m -> {
+                            for (var c : hecho)
+                                for (Fila f : filas)
+                                    if (f.producto.getId().equals(c.id())) {
+                                        f.producto.setFolioFiscal(c.folio());
+                                        f.producto.setNumeroFactura(null);
+                                        f.guardado = false;
+                                    }
+                            cargarAreas();
+                            refiltrar();
+                            actualizarConteos();
+                            lista.refresh();
+                            NotificacionUtil.info(scene, FormatUtils.plural(m, "número regresó", "números regresaron") + " a «Folio fiscal»");
+                        },
+                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+            },
+            ex -> NotificacionUtil.error(scene, "No se pasaron: " + com.sibim.util.MensajeError.de(ex)));
+    }
+
     private void aplicarConac() {
+        if (datoElegido() == Dato.FOLIO_REVISAR) { pasarNumerosAFactura(); return; }
         if (datoElegido() == Dato.TIPO) {
             List<Fila> sugeridos = conTipoSugerido();
             if (!sugeridos.isEmpty()) aplicarTexto(Dato.TIPO, "MUEBLE", sugeridos, "Tipo de bien según CONAC", "Aplicar");

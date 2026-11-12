@@ -152,6 +152,79 @@ public class CalidadDatosRepository {
         }
     }
 
+    /** A bien whose factura number was typed in «Folio fiscal»: its id, what that field had and
+     *  the number «N° Factura» takes. */
+    public record NumeroEnFolio(String id, String folio, String numero) {}
+
+    /** The number goes to «N° Factura» and «Folio fiscal» is left empty, on the bienes that
+     *  still have it so (no factura number, the same short folio). @return how many moved */
+    public int pasarNumeroAFactura(List<NumeroEnFolio> cambios) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (NumeroEnFolio c : cambios) {
+                var o = local.findProductoById(c.id());
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                if (p.getNumeroFactura() != null && !p.getNumeroFactura().isBlank()) continue;
+                if (p.getFolioFiscal() == null || !p.getFolioFiscal().trim().equals(c.folio().trim())) continue;
+                p.setNumeroFactura(c.numero());
+                p.setFolioFiscal(null);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET numero_factura = ?, folio_fiscal = NULL, updated_at = NOW() "
+                     + "WHERE id = ? AND (numero_factura IS NULL OR btrim(numero_factura) = '') AND btrim(folio_fiscal) = btrim(?)")) {
+            for (NumeroEnFolio c : cambios) {
+                ps.setString(1, c.numero());
+                ps.setString(2, c.id());
+                ps.setString(3, c.folio());
+                ps.addBatch();
+            }
+            int n = 0;
+            for (int r : ps.executeBatch()) n += Math.max(r, 0);
+            return n;
+        }
+    }
+
+    /** Undo of {@link #pasarNumeroAFactura}, on the bienes nobody changed since. */
+    public int regresarNumeroAFolio(List<NumeroEnFolio> cambios) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (NumeroEnFolio c : cambios) {
+                var o = local.findProductoById(c.id());
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                if (p.getFolioFiscal() != null && !p.getFolioFiscal().isBlank()) continue;
+                if (!c.numero().equals(p.getNumeroFactura())) continue;
+                p.setFolioFiscal(c.folio());
+                p.setNumeroFactura(null);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET folio_fiscal = ?, numero_factura = NULL, updated_at = NOW() "
+                     + "WHERE id = ? AND (folio_fiscal IS NULL OR btrim(folio_fiscal) = '') AND numero_factura = ?")) {
+            for (NumeroEnFolio c : cambios) {
+                ps.setString(1, c.folio());
+                ps.setString(2, c.id());
+                ps.setString(3, c.numero());
+                ps.addBatch();
+            }
+            int n = 0;
+            for (int r : ps.executeBatch()) n += Math.max(r, 0);
+            return n;
+        }
+    }
+
     /** Every bien whose proveedor is written exactly {@code de} takes {@code a}.
      *  @return the ids that changed, to undo it */
     public List<String> cambiarProveedor(String de, String a) throws SQLException {

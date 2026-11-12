@@ -677,6 +677,55 @@ public class CalidadDatosService {
         return n;
     }
 
+    // ── Número de factura escrito en «Folio fiscal» ───────────────────────────
+
+    /** A short number in «Folio fiscal» on a bien with no factura number: that is its
+     *  factura's own number (12-nov-2026: 12 bienes, «01329», «AAA4B», «1636B»…). */
+    public static boolean esNumeroDeFactura(Producto p) {
+        String f = p.getFolioFiscal();
+        return p.getFechaBaja() == null && f != null && !f.isBlank() && f.trim().length() <= 12
+            && (p.getNumeroFactura() == null || p.getNumeroFactura().isBlank());
+    }
+
+    public static List<Producto> numeroEnFolio(List<Producto> bienes) {
+        return bienes.stream().filter(CalidadDatosService::esNumeroDeFactura).toList();
+    }
+
+    /** The number as «N° Factura» takes it: «O1329» is «01329» (an O among digits is a zero). */
+    public static String numeroDeFactura(String folio) {
+        String t = folio.trim();
+        String digitos = t.replaceAll("[Oo]", "0");
+        return digitos.matches("\\d+") ? digitos : t.toUpperCase(Locale.ROOT);
+    }
+
+    /** Moves each number from «Folio fiscal» to «N° Factura». @return what moved, to undo it */
+    public List<CalidadDatosRepository.NumeroEnFolio> pasarNumeroAFactura(List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<CalidadDatosRepository.NumeroEnFolio> cambios = numeroEnFolio(bienes).stream()
+            .map(p -> new CalidadDatosRepository.NumeroEnFolio(p.getId(), p.getFolioFiscal(), numeroDeFactura(p.getFolioFiscal())))
+            .toList();
+        if (cambios.isEmpty()) return List.of();
+        int n = repo.pasarNumeroAFactura(cambios);
+        if (n > 0) audit.log("producto", cambios.get(0).id(), "Varios bienes: número de factura", "actualizar",
+            "El número de la factura estaba escrito en «Folio fiscal»: pasó a «N° Factura» en " + n + " bienes: "
+                + codigos(numeroEnFolio(bienes)));
+        ProductosEnMemoria.invalidar();
+        return n > 0 ? cambios : List.of();
+    }
+
+    /** Undo of {@link #pasarNumeroAFactura}. */
+    public int regresarNumeroAFolio(List<CalidadDatosRepository.NumeroEnFolio> cambios) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        if (cambios.isEmpty()) return 0;
+        int n = repo.regresarNumeroAFolio(cambios);
+        if (n > 0) audit.log("producto", cambios.get(0).id(), "Varios bienes: número de factura", "actualizar",
+            "Se deshizo: el número regresó a «Folio fiscal» en " + n + " bienes");
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
     // ── Folio fiscal escrito en «Factura» ────────────────────────────────────
 
     /** Active bienes whose «Factura» holds the UUID of the CFDI and whose «Folio fiscal» is

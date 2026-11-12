@@ -120,8 +120,7 @@ final class TutorialGuias {
                 "Además de precio, fecha, vida útil y foto: proveedor, folio fiscal, factura, color y tipo de bien",
                 "Se escribe en la lista y Enter pasa al siguiente, sin abrir el formulario de cada bien",
                 "«Poner a todos» escribe lo mismo a los bienes de la lista que no lo tienen (busca, por ejemplo, «silla»)",
-                "En Tipo de bien, «Revisar y aplicar» pone MUEBLE a todo lo que no es vehículo, según su clave CONAC",
-                "«Folio fiscal por revisar»: los folios escritos con otra forma (una O por un cero, un carácter de menos), para corregirlos; el formulario ya avisa al escribirlos"),
+                "En Tipo de bien, «Revisar y aplicar» pone MUEBLE a todo lo que no es vehículo, según su clave CONAC"),
                 "Abrir Completar datos", abrir("productos", "completar:PROVEEDOR")));
             p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Son el mismo bien", "productos", "#btnMasBienes",
                 "Bienes › Más › «Son el mismo bien»: escribe los dos números (o el de la etiqueta vieja) y marca cuál se queda",
@@ -154,11 +153,13 @@ final class TutorialGuias {
                 "Puedes quitar la marca de lo que no quieras pasar, y deshacerlo desde el aviso",
                 "Bienes › Más › «Copiar datos de la misma factura» llena de una vez lo que ya tiene un bien y a sus hermanos les falta"),
                 "Ver qué se puede copiar", abrir("productos", "factura")));
-            p.add(probar(paso("mdi2f-file-swap-outline", DORADO, DORADO_D, "Folio fiscal y proveedores en orden", "productos", "#btnMasBienes",
+            p.add(probar(paso("mdi2f-file-swap-outline", DORADO, DORADO_D, "Folios fiscales y proveedores en orden", "productos", "#btnMasBienes",
                 "Bienes › Más › «Folio fiscal a su lugar»: el UUID que quedó escrito en «Factura» pasa a «Folio fiscal» (en los formatos se imprime igual)",
-                "Bienes › Más › «Unir proveedores»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una",
-                "Los dos se pueden deshacer desde el aviso, y salen en «Por hacer» mientras haya pendientes"),
-                "Pasar los folios", abrir("productos", "folio")));
+                "Completar datos › «Folio fiscal por revisar»: cada folio con una O por un cero o un carácter de menos dice qué tiene mal; lo corriges con la factura a la vista y Enter pasa al siguiente",
+                "Si lo que quedó en «Folio fiscal» es el número de la factura («01329», «AAA4B»), «Pasarlos a N° Factura» lo pone en su lugar, y así «misma factura» reconoce esas compras",
+                "En el formulario del bien, un folio fiscal con otra forma se avisa al escribirlo",
+                "Bienes › Más › «Unir proveedores»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una; todo se deshace desde el aviso"),
+                "Revisar los folios", abrir("productos", "completar:FOLIO_REVISAR")));
             p.add(paso("mdi2c-cash-plus", VERDE, VERDE_D, "Menos tecleo", "productos", "#btnEditar",
                 "Debajo del costo de un bien, «Sumarle el IVA (16 %)» hace la cuenta y la escribe; se usa una sola vez por costo",
                 "Al abrir SIBIM, tu usuario ya está escrito: solo pones la contraseña"));
