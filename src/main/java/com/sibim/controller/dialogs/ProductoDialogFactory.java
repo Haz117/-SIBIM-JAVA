@@ -160,13 +160,15 @@ public final class ProductoDialogFactory {
         var patrimonioTab = new ProductoTabPatrimonioFields(existing,
             sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardo,
             extras.resguardantes() != null ? extras.resguardantes() : List.of());
+        // The costo is captured with the factura, in «Datos Patrimoniales › Compra».
+        patrimonioTab.ponerCosto(stockTab.etiquetaCosto, stockTab.cajaCosto);
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab tabInfo       = new Tab("Información General", infoTab.grid);
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
-        Tab tabStock      = new Tab("Valor y cantidad", stockTab.grid);
+        Tab tabStock      = new Tab("Cantidad y garantía", stockTab.grid);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
         Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.grid);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
@@ -174,7 +176,7 @@ public final class ProductoDialogFactory {
         tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
 
         // ── Step indicator bar ───────────────────────────────────────────────
-        String[] stepTitles = {"Datos básicos", "Valor y cantidad", "Patrimonio"};
+        String[] stepTitles = {"Datos básicos", "Cantidad y garantía", "Patrimonio"};
         VBox[] stepNodes = new VBox[3];
         Region[] connectors = new Region[2];
         HBox stepBar = new HBox(0);
@@ -240,7 +242,7 @@ public final class ProductoDialogFactory {
             if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             String pcText = stockTab.fPrecioC.getText().trim();
             try { var bd = new BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioC.getStyleClass().remove("field-error"); }
-            catch (Exception ex) { stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            catch (Exception ex) { stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(2); inv = true; }
             if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) { stockTab.fStockMin.getStyleClass().add("field-error"); stockTab.fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (inv) {
                 lblFormError.setText("Completa los campos obligatorios marcados en rojo. El costo debe ser un número válido y no negativo (ej. 1500.00), y la existencia mínima no puede superar a la máxima.");
@@ -249,7 +251,7 @@ public final class ProductoDialogFactory {
                 return;
             }
             if (!precioConfirmado(new BigDecimal(pcText), existing)) {
-                tabs.getSelectionModel().select(1);
+                tabs.getSelectionModel().select(2);
                 stockTab.fPrecioC.requestFocus();
                 return;
             }
@@ -501,7 +503,7 @@ public final class ProductoDialogFactory {
                 if (precioCompra.signum() < 0) throw new NumberFormatException("negativo");
                 stockTab.fPrecioC.getStyleClass().remove("field-error");
             } catch (Exception ex) {
-                stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
+                stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(2); invalid = true;
             }
 
             if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) {

@@ -12,9 +12,11 @@ import javafx.scene.layout.VBox;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/** Builds and holds all fields for the "Valor y cantidad" tab of the
- *  "Nuevo/Editar Bien" dialog.  Package-private — only used by
- *  {@link ProductoDialogFactory}.
+/** Builds and holds all fields for the "Cantidad y garantía" tab of the
+ *  "Nuevo/Editar Bien" dialog, and the costo, which is shown in "Datos
+ *  Patrimoniales › Compra" next to the rest of the factura (12-nov-2026: in 175
+ *  of 411 edits the costo changed together with the factura's data, one tab
+ *  apart). Package-private — only used by {@link ProductoDialogFactory}.
  *
  *  A municipal bien is valued at its acquisition cost; there is no sale
  *  price (ProductoService mirrors it from the purchase price). Minimum and
@@ -35,6 +37,10 @@ class ProductoTabStockFields {
     final Label               lblLote;
     final Hyperlink           lnkDividir;
     final Hyperlink           lnkIva;
+    /** The costo's label and its box (field, hint, IVA, lot): placed by
+     *  {@link ProductoTabPatrimonioFields#ponerCosto}. */
+    final javafx.scene.Node   etiquetaCosto;
+    final VBox                cajaCosto;
 
     ProductoTabStockFields(Producto existing) {
 
@@ -166,10 +172,10 @@ class ProductoTabStockFields {
 
         // ── Main fields ───────────────────────────────────────────────────────
         int rs = 0;
-        principal.add(DialogUtil.fieldLabelWithHelp("Costo de adquisición",
+        etiquetaCosto = DialogUtil.fieldLabelWithHelp("Costo de adquisición",
             "Precio de compra por unidad, según factura.\n"
-            + "Es el valor patrimonial del bien en reportes y actas."),
-                                                                  0, rs); principal.add(new VBox(2, fPrecioC, lblPrecioCHint, lnkIva, lote), 1, rs++);
+            + "Es el valor patrimonial del bien en reportes y actas.");
+        cajaCosto = new VBox(2, fPrecioC, lblPrecioCHint, lnkIva, lote);
         principal.add(DialogUtil.fieldLabel("Cantidad"),          0, rs); principal.add(new VBox(2, fStock, lblStockBloqueado), 1, rs++);
         principal.add(DialogUtil.fieldLabel("Unidad"),            0, rs); principal.add(fUnidad,   1, rs++);
         principal.add(DialogUtil.fieldLabelWithHelp("Garantía hasta",

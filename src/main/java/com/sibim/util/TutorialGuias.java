@@ -127,6 +127,10 @@ final class TutorialGuias {
                 "El que se queda toma lo que le falta del otro, sus fotos y su historial; si el otro estaba en un resguardo y este no, toma su lugar",
                 "El otro se quita; su número queda anotado en la descripción y en Auditoría, y se puede deshacer desde el aviso"),
                 "Abrir", abrir("productos", "juntar")));
+            p.add(paso("mdi2f-form-select", GUINDA, GUINDA_D, "El formulario, en el orden de la factura", "productos", "#btnNuevoBien",
+                "En «Datos Patrimoniales», arriba va la compra: factura, folio fiscal, proveedor, fecha, costo (con su IVA), vida útil y valor residual",
+                "Luego el bien (color, tipo, marca, modelo, serie), dónde está, su mantenimiento y los datos de vehículo",
+                "La segunda pestaña se llama «Cantidad y garantía»: el costo ya no está ahí"));
             p.add(paso("mdi2a-alert-outline", DORADO, DORADO_D, "¿Ya está registrado?", "productos", "#btnNuevoBien",
                 "Al guardar un bien, SIBIM avisa si su serie ya la tiene otro bien, o si hace un momento se registró uno igual",
                 "Tú decides: si es otro, se guarda; si es el mismo, regresas al formulario"));

@@ -216,11 +216,41 @@ class ProductoTabPatrimonioFields {
         fNoPoliza.getStyleClass().add("form-input");
 
         // ── Assemble gridPatrimonio ───────────────────────────────────────────
+        // In the order the factura is captured (12-nov-2026: since 28-oct, 411 edits,
+        // most of them proveedor + folio fiscal + vida útil + color + tipo de bien, and
+        // 175 with the costo too): the purchase first, with the costo; then the bien,
+        // where it is, its maintenance and the vehicle's papers.
         int rp = 0;
+        rp = seccion("Compra", rp, false);
+        grid.add(DialogUtil.fieldLabelWithHelp("N° Factura",
+            "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
+                                                         0, rp); grid.add(fNumeroFactura, 1, rp++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
+            "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo."),
+                                                         0, rp); grid.add(fFolioFiscal, 1, rp++);
         grid.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); grid.add(fProveedor,    1, rp++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
+            "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
+                                                         0, rp); grid.add(fFechaAdq,      1, rp++);
+        filaCosto = rp++;   // the costo, from the other tab (ponerCosto)
+        grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
+            "Número de años en que el bien se deprecia completamente (depreciación en línea recta)\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10;\nse sugiere al elegir la categoría). Vacío: el bien no se deprecia."),
+                                                         0, rp); grid.add(fVidaUtil,      1, rp++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
+            "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
+                                                         0, rp); grid.add(fValorResidual, 1, rp++);
+
+        rp = seccion("El bien", rp, true);
+        grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
+        grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(fTipoBien, 1, rp++);
         grid.add(DialogUtil.fieldLabel("Marca"),         0, rp); grid.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
         grid.add(DialogUtil.fieldLabel("Modelo"),        0, rp); grid.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
         grid.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); grid.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
+            "Clave CONAC del bien: la de su categoría (Ej. 1.2.4.1.1.511).\nSe llena al elegir la categoría. Aparece en ANEXO V.4 e Inventario de Parque Vehicular."),
+            0, rp); grid.add(fClaveArm, 1, rp++);
+
+        rp = seccion("Dónde está", rp, true);
         grid.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); grid.add(fUbicacion,    1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
@@ -228,54 +258,38 @@ class ProductoTabPatrimonioFields {
         grid.add(DialogUtil.fieldLabelWithHelp("Estado físico",
             "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
                                                          0, rp); grid.add(fEstadoFisico, 1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("N° Factura",
-            "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
-                                                         0, rp); grid.add(fNumeroFactura, 1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
-            "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo."),
-                                                         0, rp); grid.add(fFolioFiscal, 1, rp++);
-        grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++;
         grid.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
         grid.add(fEtiquetado, 1, rp++);
-        grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++;
 
-        Label lblDepSection = new Label("Depreciación (línea recta)");
-        lblDepSection.getStyleClass().add("dialog-field-label");
-        grid.add(lblDepSection, 0, rp, 2, 1); rp++;
-
-        grid.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
-            "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
-                                                         0, rp); grid.add(fFechaAdq,      1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
-            "Número de años en que el bien se deprecia completamente\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10;\nse sugiere al elegir la categoría). Vacío: el bien no se deprecia."),
-                                                         0, rp); grid.add(fVidaUtil,      1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
-            "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                         0, rp); grid.add(fValorResidual, 1, rp++);
-
-        grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++;
-        Label lblMantSection = new Label("Mantenimiento");
-        lblMantSection.getStyleClass().add("dialog-field-label");
-        grid.add(lblMantSection, 0, rp, 2, 1); rp++;
-
+        rp = seccion("Mantenimiento", rp, true);
         grid.add(DialogUtil.fieldLabelWithHelp("Próxima revisión",
             "Fecha programada para la próxima revisión o mantenimiento preventivo del bien."),
             0, rp); grid.add(fProximaRevision, 1, rp++);
         grid.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); grid.add(fNotasMant, 1, rp++);
 
-        grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++;
-        Label lblFormOficial = new Label("Datos para formatos oficiales");
-        lblFormOficial.getStyleClass().add("dialog-field-label");
-        grid.add(lblFormOficial, 0, rp, 2, 1); rp++;
-
-        grid.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
-            "Clave CONAC del bien: la de su categoría (Ej. 1.2.4.1.1.511).\nSe llena al elegir la categoría. Aparece en ANEXO V.4 e Inventario de Parque Vehicular."),
-            0, rp); grid.add(fClaveArm, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(fTipoBien, 1, rp++);
+        rp = seccion("Vehículos", rp, true);
         grid.add(DialogUtil.fieldLabel("N° de Motor"), 0, rp); grid.add(fNoMotor, 1, rp++);
         grid.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); grid.add(fNoTarjeta, 1, rp++);
         grid.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); grid.add(fNoPoliza, 1, rp);
+    }
+
+    /** The row the costo goes in, inside «Compra». */
+    private int filaCosto;
+
+    /** A section title, as the tab already had them (a line, then its name). */
+    private int seccion(String titulo, int rp, boolean conLinea) {
+        if (conLinea) { grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++; }
+        Label l = new Label(titulo);
+        l.getStyleClass().add("dialog-field-label");
+        grid.add(l, 0, rp, 2, 1);
+        return rp + 1;
+    }
+
+    /** Puts the costo (its label and its box, built by the other tab with its IVA and lot
+     *  hints) in «Compra», between the fecha and the vida útil. */
+    void ponerCosto(javafx.scene.Node etiqueta, javafx.scene.Node caja) {
+        grid.add(etiqueta, 0, filaCosto);
+        grid.add(caja, 1, filaCosto);
     }
 
     /** Attaches dirty-tracking listeners on all editable fields. Call AFTER
