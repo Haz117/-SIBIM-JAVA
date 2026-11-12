@@ -138,6 +138,26 @@ try {
 
 $tamano = [math]::Round((Get-Item $archivo).Length / 1MB, 2)
 Write-Host "Respaldo guardado: $archivo ($tamano MB)"
+
+# ── La fecha del respaldo, anotada en la base ────────────────────────────────
+# SIBIM la lee en Inicio › Por hacer y avisa si pasan más de 2 días sin respaldo
+# (el 9-nov-2026 un apagón cortó el de las 11:00 y nada lo decía). Si no se
+# puede anotar, el respaldo ya está guardado: solo se avisa aquí.
+try {
+    $psql = Buscar-Programa "psql"
+    $env:PGPASSWORD = $con.Contrasena
+    $env:PGSSLMODE  = $con.Ssl
+    $env:PGCLIENTENCODING = "UTF8"
+    $valor = "{0}|{1}|{2}" -f (Get-Date -Format "yyyy-MM-ddTHH:mm:ss"), $env:COMPUTERNAME, $tamano
+    & $psql --host $con.Host --port $con.Puerto --username $con.Usuario --dbname $con.Base `
+        --no-psqlrc --quiet --set ON_ERROR_STOP=1 `
+        -c "INSERT INTO configuracion (clave, valor) VALUES ('ultimo_respaldo', '$valor') ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "psql terminó con código $LASTEXITCODE" }
+} catch {
+    Write-Warning "El respaldo se guardó, pero no se pudo anotar su fecha en la base: $($_.Exception.Message)"
+} finally {
+    Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+}
 if ($Destino.StartsWith($env:APPDATA) -and -not $CopiaEn) {
     Write-Host "Copia de vez en cuando la carpeta $Destino a una USB o a otra PC (o usa -CopiaEn): si esta PC se descompone, los respaldos se van con ella."
 }

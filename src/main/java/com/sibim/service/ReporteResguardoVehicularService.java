@@ -136,7 +136,7 @@ public class ReporteResguardoVehicularService extends ReporteService {
         doc.add(t1);
         Table t2 = tabla(1.8f, 6.5f);
         t2.addCell(etiqueta("NO. DE INVENTARIO:", bold));
-        t2.addCell(valor(p.getCodigo(), bold, 17));
+        t2.addCell(valor(ReporteParqueVehicularService.numeroDeInventario(p), bold, 17));
         doc.add(t2);
 
         doc.add(barra("ÁREA RESGUARDANTE", bold));

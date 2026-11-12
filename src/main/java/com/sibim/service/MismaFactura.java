@@ -31,7 +31,8 @@ public final class MismaFactura {
         FECHA("Fecha de adquisición", true, Producto::getFechaAdquisicion, (p, v) -> p.setFechaAdquisicion((LocalDate) v)),
         COSTO("Costo", false, Producto::getPrecioCompra, (p, v) -> p.setPrecioCompra((BigDecimal) v)),
         VIDA_UTIL("Vida útil", false, Producto::getVidaUtilAnios, (p, v) -> p.setVidaUtilAnios((Integer) v)),
-        COLOR("Color", false, Producto::getColor, (p, v) -> p.setColor((String) v));
+        COLOR("Color", false, Producto::getColor, (p, v) -> p.setColor((String) v)),
+        TIPO_BIEN("Tipo de bien", false, Producto::getTipoBien, (p, v) -> p.setTipoBien((String) v));
 
         public final String etiqueta;
         /** True: every bien of the factura; false: only those with the same name. */

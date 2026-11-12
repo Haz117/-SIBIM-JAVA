@@ -113,9 +113,31 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: los datos de una factura van a todos sus bienes, y el IVA en un clic; luego el avance de las áreas y los datos de los formatos",
+                "Primero lo más nuevo: más datos en Completar datos, juntar dos registros de un bien, la misma factura y el IVA; luego el avance de las áreas",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos, con más datos", "productos", "#btnMasBienes",
+                "Además de precio, fecha, vida útil y foto: proveedor, folio fiscal, factura, color y tipo de bien",
+                "Se escribe en la lista y Enter pasa al siguiente, sin abrir el formulario de cada bien",
+                "«Poner a todos» escribe lo mismo a los bienes de la lista que no lo tienen (busca, por ejemplo, «silla»)",
+                "En Tipo de bien, «Revisar y aplicar» pone MUEBLE a todo lo que no es vehículo, según su clave CONAC"),
+                "Abrir Completar datos", abrir("productos", "completar:PROVEEDOR")));
+            p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Son el mismo bien", "productos", "#btnMasBienes",
+                "Bienes › Más › «Son el mismo bien»: escribe los dos números (o el de la etiqueta vieja) y marca cuál se queda",
+                "El que se queda toma lo que le falta del otro, sus fotos y su historial; si el otro estaba en un resguardo y este no, toma su lugar",
+                "El otro se quita; su número queda anotado en la descripción y en Auditoría, y se puede deshacer desde el aviso"),
+                "Abrir", abrir("productos", "juntar")));
+            p.add(paso("mdi2a-alert-outline", DORADO, DORADO_D, "¿Ya está registrado?", "productos", "#btnNuevoBien",
+                "Al guardar un bien, SIBIM avisa si su serie ya la tiene otro bien, o si hace un momento se registró uno igual",
+                "Tú decides: si es otro, se guarda; si es el mismo, regresas al formulario"));
+            p.add(probar(paso("mdi2i-image-multiple-outline", VERDE, VERDE_D, "Fotos repetidas", "productos", "#btnMasBienes",
+                "La misma foto en bienes que no son el mismo lote: casi siempre es la foto de otro bien",
+                "Desde ahí ves cada bien, le quitas esa foto o juntas los dos registros si son el mismo",
+                "En la PC de Patrimonio usa la copia del respaldo y tarda segundos; en otra, la primera vez baja las fotos"),
+                "Revisar las fotos", abrir("productos", "fotos")));
+            p.add(paso("mdi2f-format-list-checks", VERDE, VERDE_D, "Más avisos en «Por hacer»", "dashboard", "#porHacerSection",
+                "Si pasan más de 2 días sin respaldo de la base, lo dice primero",
+                "Cuántas computadoras abrieron SIBIM con una versión anterior; un clic abre la lista de equipos"));
             p.add(probar(paso("mdi2r-receipt", GUINDA, GUINDA_D, "Lo mismo para toda la factura", "productos", "#btnMasBienes",
                 "Al guardar un bien con su número de factura, SIBIM te ofrece ponerles lo que capturaste a los demás bienes de esa factura",
                 "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil y color, solo a los del mismo nombre",

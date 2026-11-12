@@ -62,6 +62,12 @@
                 <MenuItem fx:id="btnMismaFactura" text="Copiar datos de la misma factura" onAction="#onMismaFactura">
                     <graphic><FontIcon iconLiteral="mdi2r-receipt"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnJuntarBienes" text="Son el mismo bien (juntar dos registros)…" onAction="#onJuntarBienes">
+                    <graphic><FontIcon iconLiteral="mdi2c-call-merge"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnFotosRepetidas" text="Fotos repetidas" onAction="#onFotosRepetidas">
+                    <graphic><FontIcon iconLiteral="mdi2i-image-multiple-outline"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnEtiquetasArea" text="Etiquetas por área" onAction="#onEtiquetasArea">
                     <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
                 </MenuItem>

@@ -30,7 +30,7 @@ import java.util.Set;
 final class PorHacerPanel {
 
     private record Datos(List<Producto> bienes, List<Resguardo> resguardos, Set<String> distintas, Map<String, String> config,
-                         int solicitudesBaja) {}
+                         int solicitudesBaja, int pcsAtrasadas) {}
 
     private final VBox seccion;
 
@@ -39,9 +39,9 @@ final class PorHacerPanel {
         CalidadDatosService calidad = new CalidadDatosService();
         DialogUtil.runAsync(
             () -> new Datos(new ProductoService().getAll(), new ResguardoService().getAll(),
-                calidad.personasDistintas(), new ConfiguracionRepository().findAll(), solicitudesBaja()),
-            d -> pintar(conSolicitudes(d.solicitudesBaja(),
-                CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config()))),
+                calidad.personasDistintas(), new ConfiguracionRepository().findAll(), solicitudesBaja(), pcsAtrasadas()),
+            d -> pintar(conEquipos(d.pcsAtrasadas(), conSolicitudes(d.solicitudesBaja(),
+                CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config())))),
             e -> { /* It is a shortcut: without it, Inicio is what it was. */ });
     }
 
@@ -52,6 +52,25 @@ final class PorHacerPanel {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    /** PCs used in the last 60 days that still run an older SIBIM; 0 if it can't be told. */
+    private static int pcsAtrasadas() {
+        try {
+            return new com.sibim.service.AccesosEquipoService()
+                .desactualizados(com.sibim.util.UpdateChecker.currentVersion(), 60).size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Last: it is fixed by publishing the update, not in the inventory. */
+    static List<PorHacer> conEquipos(int n, List<PorHacer> resto) {
+        if (n <= 0) return resto;
+        List<PorHacer> todo = new java.util.ArrayList<>(resto);
+        todo.add(new PorHacer(n, n == 1 ? "computadora con una versión anterior de SIBIM" : "computadoras con una versión anterior de SIBIM",
+            "Ver equipos", "configuracion", "equipos"));
+        return todo;
     }
 
     /** An área waiting for an answer goes first. */

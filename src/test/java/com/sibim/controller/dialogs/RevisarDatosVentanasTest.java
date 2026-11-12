@@ -103,7 +103,7 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         Producto deOtra = bien("3", "OP/3", "Ana", "Secretaría de Obras Públicas");
         Platform.runLater(() -> CompletarDatosDialog.show(List.of(conPrecio, sinPrecio, deOtra), null));
         DialogPane panel = abierto();
-        assertEquals(0, visibles(panel, ".cnt-fila"), "primero se elige el área");
+        assertEquals(2, visibles(panel, ".cnt-fila"), "al abrir se muestran los bienes de todas las áreas");
 
         ListView<String> areas = (ListView<String>) panel.lookup(".trf-areas");
         interact(() -> areas.getSelectionModel().select("Tesorería Municipal"));

@@ -212,8 +212,10 @@ public class ConfiguracionController {
                 .conCapturarTitulares(() -> abrirDatosFormatos(com.sibim.controller.dialogs.DatosFormatosDialog.Seccion.TITULARES));
             areasBuilder.build();
             // «Completar datos» in the Inicio's Por hacer opens the window right away.
-            if ("formatos".equals(com.sibim.session.NavigationContext.consumePendingAbrir()))
-                javafx.application.Platform.runLater(() -> abrirDatosFormatos(null));
+            String abrir = com.sibim.session.NavigationContext.consumePendingAbrir();
+            if ("formatos".equals(abrir)) javafx.application.Platform.runLater(() -> abrirDatosFormatos(null));
+            // Inicio › Por hacer › computers with an older SIBIM.
+            if ("equipos".equals(abrir)) javafx.application.Platform.runLater(this::onEquiposPorCuenta);
         }
 
         if (isAdmin) {

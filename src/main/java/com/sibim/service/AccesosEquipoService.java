@@ -52,6 +52,41 @@ public class AccesosEquipoService {
         }
     }
 
+    /** A PC that last opened SIBIM with an older version than this one. */
+    public record Atrasado(String equipo, String version, LocalDateTime ultimoAcceso) {}
+
+    /** The PCs used in the last {@code dias} days whose last sign-in was with a version older
+     *  than {@code actual}: on 11-nov-2026 a laptop still had 1.0.0 and another PC 1.0.20,
+     *  and only the window of equipos said so. Empty offline, in the demo or for an área. */
+    public List<Atrasado> desactualizados(String actual, int dias) throws SQLException {
+        if (!SessionManager.isAdmin() || DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return List.of();
+        List<Atrasado> recientes = new ArrayList<>();
+        try (Connection c = DatabaseConfig.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 "SELECT DISTINCT ON (equipo) equipo, version, ultimo_acceso FROM accesos_equipo "
+                 + "ORDER BY equipo, ultimo_acceso DESC");
+             ResultSet rs = ps.executeQuery()) {
+            LocalDateTime desde = LocalDateTime.now().minusDays(dias);
+            while (rs.next()) {
+                Timestamp t = rs.getTimestamp("ultimo_acceso");
+                String v = rs.getString("version");
+                if (t == null || t.toLocalDateTime().isBefore(desde) || v == null || v.isBlank()) continue;
+                recientes.add(new Atrasado(rs.getString("equipo"), v.trim(), t.toLocalDateTime()));
+            }
+        }
+        return atrasados(actual, recientes);
+    }
+
+    /** Against the newest version in use, this PC's included: on a PC that wasn't updated
+     *  yet, the others are not the ones behind. */
+    static List<Atrasado> atrasados(String actual, List<Atrasado> recientes) {
+        String referencia = actual;
+        for (Atrasado a : recientes)
+            if (com.sibim.util.UpdateChecker.isNewer(a.version(), referencia == null ? "0.0.0" : referencia)) referencia = a.version();
+        String ref = referencia;
+        return recientes.stream().filter(a -> ref != null && com.sibim.util.UpdateChecker.isNewer(ref, a.version())).toList();
+    }
+
     /** Every account with its PCs — accounts that never signed in first. */
     public List<Cuenta> porCuenta() throws SQLException {
         if (!SessionManager.isAdmin()) throw new SecurityException("Solo el administrador consulta los accesos");

@@ -79,21 +79,25 @@ public final class InstanciaUnica {
     /** The running one: a loopback port, written to {@code sibim.puerto} (the locked
      *  file itself can't be read by another process on Windows). */
     private static void escuchar(Path dir, Runnable alPedirMostrar) {
+        // The thread keeps its own reference: soltar() sets the field to null, and on
+        // 12-nov-2026 the thread read it right after (NullPointerException in the tests).
+        ServerSocket propio;
         try {
-            escucha = new ServerSocket(0, 5, InetAddress.getLoopbackAddress());
-            Files.writeString(dir.resolve("sibim.puerto"), String.valueOf(escucha.getLocalPort()), StandardCharsets.US_ASCII);
+            propio = new ServerSocket(0, 5, InetAddress.getLoopbackAddress());
+            escucha = propio;
+            Files.writeString(dir.resolve("sibim.puerto"), String.valueOf(propio.getLocalPort()), StandardCharsets.US_ASCII);
         } catch (IOException e) {
             log.warn("SIBIM no podrá traer su ventana al frente si se abre otra vez: {}", e.getMessage());
             return;
         }
         Thread t = new Thread(() -> {
-            while (!escucha.isClosed()) {
-                try (Socket s = escucha.accept()) {
+            while (!propio.isClosed()) {
+                try (Socket s = propio.accept()) {
                     s.setSoTimeout(2000);
                     String linea = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII)).readLine();
                     if (MOSTRAR.equals(linea) && alPedirMostrar != null) alPedirMostrar.run();
                 } catch (IOException e) {
-                    if (escucha.isClosed()) return;
+                    if (propio.isClosed()) return;
                 }
             }
         }, "sibim-instancia-unica");

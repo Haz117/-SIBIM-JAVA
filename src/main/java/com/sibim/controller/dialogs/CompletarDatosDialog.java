@@ -183,7 +183,8 @@ public final class CompletarDatosDialog {
 
         tituloArea.getStyleClass().add("trf-paso-titulo");
         ToggleGroup grupo = new ToggleGroup();
-        HBox chips = new HBox(6);
+        // Nine since 1.0.26: they wrap instead of running off the window.
+        FlowPane chips = new FlowPane(6, 6);
         chips.setAlignment(Pos.CENTER_LEFT);
         for (Dato d : Dato.values()) {
             ToggleButton t = new ToggleButton(d.etiqueta);
@@ -270,6 +271,13 @@ public final class CompletarDatosDialog {
             case FECHA -> "Fecha de adquisición. Enter guarda y pasa al siguiente.";
             case VIDA_UTIL -> "Años de vida útil, para calcular la depreciación. Enter guarda y pasa al siguiente.";
             case FOTO -> "Elige una foto del bien; se sube con el mismo tamaño que en su ficha.";
+            case PROVEEDOR -> "Quien vendió el bien, como dice la factura. Enter guarda y pasa al siguiente; "
+                + "para los demás de su factura usa Más › «Copiar datos de la misma factura».";
+            case FOLIO -> "El folio fiscal (UUID) de la factura electrónica. Enter guarda y pasa al siguiente.";
+            case FACTURA -> "El número de la factura; si no hay, escribe SIN DOCUMENTO. Enter guarda y pasa al siguiente.";
+            case COLOR -> "El color del bien. Enter guarda y pasa al siguiente.";
+            case TIPO -> "MUEBLE para todo lo que no es vehículo; para un vehículo, su tipo (CAMIONETA, MOTOCICLETA…). "
+                + "Enter guarda y pasa al siguiente.";
         });
         refiltrar();
         actualizarConteos();
@@ -294,30 +302,44 @@ public final class CompletarDatosDialog {
         actualizarTodos();
     }
 
-    /** The bienes of the list as it is filtered that still have no vida útil. */
-    private List<Fila> sinVidaEnLista() {
-        return visibles.stream().filter(f -> !f.guardado && !f.guardando && f.producto.getVidaUtilAnios() == null).toList();
+    /** The bienes of the list as it is filtered that still lack the chosen dato. */
+    private List<Fila> sinDatoEnLista() {
+        Dato dato = datoElegido();
+        return visibles.stream().filter(f -> !f.guardado && !f.guardando && CalidadDatosService.falta(f.producto, dato)).toList();
     }
 
     private void actualizarTodos() {
-        List<Fila> sin = sinVidaEnLista();
-        boolean mostrar = datoElegido() == Dato.VIDA_UTIL && sin.size() > 1;
+        Dato dato = datoElegido();
+        List<Fila> sin = sinDatoEnLista();
+        boolean mostrar = (dato == Dato.VIDA_UTIL || dato.esTexto()) && sin.size() > 1;
         ver(barraTodos, mostrar);
         if (!mostrar) return;
-        boolean sinConac = sin.stream().anyMatch(f -> VidaUtilConac.anios(f.producto.getClaveArmonizada()) == null);
-        textoTodos.setText("La misma vida útil a los " + FormatUtils.plural(sin.size(), "bien", "bienes") + " de la lista"
-            + (buscar.getText().isBlank() ? "; busca, por ejemplo, «chaleco» para tomar solo esos." : ".")
-            + (sinConac ? " El CONAC no la fija para equipo de defensa y seguridad: la decide el municipio." : ""));
+        String filtro = buscar.getText().isBlank() ? "; busca, por ejemplo, «chaleco» para tomar solo esos." : ".";
+        if (dato == Dato.VIDA_UTIL) {
+            boolean sinConac = sin.stream().anyMatch(f -> VidaUtilConac.anios(f.producto.getClaveArmonizada()) == null);
+            textoTodos.setText("La misma vida útil a los " + FormatUtils.plural(sin.size(), "bien", "bienes") + " de la lista" + filtro
+                + (sinConac ? " El CONAC no la fija para equipo de defensa y seguridad: la decide el municipio." : ""));
+            aniosTodos.setPromptText("Años");
+            aniosTodos.setPrefWidth(70);
+            aniosTodos.setMinWidth(70);
+        } else {
+            String que = dato.etiqueta.replaceFirst("^Sin ", "");
+            textoTodos.setText(elMismo(dato) + que + " a los " + FormatUtils.plural(sin.size(), "bien", "bienes") + " de la lista" + filtro);
+            aniosTodos.setPromptText(que.substring(0, 1).toUpperCase() + que.substring(1));
+            aniosTodos.setPrefWidth(220);
+            aniosTodos.setMinWidth(160);
+        }
     }
 
     private void ponerATodos() {
+        if (datoElegido().esTexto()) { ponerTextoATodos(); return; }
         Integer anios = leerVidaUtil(aniosTodos.getText());
         if (anios == null) {
             NotificacionUtil.error(dialog.getDialogPane().getScene(), "Escribe los años, de 1 a 100");
             aniosTodos.requestFocus();
             return;
         }
-        List<Fila> sin = sinVidaEnLista();
+        List<Fila> sin = sinDatoEnLista();
         if (sin.isEmpty()) return;
         List<Producto> bienes = sin.stream().map(f -> f.producto).toList();
         Map<String, Long> porNombre = bienes.stream().collect(Collectors.groupingBy(
@@ -351,6 +373,61 @@ public final class CompletarDatosDialog {
             e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
     }
 
+    private void ponerTextoATodos() {
+        Dato dato = datoElegido();
+        String valor = CalidadDatosService.normalizarTexto(dato, aniosTodos.getText());
+        String que = dato.etiqueta.replaceFirst("^Sin ", "");
+        if (valor == null) {
+            NotificacionUtil.error(dialog.getDialogPane().getScene(), (dato == Dato.FACTURA ? "Escribe la " : "Escribe el ") + que);
+            aniosTodos.requestFocus();
+            return;
+        }
+        List<Fila> sin = sinDatoEnLista();
+        if (sin.isEmpty()) return;
+        aplicarTexto(dato, valor, sin, elMismo(dato) + que, "Poner a todos");
+    }
+
+    /** «La misma factura», «El mismo proveedor». */
+    private static String elMismo(Dato dato) {
+        return dato == Dato.FACTURA ? "La misma " : "El mismo ";
+    }
+
+    /** One text dato on several rows, after showing which bienes take it. */
+    private void aplicarTexto(Dato dato, String valor, List<Fila> sin, String titulo, String boton) {
+        List<Producto> bienes = sin.stream().map(f -> f.producto).toList();
+        Map<String, Long> porNombre = bienes.stream().collect(Collectors.groupingBy(
+            p -> Objects.requireNonNullElse(p.getNombre(), "Sin nombre"), Collectors.counting()));
+        String muestra = porNombre.entrySet().stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed()).limit(6)
+            .map(e -> "• " + e.getKey() + (e.getValue() > 1 ? " (" + e.getValue() + ")" : ""))
+            .collect(Collectors.joining("\n")) + (porNombre.size() > 6 ? "\n…" : "");
+        String area = areas.getSelectionModel().getSelectedItem();
+        String que = dato.etiqueta.replaceFirst("^Sin ", "");
+        if (!ConfirmacionUtil.confirmar(titulo,
+                "«" + valor + "» como " + que + " a " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " de " + area
+                    + (buscar.getText().isBlank() ? "" : " que coinciden con «" + buscar.getText().trim() + "»") + ":\n\n" + muestra
+                    + "\n\nSolo a los que no lo tienen. ¿Aplicar?", boton)) return;
+        DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Guardando…",
+            () -> calidad.asignarTexto(dato, valor, bienes),
+            n -> {
+                for (Fila f : sin) { CalidadDatosService.poner(f.producto, dato, valor); f.guardado = true; }
+                cambio = true;
+                aniosTodos.clear();
+                NotificacionUtil.exito(dialog.getDialogPane().getScene(), FormatUtils.plural(n, "bien actualizado", "bienes actualizados"));
+                cargarAreas();
+                refiltrar();
+                actualizarConteos();
+                lista.refresh();
+            },
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
+    }
+
+    /** The rows of what is chosen that can take «MUEBLE» (all but vehicles), by their CONAC account. */
+    private List<Fila> conTipoSugerido() {
+        return delArea().stream().filter(f -> !f.guardado && !f.guardando
+            && CalidadDatosService.falta(f.producto, Dato.TIPO) && CalidadDatosService.tipoSugerido(f.producto) != null).toList();
+    }
+
     private void actualizarConteos() {
         List<Fila> base = delArea();
         for (Dato d : Dato.values()) {
@@ -358,6 +435,14 @@ public final class CompletarDatosDialog {
             pestanas.get(d).setText(d.etiqueta + " (" + n + ")");
         }
         List<Producto> sinVida = base.stream().map(f -> f.producto).toList();
+        if (datoElegido() == Dato.TIPO) {
+            int n = conTipoSugerido().size();
+            ver(barraConac, n > 0);
+            if (n > 0) textoConac.setText(FormatUtils.plural(n, "bien de lo elegido no es", "bienes de lo elegido no son")
+                + " vehículo según su clave CONAC: llevan «MUEBLE», como los demás.");
+            actualizarTodos();
+            return;
+        }
         Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(sinVida);
         int n = propuesta.values().stream().mapToInt(List::size).sum();
         boolean mostrar = datoElegido() == Dato.VIDA_UTIL && n > 0;
@@ -368,6 +453,11 @@ public final class CompletarDatosDialog {
     }
 
     private void aplicarConac() {
+        if (datoElegido() == Dato.TIPO) {
+            List<Fila> sugeridos = conTipoSugerido();
+            if (!sugeridos.isEmpty()) aplicarTexto(Dato.TIPO, "MUEBLE", sugeridos, "Tipo de bien según CONAC", "Aplicar");
+            return;
+        }
         List<Producto> base = delArea().stream().map(f -> f.producto).toList();
         Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(base);
         if (propuesta.isEmpty()) return;
@@ -431,6 +521,11 @@ public final class CompletarDatosDialog {
             Integer anios = leerVidaUtil(f.texto);
             if (anios == null) { fallar(f, "Escribe los años, de 1 a 100"); return; }
             guardar(f, p -> p.setVidaUtilAnios(anios));
+        } else if (dato.esTexto()) {
+            String valor = CalidadDatosService.normalizarTexto(dato, f.texto);
+            if (valor == null) return;
+            if (valor.length() > (dato == Dato.FOLIO ? 60 : 200)) { fallar(f, "Es demasiado largo"); return; }
+            guardar(f, p -> CalidadDatosService.poner(p, dato, valor));
         }
     }
 
@@ -448,6 +543,7 @@ public final class CompletarDatosDialog {
 
     private void guardar(Fila f, java.util.function.Consumer<Producto> cambiar) {
         Producto p = f.producto;
+        Producto antes = p.copia();
         BigDecimal precioAntes = p.getPrecioCompra();
         LocalDate fechaAntes = p.getFechaAdquisicion();
         Integer vidaAntes = p.getVidaUtilAnios();
@@ -470,6 +566,13 @@ public final class CompletarDatosDialog {
                 p.setPrecioCompra(precioAntes);
                 p.setFechaAdquisicion(fechaAntes);
                 p.setVidaUtilAnios(vidaAntes);
+                for (Dato d : Dato.values()) if (d.esTexto()) CalidadDatosService.poner(p, d, switch (d) {
+                    case PROVEEDOR -> antes.getProveedor();
+                    case FOLIO -> antes.getFolioFiscal();
+                    case FACTURA -> antes.getNumeroFactura();
+                    case COLOR -> antes.getColor();
+                    default -> antes.getTipoBien();
+                });
                 f.guardando = false;
                 f.error = e.getMessage() != null ? e.getMessage() : "No se pudo guardar";
                 log.warn("No se pudo completar el dato de {}: {}", p.getCodigo(), e.getMessage());
@@ -643,19 +746,36 @@ public final class CompletarDatosDialog {
             partes.add(p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "Sin resguardante");
             if (p.getStockActual() > 1) partes.add(p.getStockActual() + " piezas");
             if (p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank()) partes.add("Serie " + p.getNumeroSerie());
+            // What the factura says is what these are copied from.
+            if (dato.esTexto() && dato != Dato.FACTURA && p.getNumeroFactura() != null && !p.getNumeroFactura().isBlank())
+                partes.add("Factura " + p.getNumeroFactura().trim());
             if (TODAS.equals(tituloArea.getText())) partes.add(areaDe(p));
             detalle.setText(String.join(" · ", partes));
             detalle.setTooltip(new Tooltip(detalle.getText()));
 
-            ver(campo, dato == Dato.PRECIO || dato == Dato.VIDA_UTIL);
+            ver(campo, dato == Dato.PRECIO || dato == Dato.VIDA_UTIL || dato.esTexto());
             ver(fecha, dato == Dato.FECHA);
             ver(foto, dato == Dato.FOTO);
             campo.setText(f.texto);
             fecha.setValue(f.fecha);
+            double ancho = dato == Dato.FOLIO || dato == Dato.PROVEEDOR ? 300 : dato.esTexto() ? 200 : 150;
+            campo.setPrefWidth(ancho);
+            campo.setMinWidth(ancho);
             if (dato == Dato.PRECIO) campo.setPromptText(p.getStockActual() > 1 ? "Costo por pieza" : "Costo");
             if (dato == Dato.VIDA_UTIL) {
                 Integer conac = VidaUtilConac.anios(p.getClaveArmonizada());
                 campo.setPromptText(conac != null ? "CONAC: " + conac + " años" : "Años");
+            }
+            switch (dato) {
+                case PROVEEDOR -> campo.setPromptText("Proveedor");
+                case FOLIO -> campo.setPromptText("Folio fiscal (UUID)");
+                case FACTURA -> campo.setPromptText("No. de factura");
+                case COLOR -> campo.setPromptText("Color");
+                case TIPO -> {
+                    String sugerido = CalidadDatosService.tipoSugerido(p);
+                    campo.setPromptText(sugerido != null ? "Ej. " + sugerido : "Ej. CAMIONETA");
+                }
+                default -> { }
             }
             boolean bloqueado = f.guardado || f.guardando;
             campo.setDisable(bloqueado);

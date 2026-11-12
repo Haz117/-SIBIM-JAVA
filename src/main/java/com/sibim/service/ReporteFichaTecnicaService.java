@@ -199,7 +199,9 @@ public class ReporteFichaTecnicaService extends ReporteService {
         // Derecha: número de inventario, descripción, estado y ubicación
         Cell der = celda().setPaddingLeft(8);
         der.add(etiqueta("NO. DE INVENTARIO", bold));
-        der.add(new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—").setFont(bold).setFontSize(21f)
+        // A vehicle: its old number, not SIBIM's (ReporteParqueVehicularService.numeroDeInventario).
+        String numero = ReporteParqueVehicularService.numeroDeInventario(p);
+        der.add(new Paragraph(numero != null ? numero : "—").setFont(bold).setFontSize(21f)
             .setFontColor(GUINDA).setMargin(0));
         der.add(new Paragraph(mayus(p.getNombre())).setFont(bold).setFontSize(11f).setFontColor(OSCURO)
             .setMultipliedLeading(1.15f).setMargin(0).setMarginTop(2));

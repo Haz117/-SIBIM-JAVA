@@ -1368,6 +1368,26 @@ public class ProductoRepository {
         return fotos;
     }
 
+    /** Every photo of every bien, by bien: one query instead of one per bien (Fotos repetidas). */
+    public Map<String, List<String>> todasLasFotos() throws SQLException {
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            for (Producto p : findAll()) {
+                List<String> f = new ArrayList<>(p.getFotosUrls());
+                if (f.isEmpty() && p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) f.add(p.getFotoUrl());
+                if (!f.isEmpty()) out.put(p.getId(), f);
+            }
+            return out;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT producto_id, foto_url FROM product_fotos ORDER BY producto_id, orden");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) out.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2));
+        }
+        return out;
+    }
+
     /** Replaces all photos for a product (deletes then re-inserts in order). */
     public void saveFotos(String productoId, List<String> fotos) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return;

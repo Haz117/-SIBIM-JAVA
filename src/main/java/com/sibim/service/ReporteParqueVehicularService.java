@@ -51,6 +51,19 @@ public class ReporteParqueVehicularService extends ReporteService {
         return TIPOS_DE_VEHICULO.contains(tipo);
     }
 
+    /** The NO. DE INVENTARIO a vehicle's sheets print: its number in the old inventory (the
+     *  one painted on it and in its papers, "SGM-RCE-099"), not the one SIBIM generated
+     *  ("RCE/82"), as Patrimonio asked on 12-nov-2026. SIBIM's when it has no old one, and
+     *  for any other bien. */
+    public static String numeroDeInventario(Producto p) {
+        if (p == null) return null;
+        if (esVehiculo(p)) {
+            String anterior = com.sibim.util.ProductoUtils.inventarioAnterior(p);
+            if (anterior != null) return anterior;
+        }
+        return p.getCodigo();
+    }
+
     /** The tipos de bien the vehicle list uses (28-oct-2026), without accents. */
     private static final java.util.Set<String> TIPOS_DE_VEHICULO = java.util.Set.of(
         "CAMIONETA", "MOTOCICLETA", "CAMION", "AUTO", "AUTOMOVIL", "CUATRIMOTO", "MAQUINARIA");
@@ -120,7 +133,7 @@ public class ReporteParqueVehicularService extends ReporteService {
         addVRow(dataTable, "No. De Serie:",        v(p.getNumeroSerie()),          "No. Póliza de Seguro:", v(p.getNoPolizaSeguro()),          bold, reg, muted, labelBg);
         addVRow(dataTable, "No. De Motor:",        v(p.getNoMotor()),              "Condiciones del Bien:", v(p.getEstadoFisico()),            bold, reg, muted, labelBg);
         addVRow(dataTable, "Color:",               v(p.getColor()),                "No. De Resguardo:",     folioResguardo != null ? folioResguardo : "_______________",                 bold, reg, muted, labelBg);
-        addVRow(dataTable, "No. De Inventario:",   v(p.getCodigo()),               "", "",                                                    bold, reg, muted, labelBg);
+        addVRow(dataTable, "No. De Inventario:",   v(numeroDeInventario(p)),               "", "",                                                    bold, reg, muted, labelBg);
         addVRow(dataTable, "Clave Armonizada:",    v(p.getClaveArmonizada()),      "", "",                                                    bold, reg, muted, labelBg);
         doc.add(dataTable);
 

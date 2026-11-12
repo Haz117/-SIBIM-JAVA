@@ -19,6 +19,8 @@
         <javafx.version>21.0.12</javafx.version>
         <main.class>com.sibim.Main</main.class>
         <mockito.version>5.14.2</mockito.version>
+        <!-- Extra JVM flags for the tests; the "sin-pantalla" profile fills them. -->
+        <pruebas.pantalla></pruebas.pantalla>
     </properties>
 
     <dependencies>
@@ -224,6 +226,13 @@
             <version>4.0.18</version>
             <scope>test</scope>
         </dependency>
+        <!-- Monocle: JavaFX with no screen, for the window tests (profile sin-pantalla). -->
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>openjfx-monocle</artifactId>
+            <version>21.0.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -347,7 +356,7 @@
                         <sibim.test>true</sibim.test>
                         <java.util.prefs.PreferencesFactory>com.sibim.testsupport.InMemoryPreferencesFactory</java.util.prefs.PreferencesFactory>
                     </systemPropertyVariables>
-                    <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off ${pruebas.pantalla}</argLine>
                 </configuration>
             </plugin>
 
@@ -426,6 +435,14 @@
         Uso: mvn -P installer package
     -->
     <profiles>
+        <!-- mvn test -Psin-pantalla: the window tests run with no screen (Monocle) and
+             no robot moving the mouse, so they can run while the PC is in use. -->
+        <profile>
+            <id>sin-pantalla</id>
+            <properties>
+                <pruebas.pantalla>-Dtestfx.headless=true -Dtestfx.robot=glass -Dglass.platform=Monocle -Dmonocle.platform=Headless -Dheadless.geometry=3840x2160-32 -Dprism.order=sw -Dprism.text=t2k -Djava.awt.headless=true</pruebas.pantalla>
+            </properties>
+        </profile>
         <profile>
             <id>installer</id>
             <build>

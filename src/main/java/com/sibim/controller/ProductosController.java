@@ -248,7 +248,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -417,6 +417,8 @@ public class ProductosController {
                 com.sibim.controller.dialogs.RevisarBienesDialog.Vista.OBSERVADOS, this::alCorregirDatos));
             case "series"    -> Platform.runLater(this::onSeriesRepetidas);
             case "factura"   -> Platform.runLater(this::onMismaFactura);
+            case "juntar"    -> Platform.runLater(this::onJuntarBienes);
+            case "fotos"     -> Platform.runLater(this::onFotosRepetidas);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
@@ -583,6 +585,8 @@ public class ProductosController {
     @FXML private MenuItem btnQuitarTitulos;
     @FXML private MenuItem btnSeriesRepetidas;
     @FXML private MenuItem btnMismaFactura;
+    @FXML private MenuItem btnJuntarBienes;
+    @FXML private MenuItem btnFotosRepetidas;
     @FXML private MenuItem btnCostoLotes;
     @FXML private MenuItem btnEtiquetasArea;
     @FXML private SeparatorMenuItem sepRevisarDatos;
@@ -630,6 +634,18 @@ public class ProductosController {
     @FXML
     private void onSeriesRepetidas() {
         conInventario(bienes -> com.sibim.controller.dialogs.SeriesRepetidasDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onFotosRepetidas() {
+        com.sibim.controller.dialogs.FotosRepetidasDialog.show(table.getScene(), productoService, this::alCorregirDatos);
+    }
+
+    /** Two records of one bien: the one selected in the table is the first. */
+    @FXML
+    private void onJuntarBienes() {
+        Producto elegido = table.getSelectionModel().getSelectedItem();
+        conInventario(bienes -> com.sibim.controller.dialogs.JuntarBienesDialog.show(bienes, elegido, this::alCorregirDatos));
     }
 
     @FXML
@@ -1182,7 +1198,8 @@ public class ProductosController {
             Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos,
                 extras, areaInicial, seguir);
             String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
-            result.ifPresent(p -> DialogUtil.runAsync(
+            result.ifPresent(p -> revisarRepetido(isNew ? null : existing, p,
+                () -> openProductDialog(p, cats, existingFotos, extras, null), () -> DialogUtil.runAsync(
                 () -> GuardarBien.enFondo(productoService, p, facturaAnterior, log),
                 saved -> {
                     if (isNew) {
@@ -1248,12 +1265,31 @@ public class ProductosController {
                             + " — revisa los datos e inténtalo de nuevo");
                     Platform.runLater(() -> openProductDialog(p, cats, existingFotos, extras, null));
                 }
-            ));
+            )));
 
         } catch (Exception e) {
             log.error("Error al abrir el formulario de bien", e);
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
         }
+    }
+
+    /** Before saving: a serie another bien already has, or the same bien registered a moment
+     *  ago, is asked about (PosibleRepetido); the person decides. Saves straight away when
+     *  nothing looks repeated or the check can't be made. */
+    private void revisarRepetido(Producto antes, Producto p, Runnable volver, Runnable guardar) {
+        DialogUtil.runAsync(
+            () -> com.sibim.service.PosibleRepetido.avisos(p, antes, productoService.getAll(), java.time.LocalDateTime.now()),
+            avisos -> {
+                if (avisos.isEmpty()) { guardar.run(); return; }
+                if (com.sibim.util.ConfirmacionUtil.confirmar("¿Ya está registrado?",
+                        String.join("\n", avisos) + "\n\nSi es otro bien, guárdalo; si es el mismo, regresa y revísalo.",
+                        "Es otro: guardar")) guardar.run();
+                else Platform.runLater(volver);
+            },
+            e -> {
+                log.warn("No se pudo revisar si {} ya está registrado: {}", p.getCodigo(), e.getMessage());
+                guardar.run();
+            });
     }
 
     /** The bien under this one on the page, to go on with after saving; null at the end. */

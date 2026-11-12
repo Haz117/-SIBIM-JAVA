@@ -92,8 +92,24 @@ class ReporteResguardoVehicularServiceTest {
             assertTrue(t.contains("RSG-2026-000001") && t.contains("15-oct-26"), t);
             assertTrue(t.contains("XX0000X") && t.contains("FRONTIER") && t.contains("DIRECTORA DE EJEMPLO"), t);
             assertTrue(t.contains("a los 15 días del mes de Octubre de 2026"), t);
+            assertTrue(t.contains("PM-000") && !t.contains("PRES/73"), "el número anterior, no el de SIBIM: " + t);
         }
         assertNull(new ReporteResguardoVehicularService().exportar(List.of()));
+    }
+
+    /** 12-nov-2026: a vehicle's sheets carry its old number; SIBIM's only without one, and
+     *  any other bien keeps SIBIM's. */
+    @Test
+    void elVehiculoLlevaSuNumeroAnterior() {
+        assertEquals("PM-000", ReporteParqueVehicularService.numeroDeInventario(frontier()));
+        Producto sinAnterior = frontier();
+        sinAnterior.setDescripcion("Placas: XX0000X.");
+        assertEquals("PRES/73", ReporteParqueVehicularService.numeroDeInventario(sinAnterior));
+        Producto escritorio = new Producto();
+        escritorio.setCodigo("RCE/38");
+        escritorio.setClaveArmonizada("1.2.4.1.1.511");
+        escritorio.setDescripcion("Inventario anterior: SGM-RCE-01.");
+        assertEquals("RCE/38", ReporteParqueVehicularService.numeroDeInventario(escritorio), "solo los vehículos");
     }
 
     /** 7-nov-2026: printing the parque vehicular logged "Element does not fit current area"

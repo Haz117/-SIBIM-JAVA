@@ -64,7 +64,8 @@ class ProductosControllerSmokeTest extends ControllerSmokeTestBase {
         assertTrue(etiqueta.isDisabled(), "sin selección no hay nada que etiquetar");
         interact(() -> t.getSelectionModel().select(0));
         assertFalse(etiqueta.isDisabled());
-        assertTrue(etiqueta.getItems().stream().anyMatch(i -> i.getText().contains("formato oficial")));
+        assertTrue(etiqueta.getItems().stream()
+            .anyMatch(i -> i.getText() != null && i.getText().contains("formato oficial")));
     }
 
     @Test

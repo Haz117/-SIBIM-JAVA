@@ -488,12 +488,23 @@ public class CalidadDatosService {
 
     // ── Lo que le falta a un bien ─────────────────────────────────────────────
 
-    /** What a bien can be missing, as the Completar datos screen asks for it. */
+    /** What Completar datos captures. The first four decide the totals and the depreciation;
+     *  the rest were typed in the form bien by bien (from 28-oct to 11-nov-2026, 622 edits,
+     *  «MUEBLE» 205 times), and are captured in the list too since 1.0.26. */
     public enum Dato {
-        PRECIO("Sin precio"), FECHA("Sin fecha"), VIDA_UTIL("Sin vida útil"), FOTO("Sin foto");
+        PRECIO("Sin precio", null), FECHA("Sin fecha", null), VIDA_UTIL("Sin vida útil", null), FOTO("Sin foto", null),
+        PROVEEDOR("Sin proveedor", CalidadDatosRepository.CampoTexto.PROVEEDOR),
+        FOLIO("Sin folio fiscal", CalidadDatosRepository.CampoTexto.FOLIO_FISCAL),
+        FACTURA("Sin factura", CalidadDatosRepository.CampoTexto.FACTURA),
+        COLOR("Sin color", CalidadDatosRepository.CampoTexto.COLOR),
+        TIPO("Sin tipo de bien", CalidadDatosRepository.CampoTexto.TIPO_BIEN);
 
         public final String etiqueta;
-        Dato(String etiqueta) { this.etiqueta = etiqueta; }
+        /** Null for the four that are not plain text. */
+        public final CalidadDatosRepository.CampoTexto campo;
+        Dato(String etiqueta, CalidadDatosRepository.CampoTexto campo) { this.etiqueta = etiqueta; this.campo = campo; }
+
+        public boolean esTexto() { return campo != null; }
     }
 
     public static boolean falta(Producto p, Dato dato) {
@@ -502,12 +513,75 @@ public class CalidadDatosService {
             case FECHA -> p.getFechaAdquisicion() == null;
             case VIDA_UTIL -> p.getVidaUtilAnios() == null;
             case FOTO -> p.getFotoUrl() == null || p.getFotoUrl().isBlank();
+            case PROVEEDOR -> vacio(p.getProveedor());
+            case FOLIO -> vacio(p.getFolioFiscal());
+            case FACTURA -> vacio(p.getNumeroFactura());
+            case COLOR -> vacio(p.getColor());
+            case TIPO -> vacio(p.getTipoBien());
         };
     }
 
+    private static boolean vacio(String s) {
+        return s == null || s.isBlank();
+    }
+
+    /** Of the data that decides the totals and the depreciation (price, date, vida útil, photo). */
     public static int faltantes(Producto p) {
         int n = 0;
-        for (Dato d : Dato.values()) if (falta(p, d)) n++;
+        for (Dato d : List.of(Dato.PRECIO, Dato.FECHA, Dato.VIDA_UTIL, Dato.FOTO)) if (falta(p, d)) n++;
+        return n;
+    }
+
+    /** Puts a text dato on a bien (the row of Completar datos). */
+    public static void poner(Producto p, Dato dato, String valor) {
+        if (!dato.esTexto()) throw new IllegalArgumentException(dato.name());
+        switch (dato) {
+            case PROVEEDOR -> p.setProveedor(valor);
+            case FOLIO -> p.setFolioFiscal(valor);
+            case FACTURA -> p.setNumeroFactura(valor);
+            case COLOR -> p.setColor(valor);
+            case TIPO -> p.setTipoBien(valor);
+            default -> { }
+        }
+    }
+
+    /** What a text dato is written as: trimmed, spaces collapsed, in capitals as the
+     *  inventory writes it (the folio fiscal too: it is the UUID of the CFDI). */
+    public static String normalizarTexto(Dato dato, String texto) {
+        if (texto == null) return null;
+        String t = texto.trim().replaceAll("\\s+", " ");
+        if (t.isEmpty()) return null;
+        return t.toUpperCase(Locale.forLanguageTag("es-MX"));
+    }
+
+    /** «MUEBLE» is what Patrimonio writes for every bien that is not a vehicle (243 of 249
+     *  on 11-nov-2026, from furniture to computers and tools); a vehicle has its own kind
+     *  (CAMIONETA, MOTOCICLETA…), so it gets no suggestion. Null without a CONAC account. */
+    public static String tipoSugerido(Producto p) {
+        String clave = p.getClaveArmonizada();
+        if (clave == null || clave.isBlank()) return null;
+        String c = clave.trim();
+        if (c.startsWith("1.2.4.4.1") || c.startsWith("1.2.4.4.2")) return null;
+        return c.startsWith("1.2.4") ? "MUEBLE" : null;
+    }
+
+    /** One text dato for several bienes at once; a bien that has its own keeps it.
+     *  @return how many took it */
+    public int asignarTexto(Dato dato, String valor, List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        if (!dato.esTexto() || valor == null || valor.isBlank()) return 0;
+        List<Producto> sin = bienes.stream().filter(p -> falta(p, dato)).toList();
+        if (sin.isEmpty()) return 0;
+        int n = repo.asignarTexto(dato.campo, valor, sin.stream().map(Producto::getId).toList());
+        if (n > 0) {
+            String codigos = sin.stream().limit(60).map(p -> Objects.requireNonNullElse(p.getCodigo(), p.getId()))
+                .collect(Collectors.joining(", ")) + (sin.size() > 60 ? " y " + (sin.size() - 60) + " más" : "");
+            String que = dato.etiqueta.replaceFirst("^Sin ", "");
+            audit.log("producto", sin.get(0).getId(), "Varios bienes: " + que, "actualizar",
+                que.substring(0, 1).toUpperCase() + que.substring(1) + " «" + valor + "», capturado a la vez para " + n + " bienes: " + codigos);
+        }
+        ProductosEnMemoria.invalidar();
         return n;
     }
 
@@ -541,7 +615,41 @@ public class CalidadDatosService {
             "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
         agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),
             "datos faltan para los formatos", "Completar datos", "configuracion", "formatos");
+        String ultimoRespaldo = config.get(CLAVE_ULTIMO_RESPALDO);
+        long sinRespaldo = diasSinRespaldo(ultimoRespaldo, java.time.LocalDate.now());
+        if (diasHabilesSinRespaldo(ultimoRespaldo, java.time.LocalDate.now()) > DIAS_SIN_RESPALDO)
+            out.add(0, new PorHacer(sinRespaldo, "días sin respaldo de la base: revisa el respaldo diario de la PC de Patrimonio",
+                "Ver Configuración", "configuracion", null));
         return out;
+    }
+
+    /** Written by scripts/respaldo_diario.ps1 after each backup: "2026-11-11T11:00:04|PC|1.03". */
+    public static final String CLAVE_ULTIMO_RESPALDO = "ultimo_respaldo";
+    /** More working days than this without a backup is said first in Por hacer: the PC of
+     *  Patrimonio is off on weekends, and a Monday morning is not a missed backup. */
+    static final int DIAS_SIN_RESPALDO = 2;
+
+    /** Days since the last backup the script noted; 0 when none was noted yet (a database
+     *  backed up by hand or before 1.0.26 is not told it has none). */
+    static long diasSinRespaldo(String valor, java.time.LocalDate hoy) {
+        if (valor == null || valor.isBlank()) return 0;
+        try {
+            java.time.LocalDate fecha = java.time.LocalDateTime.parse(valor.split("\\|")[0].trim()).toLocalDate();
+            return Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(fecha, hoy));
+        } catch (RuntimeException e) {
+            return 0;
+        }
+    }
+
+    /** Monday to Friday after the last backup, up to today; 0 when none was noted. */
+    static long diasHabilesSinRespaldo(String valor, java.time.LocalDate hoy) {
+        long dias = diasSinRespaldo(valor, hoy);
+        long habiles = 0;
+        for (long i = 0; i < dias; i++) {
+            java.time.DayOfWeek d = hoy.minusDays(i).getDayOfWeek();
+            if (d != java.time.DayOfWeek.SATURDAY && d != java.time.DayOfWeek.SUNDAY) habiles++;
+        }
+        return habiles;
     }
 
     /** People with two or more resguardos in force in the same área (Juntar resguardos). */

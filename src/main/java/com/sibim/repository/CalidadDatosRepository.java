@@ -130,4 +130,53 @@ public class CalidadDatosRepository {
             return ps.executeUpdate();
         }
     }
+
+    /** A text dato that several bienes take at once (Completar datos › «Poner a todos»). */
+    public enum CampoTexto {
+        PROVEEDOR("proveedor", Producto::getProveedor, Producto::setProveedor),
+        FOLIO_FISCAL("folio_fiscal", Producto::getFolioFiscal, Producto::setFolioFiscal),
+        FACTURA("numero_factura", Producto::getNumeroFactura, Producto::setNumeroFactura),
+        COLOR("color", Producto::getColor, Producto::setColor),
+        TIPO_BIEN("tipo_bien", Producto::getTipoBien, Producto::setTipoBien);
+
+        final String columna;
+        final java.util.function.Function<Producto, String> leer;
+        final java.util.function.BiConsumer<Producto, String> poner;
+
+        CampoTexto(String columna, java.util.function.Function<Producto, String> leer,
+                   java.util.function.BiConsumer<Producto, String> poner) {
+            this.columna = columna;
+            this.leer = leer;
+            this.poner = poner;
+        }
+    }
+
+    /** Writes {@code valor} on these bienes, except one that got its own meanwhile.
+     *  @return how many took it */
+    public int asignarTexto(CampoTexto campo, String valor, List<String> bienes) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : bienes) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty()) continue;
+                String actual = campo.leer.apply(o.get());
+                if (actual != null && !actual.isBlank()) continue;
+                Producto p = o.get();
+                campo.poner.accept(p, valor);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        // The column comes from the enum, never from what was typed.
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET " + campo.columna + " = ?, updated_at = NOW() WHERE id = ANY(?) AND ("
+                     + campo.columna + " IS NULL OR btrim(" + campo.columna + ") = '')")) {
+            ps.setString(1, valor);
+            ps.setArray(2, conn.createArrayOf("text", bienes.toArray(new String[0])));
+            return ps.executeUpdate();
+        }
+    }
 }
