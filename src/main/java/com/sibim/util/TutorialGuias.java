@@ -140,7 +140,7 @@ final class TutorialGuias {
                 "Cuántas computadoras abrieron SIBIM con una versión anterior; un clic abre la lista de equipos"));
             p.add(paso("mdi2c-car-outline", GUINDA, GUINDA_D, "Un solo vehículo o una sola área", "reportes", "#listaFormatos .report-row",
                 "Parque Vehicular › Generar: el anexo V.6 o el resguardo de uno o varios vehículos, no solo de todos",
-                "Entrega-Recepción (anexo V.4) › Generar: de una o varias áreas, o de todo el inventario",
+                "Entrega-Recepción (anexo V.4) › Generar: de una o varias áreas, o de todo el inventario; sale un bien por hoja, como el formato oficial",
                 "La ficha técnica y las hojas de un vehículo llevan su número de inventario anterior, no el de SIBIM"));
             p.add(probar(paso("mdi2r-receipt", GUINDA, GUINDA_D, "Lo mismo para toda la factura", "productos", "#btnMasBienes",
                 "Al guardar un bien con su número de factura o su folio fiscal, SIBIM te ofrece ponerles lo que capturaste a los demás bienes de esa factura",
