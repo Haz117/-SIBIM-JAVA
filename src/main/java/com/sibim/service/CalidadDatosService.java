@@ -565,6 +565,94 @@ public class CalidadDatosService {
         return c.startsWith("1.2.4") ? "MUEBLE" : null;
     }
 
+    // ── Proveedores escritos de varias formas ─────────────────────────────────
+
+    /** One way a proveedor is written that becomes {@code queda}, on {@code bienes} bienes. */
+    public record ProveedorRepetido(String variante, int bienes, String queda) {}
+
+    /** What was changed, to undo it. */
+    public record ProveedorUnido(ProveedorRepetido cambio, List<String> ids) {}
+
+    /** How the company is written at the end: «SA DE CV», «S.A. DE C.V.», «S DE RL»… */
+    private static final Set<String> SOCIEDAD = Set.of("SA", "S", "A", "DE", "CV", "C", "V", "SAPI", "RL", "SC", "AC", "SPR", "SAS");
+
+    /** The proveedor as compared: capitals, no accents or punctuation, and without the kind
+     *  of company at the end («QUI ASESORIA… SA DE CV» is «QUI ASESORIA…»). */
+    static String claveProveedor(String proveedor) {
+        if (proveedor == null) return "";
+        String t = java.text.Normalizer.normalize(proveedor, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+            .toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", " ").trim();
+        List<String> palabras = new ArrayList<>(List.of(t.isEmpty() ? new String[0] : t.split(" ")));
+        while (palabras.size() > 2 && SOCIEDAD.contains(palabras.get(palabras.size() - 1))) palabras.remove(palabras.size() - 1);
+        return String.join(" ", palabras);
+    }
+
+    /** Proveedores written in more than one way (12-nov-2026: «QUI ASESORIA Y LOGISTICA EN
+     *  COMERCIALIZACION» 23 times and with «SA DE CV» 24; «SIMON PRUEBA SALVADOR» once and with
+     *  «SERRANO» 41). The same name without the kind of company, or one that is the start of
+     *  the other (three words at least). The most complete way stays; ties, the most used. */
+    public static List<ProveedorRepetido> proveedoresRepetidos(List<Producto> bienes) {
+        Map<String, Integer> cuenta = new LinkedHashMap<>();
+        for (Producto p : bienes)
+            if (p.getProveedor() != null && !p.getProveedor().isBlank()) cuenta.merge(p.getProveedor(), 1, Integer::sum);
+        List<String> formas = new ArrayList<>(cuenta.keySet());
+        int[] grupo = new int[formas.size()];
+        for (int i = 0; i < grupo.length; i++) grupo[i] = i;
+        for (int i = 0; i < formas.size(); i++)
+            for (int j = i + 1; j < formas.size(); j++)
+                if (mismoProveedor(claveProveedor(formas.get(i)), claveProveedor(formas.get(j)))) {
+                    int de = grupo[j], a = grupo[i];
+                    for (int k = 0; k < grupo.length; k++) if (grupo[k] == de) grupo[k] = a;
+                }
+        Map<Integer, List<String>> grupos = new LinkedHashMap<>();
+        for (int i = 0; i < formas.size(); i++) grupos.computeIfAbsent(grupo[i], k -> new ArrayList<>()).add(formas.get(i));
+        List<ProveedorRepetido> out = new ArrayList<>();
+        for (List<String> g : grupos.values()) {
+            if (g.size() < 2) continue;
+            String queda = g.stream().max(Comparator.comparingInt((String s) -> s.trim().length())
+                .thenComparingInt(cuenta::get)).orElseThrow();
+            for (String v : g) if (!v.equals(queda)) out.add(new ProveedorRepetido(v, cuenta.get(v), queda));
+        }
+        out.sort(Comparator.comparing(ProveedorRepetido::queda).thenComparing(ProveedorRepetido::variante));
+        return out;
+    }
+
+    private static boolean mismoProveedor(String a, String b) {
+        if (a.isEmpty() || b.isEmpty()) return false;
+        if (a.equals(b)) return true;
+        String corto = a.length() <= b.length() ? a : b, largo = corto == a ? b : a;
+        return corto.split(" ").length >= 3 && largo.startsWith(corto + " ");
+    }
+
+    /** Writes each proveedor as it {@code queda}, on every bien that had that way.
+     *  @return what changed, for {@link #separarProveedores} */
+    public List<ProveedorUnido> unirProveedores(List<ProveedorRepetido> cambios) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<ProveedorUnido> hecho = new ArrayList<>();
+        for (ProveedorRepetido c : cambios) {
+            List<String> ids = repo.cambiarProveedor(c.variante(), c.queda());
+            if (ids.isEmpty()) continue;
+            hecho.add(new ProveedorUnido(c, ids));
+            audit.log("producto", ids.get(0), "Varios bienes: proveedor", "actualizar",
+                "Proveedor unido: «" + c.variante() + "» se escribe «" + c.queda() + "» en " + com.sibim.util.FormatUtils.plural(ids.size(), "bien", "bienes"));
+        }
+        ProductosEnMemoria.invalidar();
+        return hecho;
+    }
+
+    /** Undo of {@link #unirProveedores}, on the bienes that still say what it wrote. */
+    public int separarProveedores(List<ProveedorUnido> hecho) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        int n = 0;
+        for (ProveedorUnido u : hecho) n += repo.regresarProveedor(u.ids(), u.cambio().variante(), u.cambio().queda());
+        if (n > 0 && !hecho.isEmpty()) audit.log("producto", hecho.get(0).ids().get(0), "Varios bienes: proveedor", "actualizar",
+            "Se deshizo unir proveedores: " + com.sibim.util.FormatUtils.plural(n, "bien regresó", "bienes regresaron") + " a como estaban escritos");
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
     // ── Folio fiscal escrito en «Factura» ────────────────────────────────────
 
     /** Active bienes whose «Factura» holds the UUID of the CFDI and whose «Folio fiscal» is
@@ -648,6 +736,8 @@ public class CalidadDatosService {
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
         agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
             "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
+        agregar(out, proveedoresRepetidos(bienes).size(), "proveedores escritos de dos formas",
+            "Unir proveedores", "productos", "proveedores");
         agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
             "Pasarlo a su lugar", "productos", "folio");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");

@@ -248,7 +248,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -420,6 +420,7 @@ public class ProductosController {
             case "juntar"    -> Platform.runLater(this::onJuntarBienes);
             case "fotos"     -> Platform.runLater(this::onFotosRepetidas);
             case "folio"     -> Platform.runLater(this::onFolioFiscal);
+            case "proveedores" -> Platform.runLater(this::onUnirProveedores);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
@@ -588,6 +589,7 @@ public class ProductosController {
     @FXML private MenuItem btnMismaFactura;
     @FXML private MenuItem btnJuntarBienes;
     @FXML private MenuItem btnFolioFiscal;
+    @FXML private MenuItem btnUnirProveedores;
     @FXML private MenuItem btnFotosRepetidas;
     @FXML private MenuItem btnCostoLotes;
     @FXML private MenuItem btnEtiquetasArea;
@@ -648,6 +650,18 @@ public class ProductosController {
     private void onJuntarBienes() {
         Producto elegido = table.getSelectionModel().getSelectedItem();
         conInventario(bienes -> com.sibim.controller.dialogs.JuntarBienesDialog.show(bienes, elegido, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onUnirProveedores() {
+        conInventario(bienes -> {
+            var repetidos = com.sibim.service.CalidadDatosService.proveedoresRepetidos(bienes);
+            if (repetidos.isEmpty()) {
+                NotificacionUtil.info(table.getScene(), "Cada proveedor está escrito de una sola forma");
+                return;
+            }
+            com.sibim.controller.dialogs.UnirProveedoresDialog.show(repetidos, this::alCorregirDatos);
+        });
     }
 
     /** The UUID typed in «Factura» goes to «Folio fiscal», after showing which bienes; undone

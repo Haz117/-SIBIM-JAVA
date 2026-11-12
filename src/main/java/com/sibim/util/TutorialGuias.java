@@ -143,12 +143,17 @@ final class TutorialGuias {
                 "Entrega-Recepción (anexo V.4) › Generar: de una o varias áreas, o de todo el inventario",
                 "La ficha técnica y las hojas de un vehículo llevan su número de inventario anterior, no el de SIBIM"));
             p.add(probar(paso("mdi2r-receipt", GUINDA, GUINDA_D, "Lo mismo para toda la factura", "productos", "#btnMasBienes",
-                "Al guardar un bien con su número de factura, SIBIM te ofrece ponerles lo que capturaste a los demás bienes de esa factura",
-                "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil y color, solo a los del mismo nombre",
+                "Al guardar un bien con su número de factura o su folio fiscal, SIBIM te ofrece ponerles lo que capturaste a los demás bienes de esa factura",
+                "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil, color, marca y modelo, solo a los del mismo nombre",
                 "Solo llena los que no lo tienen o tenían lo mismo; un dato distinto que alguien ya capturó no se toca",
                 "Puedes quitar la marca de lo que no quieras pasar, y deshacerlo desde el aviso",
                 "Bienes › Más › «Copiar datos de la misma factura» llena de una vez lo que ya tiene un bien y a sus hermanos les falta"),
                 "Ver qué se puede copiar", abrir("productos", "factura")));
+            p.add(probar(paso("mdi2f-file-swap-outline", DORADO, DORADO_D, "Folio fiscal y proveedores en orden", "productos", "#btnMasBienes",
+                "Bienes › Más › «Folio fiscal a su lugar»: el UUID que quedó escrito en «Factura» pasa a «Folio fiscal» (en los formatos se imprime igual)",
+                "Bienes › Más › «Unir proveedores»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una",
+                "Los dos se pueden deshacer desde el aviso, y salen en «Por hacer» mientras haya pendientes"),
+                "Pasar los folios", abrir("productos", "folio")));
             p.add(paso("mdi2c-cash-plus", VERDE, VERDE_D, "Menos tecleo", "productos", "#btnEditar",
                 "Debajo del costo de un bien, «Sumarle el IVA (16 %)» hace la cuenta y la escribe; se usa una sola vez por costo",
                 "Al abrir SIBIM, tu usuario ya está escrito: solo pones la contraseña"));

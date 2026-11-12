@@ -152,6 +152,56 @@ public class CalidadDatosRepository {
         }
     }
 
+    /** Every bien whose proveedor is written exactly {@code de} takes {@code a}.
+     *  @return the ids that changed, to undo it */
+    public List<String> cambiarProveedor(String de, String a) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        List<String> ids = new java.util.ArrayList<>();
+        if (local != null) {
+            for (Producto p : local.findAllProductos(null)) {
+                if (!de.equals(p.getProveedor())) continue;
+                p.setProveedor(a);
+                local.saveProducto(p);
+                ids.add(p.getId());
+            }
+            return ids;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET proveedor = ?, updated_at = NOW() WHERE proveedor = ? RETURNING id")) {
+            ps.setString(1, a);
+            ps.setString(2, de);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) ids.add(rs.getString(1));
+            }
+        }
+        return ids;
+    }
+
+    /** Undo of {@link #cambiarProveedor}: {@code de} back on those bienes that still say {@code a}. */
+    public int regresarProveedor(List<String> ids, String de, String a) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : ids) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty() || !a.equals(o.get().getProveedor())) continue;
+                o.get().setProveedor(de);
+                local.saveProducto(o.get());
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET proveedor = ?, updated_at = NOW() WHERE id = ANY(?) AND proveedor = ?")) {
+            ps.setString(1, de);
+            ps.setArray(2, conn.createArrayOf("text", ids.toArray(new String[0])));
+            ps.setString(3, a);
+            return ps.executeUpdate();
+        }
+    }
+
     /** A UUID, with or without its dashes, as {@link Producto#pareceFolioFiscal} says. */
     private static final String ES_UUID =
         "^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32})$";
