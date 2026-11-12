@@ -62,6 +62,14 @@ public final class CompletarDatosDialog {
     private final ListView<String> areas = new ListView<>();
     private final Map<String, Integer> porArea = new HashMap<>();
     private final Map<Dato, ToggleButton> pestanas = new EnumMap<>(Dato.class);
+    /** The chips by what they are for, each row with its name. */
+    private static final Map<String, List<Dato>> GRUPOS_DE_DATOS = new LinkedHashMap<>();
+    static {
+        GRUPOS_DE_DATOS.put("Para los totales", List.of(Dato.PRECIO, Dato.FECHA, Dato.VIDA_UTIL, Dato.FOTO));
+        GRUPOS_DE_DATOS.put("De la factura", List.of(Dato.PROVEEDOR, Dato.FOLIO, Dato.FOLIO_REVISAR, Dato.FACTURA));
+        GRUPOS_DE_DATOS.put("Del bien", List.of(Dato.COLOR, Dato.TIPO));
+    }
+    private final Map<String, HBox> filasDeDatos = new LinkedHashMap<>();
     private final TextField buscar = new TextField();
     private final ObservableList<Fila> visibles = FXCollections.observableArrayList();
     private final ListView<Fila> lista = new ListView<>(visibles);
@@ -185,16 +193,29 @@ public final class CompletarDatosDialog {
 
         tituloArea.getStyleClass().add("trf-paso-titulo");
         ToggleGroup grupo = new ToggleGroup();
-        // Nine since 1.0.26: they wrap instead of running off the window.
-        FlowPane chips = new FlowPane(6, 6);
-        chips.setAlignment(Pos.CENTER_LEFT);
-        for (Dato d : Dato.values()) {
-            ToggleButton t = new ToggleButton(d.etiqueta);
-            t.setToggleGroup(grupo);
-            t.getStyleClass().add("filter-chip");
-            t.setMinWidth(Region.USE_PREF_SIZE);
-            pestanas.put(d, t);
-            chips.getChildren().add(t);
+        // Three rows with their name, and only what has something to capture (12-nov-2026:
+        // ten chips in two rows, several at 0, and no telling which mattered for what).
+        VBox chips = new VBox(4);
+        for (var g : GRUPOS_DE_DATOS.entrySet()) {
+            Label nombre = new Label(g.getKey());
+            nombre.getStyleClass().add("muted-sm");
+            nombre.setMinWidth(112);
+            nombre.setPrefWidth(112);
+            FlowPane fila = new FlowPane(6, 6);
+            fila.setAlignment(Pos.CENTER_LEFT);
+            for (Dato d : g.getValue()) {
+                ToggleButton t = new ToggleButton(d.etiqueta);
+                t.setToggleGroup(grupo);
+                t.getStyleClass().add("filter-chip");
+                t.setMinWidth(Region.USE_PREF_SIZE);
+                pestanas.put(d, t);
+                fila.getChildren().add(t);
+            }
+            HBox.setHgrow(fila, Priority.ALWAYS);
+            HBox renglon = new HBox(8, nombre, fila);
+            renglon.setAlignment(Pos.CENTER_LEFT);
+            filasDeDatos.put(g.getKey(), renglon);
+            chips.getChildren().add(renglon);
         }
         grupo.selectedToggleProperty().addListener((o, a, b) -> {
             if (b == null) { a.setSelected(true); return; }
@@ -248,8 +269,11 @@ public final class CompletarDatosDialog {
         VBox.setVgrow(lista, Priority.ALWAYS);
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
+        // What to do, above the list where the eyes are, not under it.
+        ayuda.setGraphic(new FontIcon("mdi2k-keyboard-return"));
+        ayuda.setMinHeight(Region.USE_PREF_SIZE);
 
-        panel.getChildren().setAll(tituloArea, chips, barraConac, buscar, barraTodos, lista, ayuda);
+        panel.getChildren().setAll(tituloArea, chips, barraConac, buscar, barraTodos, ayuda, lista);
         VBox.setVgrow(panel, Priority.ALWAYS);
 
         HBox paso2 = TransferenciaArrastreDialog.paso(2, "Captura lo que falta");
@@ -439,8 +463,13 @@ public final class CompletarDatosDialog {
         List<Fila> base = delArea();
         for (Dato d : Dato.values()) {
             long n = base.stream().filter(f -> CalidadDatosService.falta(f.producto, d)).count();
-            pestanas.get(d).setText(d.etiqueta + " (" + n + ")");
+            ToggleButton t = pestanas.get(d);
+            t.setText(d.etiqueta + " (" + String.format("%,d", n) + ")");
+            // A chip at 0 has nothing to capture: out of the way, unless it is the one chosen.
+            ver(t, n > 0 || t.isSelected());
         }
+        for (var g : GRUPOS_DE_DATOS.entrySet())
+            ver(filasDeDatos.get(g.getKey()), g.getValue().stream().anyMatch(d -> pestanas.get(d).isVisible()));
         List<Producto> sinVida = base.stream().map(f -> f.producto).toList();
         revisarConac.setText("Revisar y aplicar");
         revisarConac.setGraphic(new FontIcon("mdi2c-calendar-check-outline"));

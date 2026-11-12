@@ -104,10 +104,69 @@ final class PorHacerPanel {
         HBox encabezado = new HBox(10, barra, titulo, pista, hueco, plegar);
         encabezado.setAlignment(Pos.CENTER_LEFT);
 
-        FlowPane tarjetas = new FlowPane(10, 10);
-        for (PorHacer p : lista) tarjetas.getChildren().add(tarjeta(p));
-        DialogUtil.makeCollapsible("inicio.porhacer.colapsado", plegar, tarjetas, "Mostrar", "Ocultar");
-        seccion.getChildren().setAll(encabezado, tarjetas);
+        // By kind of work and in the order it is best done, the first one marked
+        // (12-nov-2026: fifteen cards of the same weight and no order; «2 proveedores»,
+        // a minute's work, looked like «2,960 sin etiquetar», weeks of it).
+        VBox cuerpo = new VBox(6);
+        boolean primera = true;
+        for (Grupo g : Grupo.values()) {
+            List<PorHacer> deEste = lista.stream().filter(p -> grupo(p) == g)
+                .sorted(java.util.Comparator.comparingInt(PorHacerPanel::orden)).toList();
+            if (deEste.isEmpty()) continue;
+            Label nombre = new Label(g.titulo);
+            nombre.getStyleClass().add("por-hacer-grupo");
+            HBox fila = new HBox(8, nombre);
+            if (g.pista != null) {
+                Label pistaGrupo = new Label(g.pista);
+                pistaGrupo.getStyleClass().add("muted-sm");
+                fila.getChildren().add(pistaGrupo);
+            }
+            fila.setAlignment(Pos.CENTER_LEFT);
+            FlowPane tarjetas = new FlowPane(10, 10);
+            for (PorHacer p : deEste) {
+                VBox t = tarjeta(p);
+                if (primera) {
+                    Label empieza = new Label("Empieza aquí");
+                    empieza.getStyleClass().add("dash-section-badge");
+                    t.getChildren().add(0, empieza);
+                    primera = false;
+                }
+                tarjetas.getChildren().add(t);
+            }
+            if (!cuerpo.getChildren().isEmpty()) fila.setPadding(new javafx.geometry.Insets(6, 0, 0, 0));
+            cuerpo.getChildren().addAll(fila, tarjetas);
+        }
+        DialogUtil.makeCollapsible("inicio.porhacer.colapsado", plegar, cuerpo, "Mostrar", "Ocultar");
+        seccion.getChildren().setAll(encabezado, cuerpo);
+    }
+
+    /** The kinds of «Por hacer», in the order they are best done. */
+    enum Grupo {
+        PRIMERO("Atiende primero", null),
+        RAPIDO("Se arreglan en un momento", "SIBIM te propone el cambio; tú lo revisas y lo confirmas"),
+        CAPTURA("Por capturar", "Con la factura o el bien a la vista"),
+        SEGUIMIENTO("Para seguir", "Avanzan con las áreas y las computadoras");
+
+        final String titulo, pista;
+        Grupo(String titulo, String pista) { this.titulo = titulo; this.pista = pista; }
+    }
+
+    static Grupo grupo(PorHacer p) {
+        String a = p.abrir();
+        // The late backup, an área waiting for an answer, bienes an área says aren't its own.
+        if (a == null || "solicitudes".equals(a) || "observados".equals(a)) return Grupo.PRIMERO;
+        if (a.startsWith("completar:") || "formatos".equals(a)) return Grupo.CAPTURA;
+        if (Set.of("lote", "juntar", "etiquetas", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
+        return Grupo.RAPIDO;
+    }
+
+    /** Inside a kind: the folio fiscal first, because then «misma factura» copies more. */
+    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "proveedores", "factura",
+        "unir", "titulos", "series", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "equipos");
+
+    static int orden(PorHacer p) {
+        int i = p.abrir() == null ? -1 : ORDEN.indexOf(p.abrir());
+        return i < 0 ? (p.abrir() == null ? -1 : ORDEN.size()) : i;
     }
 
     private static VBox tarjeta(PorHacer p) {

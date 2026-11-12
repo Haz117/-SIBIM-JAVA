@@ -139,6 +139,10 @@ final class TutorialGuias {
                 "Desde ahí ves cada bien, le quitas esa foto o juntas los dos registros si son el mismo",
                 "En la PC de Patrimonio usa la copia del respaldo y tarda segundos; en otra, la primera vez baja las fotos"),
                 "Revisar las fotos", abrir("productos", "fotos")));
+            p.add(paso("mdi2o-order-bool-ascending-variant", GUINDA, GUINDA_D, "«Por hacer», en orden", "dashboard", "#porHacerSection",
+                "Las tareas van por tipo: «Se arreglan en un momento» (SIBIM propone y tú confirmas), «Por capturar» (con la factura a la vista) y «Para seguir» (con las áreas)",
+                "La primera dice «Empieza aquí»: en ese orden, cada una deja menos trabajo para la siguiente",
+                "En «Completar datos» los filtros van en tres renglones (para los totales, de la factura, del bien), sin los que ya están en cero, y lo que hay que hacer va arriba de la lista"));
             p.add(paso("mdi2f-format-list-checks", VERDE, VERDE_D, "Más avisos en «Por hacer»", "dashboard", "#porHacerSection",
                 "Si pasan más de 2 días sin respaldo de la base, lo dice primero",
                 "Cuántas computadoras abrieron SIBIM con una versión anterior; un clic abre la lista de equipos"));
