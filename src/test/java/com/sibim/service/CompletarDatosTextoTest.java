@@ -44,6 +44,27 @@ class CompletarDatosTextoTest {
         assertFalse(CalidadDatosService.falta(p, Dato.PROVEEDOR));
     }
 
+    /** The folios of 12-nov-2026 that weren't a UUID, and what SIBIM says of each. */
+    @Test
+    void unFolioFiscalMalEscritoDiceQueTieneMal() {
+        assertNull(CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1-00155D012007"));
+        assertNull(CalidadDatosService.problemaFolio("B9919A80CF6F11EDAA71AD3327DCEBEF"), "sin guiones también es UUID");
+        assertNull(CalidadDatosService.problemaFolio("  "));
+        assertEquals("lleva la letra O donde va un cero; tiene 31 de los 32 caracteres",
+            CalidadDatosService.problemaFolio("AAA1EC97-00B3-4CO7-B2E2-E1A11491D3E"));
+        assertEquals("tiene 31 de los 32 caracteres", CalidadDatosService.problemaFolio("444b81a-666e-4d4d-a4bd-d60bff0b3de3"));
+        assertEquals("tiene 28 de los 32 caracteres", CalidadDatosService.problemaFolio("ED65-589E-4CA0-B469-D7B9C7E69226"));
+        assertTrue(CalidadDatosService.problemaFolio("01329").startsWith("parece el número de la factura"));
+        assertTrue(CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1-00155D01200G").contains("«G»"));
+
+        Producto p = new Producto();
+        p.setFolioFiscal("01329");
+        assertTrue(CalidadDatosService.falta(p, Dato.FOLIO_REVISAR));
+        assertFalse(CalidadDatosService.falta(p, Dato.FOLIO), "tiene folio: no sale en «Sin folio fiscal»");
+        CalidadDatosService.poner(p, Dato.FOLIO_REVISAR, "E2117159-9609-11EE-81C1-00155D012007");
+        assertFalse(CalidadDatosService.falta(p, Dato.FOLIO_REVISAR));
+    }
+
     @Test
     void elRespaldoAtrasadoSeCuentaEnDias_ySinAnotarNoAvisa() {
         java.time.LocalDate hoy = java.time.LocalDate.of(2026, 11, 14);

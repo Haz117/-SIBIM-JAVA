@@ -34,7 +34,7 @@ class FormularioCompraTest extends ApplicationTest {
             pt[0].ponerCosto(st[0].etiquetaCosto, st[0].cajaCosto);
         });
         List<Node> hijos = pt[0].grid.getChildren();
-        int factura = hijos.indexOf(pt[0].fNumeroFactura), folio = hijos.indexOf(pt[0].fFolioFiscal),
+        int factura = hijos.indexOf(pt[0].fNumeroFactura), folio = hijos.indexOf(pt[0].fFolioFiscal.getParent()),
             proveedor = hijos.indexOf(pt[0].fProveedor), fecha = hijos.indexOf(pt[0].fFechaAdq),
             costo = hijos.indexOf(st[0].cajaCosto), vida = hijos.indexOf(pt[0].fVidaUtil), color = hijos.indexOf(pt[0].fColor);
         assertTrue(factura < folio && folio < proveedor && proveedor < fecha && fecha < costo && costo < vida && vida < color,

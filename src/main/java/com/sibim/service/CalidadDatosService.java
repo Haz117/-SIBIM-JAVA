@@ -495,6 +495,9 @@ public class CalidadDatosService {
         PRECIO("Sin precio", null), FECHA("Sin fecha", null), VIDA_UTIL("Sin vida útil", null), FOTO("Sin foto", null),
         PROVEEDOR("Sin proveedor", CalidadDatosRepository.CampoTexto.PROVEEDOR),
         FOLIO("Sin folio fiscal", CalidadDatosRepository.CampoTexto.FOLIO_FISCAL),
+        /** A folio fiscal typed with another shape (12-nov-2026: 25 of 288, an O for a zero,
+         *  a character short, the factura's own number): corrected in the list. */
+        FOLIO_REVISAR("Folio fiscal por revisar", CalidadDatosRepository.CampoTexto.FOLIO_FISCAL),
         FACTURA("Sin factura", CalidadDatosRepository.CampoTexto.FACTURA),
         COLOR("Sin color", CalidadDatosRepository.CampoTexto.COLOR),
         TIPO("Sin tipo de bien", CalidadDatosRepository.CampoTexto.TIPO_BIEN);
@@ -515,6 +518,7 @@ public class CalidadDatosService {
             case FOTO -> p.getFotoUrl() == null || p.getFotoUrl().isBlank();
             case PROVEEDOR -> vacio(p.getProveedor());
             case FOLIO -> vacio(p.getFolioFiscal());
+            case FOLIO_REVISAR -> problemaFolio(p.getFolioFiscal()) != null;
             case FACTURA -> vacio(p.getNumeroFactura());
             case COLOR -> vacio(p.getColor());
             case TIPO -> vacio(p.getTipoBien());
@@ -537,12 +541,32 @@ public class CalidadDatosService {
         if (!dato.esTexto()) throw new IllegalArgumentException(dato.name());
         switch (dato) {
             case PROVEEDOR -> p.setProveedor(valor);
-            case FOLIO -> p.setFolioFiscal(valor);
+            case FOLIO, FOLIO_REVISAR -> p.setFolioFiscal(valor);
             case FACTURA -> p.setNumeroFactura(valor);
             case COLOR -> p.setColor(valor);
             case TIPO -> p.setTipoBien(valor);
             default -> { }
         }
+    }
+
+    /** What is wrong with a folio fiscal, said for whoever has the factura at hand; null when
+     *  it is empty or has the shape of a UUID (32 hexadecimal characters, 8-4-4-4-12). */
+    public static String problemaFolio(String folio) {
+        if (folio == null || folio.isBlank() || Producto.pareceFolioFiscal(folio)) return null;
+        String t = folio.trim();
+        if (t.length() <= 12)
+            return "parece el número de la factura, no su folio fiscal (que tiene 32 caracteres)";
+        List<String> partes = new ArrayList<>();
+        if (t.matches("(?i).*O.*")) partes.add("lleva la letra O donde va un cero");
+        if (t.matches(".*[IiLl].*")) partes.add("lleva una letra I o L donde va un uno");
+        Set<String> otras = new TreeSet<>();
+        for (char c : t.toCharArray())
+            if (!Character.isDigit(c) && "ABCDEFabcdef-OoIiLl".indexOf(c) < 0) otras.add(c == ' ' ? "espacios" : "«" + c + "»");
+        if (!otras.isEmpty()) partes.add("lleva " + String.join(", ", otras) + ", que no van en un folio fiscal");
+        String digitos = t.replaceAll("[Oo]", "0").replaceAll("[IiLl]", "1").replaceAll("[^0-9A-Fa-f]", "");
+        if (digitos.length() != 32) partes.add("tiene " + digitos.length() + " de los 32 caracteres");
+        else if (partes.isEmpty()) partes.add("los guiones no están en su lugar (8-4-4-4-12)");
+        return String.join("; ", partes);
     }
 
     /** What a text dato is written as: trimmed, spaces collapsed, in capitals as the
@@ -705,7 +729,8 @@ public class CalidadDatosService {
     public int asignarTexto(Dato dato, String valor, List<Producto> bienes) throws SQLException {
         soloPatrimonio();
         conConexion();
-        if (!dato.esTexto() || valor == null || valor.isBlank()) return 0;
+        // Each wrong folio is its own: never one value for all of them.
+        if (!dato.esTexto() || dato == Dato.FOLIO_REVISAR || valor == null || valor.isBlank()) return 0;
         List<Producto> sin = bienes.stream().filter(p -> falta(p, dato)).toList();
         if (sin.isEmpty()) return 0;
         int n = repo.asignarTexto(dato.campo, valor, sin.stream().map(Producto::getId).toList());
@@ -740,6 +765,8 @@ public class CalidadDatosService {
             "Unir proveedores", "productos", "proveedores");
         agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
             "Pasarlo a su lugar", "productos", "folio");
+        agregar(out, cuantos(bienes, Dato.FOLIO_REVISAR), "folios fiscales mal escritos", "Revisarlos",
+            "productos", "completar:FOLIO_REVISAR");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
         agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
         agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");

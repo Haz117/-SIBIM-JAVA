@@ -266,6 +266,9 @@ public final class CompletarDatosDialog {
         Dato dato = datoElegido();
         // Another área or dato is another list: what was typed or marked belonged to the last one.
         for (Fila f : filas) { f.texto = ""; f.fecha = null; f.guardado = false; f.error = null; }
+        // A folio to correct starts with what is written, to fix the character that is off.
+        if (dato == Dato.FOLIO_REVISAR)
+            for (Fila f : filas) f.texto = Objects.requireNonNullElse(f.producto.getFolioFiscal(), "").trim();
         ayuda.setText(switch (dato) {
             case PRECIO -> "Costo de adquisición por pieza, según factura. Enter guarda y pasa al siguiente.";
             case FECHA -> "Fecha de adquisición. Enter guarda y pasa al siguiente.";
@@ -274,6 +277,8 @@ public final class CompletarDatosDialog {
             case PROVEEDOR -> "Quien vendió el bien, como dice la factura. Enter guarda y pasa al siguiente; "
                 + "para los demás de su factura usa Más › «Copiar datos de la misma factura».";
             case FOLIO -> "El folio fiscal (UUID) de la factura electrónica. Enter guarda y pasa al siguiente.";
+            case FOLIO_REVISAR -> "Folios fiscales escritos con otra forma: corrígelos con la factura a la vista (32 caracteres, "
+                + "como A1B2C3D4-0000-4000-8000-000000000001). Enter guarda y pasa al siguiente.";
             case FACTURA -> "El número de la factura; si no hay, escribe SIN DOCUMENTO. Enter guarda y pasa al siguiente.";
             case COLOR -> "El color del bien. Enter guarda y pasa al siguiente.";
             case TIPO -> "MUEBLE para todo lo que no es vehículo; para un vehículo, su tipo (CAMIONETA, MOTOCICLETA…). "
@@ -311,7 +316,7 @@ public final class CompletarDatosDialog {
     private void actualizarTodos() {
         Dato dato = datoElegido();
         List<Fila> sin = sinDatoEnLista();
-        boolean mostrar = (dato == Dato.VIDA_UTIL || dato.esTexto()) && sin.size() > 1;
+        boolean mostrar = (dato == Dato.VIDA_UTIL || (dato.esTexto() && dato != Dato.FOLIO_REVISAR)) && sin.size() > 1;
         ver(barraTodos, mostrar);
         if (!mostrar) return;
         String filtro = buscar.getText().isBlank() ? "; busca, por ejemplo, «chaleco» para tomar solo esos." : ".";
@@ -525,6 +530,9 @@ public final class CompletarDatosDialog {
             String valor = CalidadDatosService.normalizarTexto(dato, f.texto);
             if (valor == null) return;
             if (valor.length() > (dato == Dato.FOLIO ? 60 : 200)) { fallar(f, "Es demasiado largo"); return; }
+            // A folio fiscal with another shape is not saved: it would not match its factura.
+            String problema = dato == Dato.FOLIO || dato == Dato.FOLIO_REVISAR ? CalidadDatosService.problemaFolio(valor) : null;
+            if (problema != null) { fallar(f, "El folio fiscal " + problema); return; }
             guardar(f, p -> CalidadDatosService.poner(p, dato, valor));
         }
     }
@@ -568,7 +576,7 @@ public final class CompletarDatosDialog {
                 p.setVidaUtilAnios(vidaAntes);
                 for (Dato d : Dato.values()) if (d.esTexto()) CalidadDatosService.poner(p, d, switch (d) {
                     case PROVEEDOR -> antes.getProveedor();
-                    case FOLIO -> antes.getFolioFiscal();
+                    case FOLIO, FOLIO_REVISAR -> antes.getFolioFiscal();
                     case FACTURA -> antes.getNumeroFactura();
                     case COLOR -> antes.getColor();
                     default -> antes.getTipoBien();
@@ -747,6 +755,10 @@ public final class CompletarDatosDialog {
             if (p.getStockActual() > 1) partes.add(p.getStockActual() + " piezas");
             if (p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank()) partes.add("Serie " + p.getNumeroSerie());
             // What the factura says is what these are copied from.
+            if (dato == Dato.FOLIO_REVISAR) {
+                String problema = CalidadDatosService.problemaFolio(p.getFolioFiscal());
+                if (problema != null) partes.add("Revisa: " + problema);
+            }
             if (dato.esTexto() && dato != Dato.FACTURA && p.getNumeroFactura() != null && !p.getNumeroFactura().isBlank())
                 partes.add("Factura " + p.getNumeroFactura().trim());
             if (TODAS.equals(tituloArea.getText())) partes.add(areaDe(p));
@@ -759,7 +771,7 @@ public final class CompletarDatosDialog {
             campo.setText(f.texto);
             campo.setAccessibleText(dato.etiqueta.replaceFirst("^Sin ", "") + " de " + p.getCodigo());
             fecha.setValue(f.fecha);
-            double ancho = dato == Dato.FOLIO || dato == Dato.PROVEEDOR ? 300 : dato.esTexto() ? 200 : 150;
+            double ancho = dato == Dato.FOLIO || dato == Dato.FOLIO_REVISAR || dato == Dato.PROVEEDOR ? 300 : dato.esTexto() ? 200 : 150;
             campo.setPrefWidth(ancho);
             campo.setMinWidth(ancho);
             if (dato == Dato.PRECIO) campo.setPromptText(p.getStockActual() > 1 ? "Costo por pieza" : "Costo");
@@ -769,7 +781,7 @@ public final class CompletarDatosDialog {
             }
             switch (dato) {
                 case PROVEEDOR -> campo.setPromptText("Proveedor");
-                case FOLIO -> campo.setPromptText("Folio fiscal (UUID)");
+                case FOLIO, FOLIO_REVISAR -> campo.setPromptText("Folio fiscal (UUID)");
                 case FACTURA -> campo.setPromptText("No. de factura");
                 case COLOR -> campo.setPromptText("Color");
                 case TIPO -> {

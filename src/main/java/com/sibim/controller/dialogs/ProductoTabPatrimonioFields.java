@@ -215,6 +215,22 @@ class ProductoTabPatrimonioFields {
         fNoPoliza.setPromptText("Número de póliza de seguro");
         fNoPoliza.getStyleClass().add("form-input");
 
+        // A folio with another shape is said while typing (12-nov-2026: 25 of 288 had an O for
+        // a zero, a character short or the factura's own number); it is not blocked.
+        avisoFolio.getStyleClass().addAll("field-hint", "field-hint-warn");
+        avisoFolio.setWrapText(true);
+        // Wraps under the field instead of ending in «…».
+        avisoFolio.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        avisoFolio.prefWidthProperty().bind(fFolioFiscal.widthProperty());
+        Runnable revisarFolio = () -> {
+            String problema = com.sibim.service.CalidadDatosService.problemaFolio(fFolioFiscal.getText());
+            avisoFolio.setText(problema == null ? "" : "Revisa el folio fiscal: " + problema);
+            avisoFolio.setVisible(problema != null);
+            avisoFolio.setManaged(problema != null);
+        };
+        fFolioFiscal.textProperty().addListener((o, a, b) -> revisarFolio.run());
+        revisarFolio.run();
+
         // ── Assemble gridPatrimonio ───────────────────────────────────────────
         // In the order the factura is captured (12-nov-2026: since 28-oct, 411 edits,
         // most of them proveedor + folio fiscal + vida útil + color + tipo de bien, and
@@ -227,7 +243,7 @@ class ProductoTabPatrimonioFields {
                                                          0, rp); grid.add(fNumeroFactura, 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
             "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo."),
-                                                         0, rp); grid.add(fFolioFiscal, 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fFolioFiscal, avisoFolio), 1, rp++);
         grid.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); grid.add(fProveedor,    1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
@@ -272,6 +288,9 @@ class ProductoTabPatrimonioFields {
         grid.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); grid.add(fNoTarjeta, 1, rp++);
         grid.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); grid.add(fNoPoliza, 1, rp);
     }
+
+    /** Under the folio fiscal: what is wrong with it, while it is typed. */
+    final Label avisoFolio = new Label();
 
     /** The row the costo goes in, inside «Compra». */
     private int filaCosto;

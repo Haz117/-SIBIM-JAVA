@@ -120,7 +120,8 @@ final class TutorialGuias {
                 "Además de precio, fecha, vida útil y foto: proveedor, folio fiscal, factura, color y tipo de bien",
                 "Se escribe en la lista y Enter pasa al siguiente, sin abrir el formulario de cada bien",
                 "«Poner a todos» escribe lo mismo a los bienes de la lista que no lo tienen (busca, por ejemplo, «silla»)",
-                "En Tipo de bien, «Revisar y aplicar» pone MUEBLE a todo lo que no es vehículo, según su clave CONAC"),
+                "En Tipo de bien, «Revisar y aplicar» pone MUEBLE a todo lo que no es vehículo, según su clave CONAC",
+                "«Folio fiscal por revisar»: los folios escritos con otra forma (una O por un cero, un carácter de menos), para corregirlos; el formulario ya avisa al escribirlos"),
                 "Abrir Completar datos", abrir("productos", "completar:PROVEEDOR")));
             p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Son el mismo bien", "productos", "#btnMasBienes",
                 "Bienes › Más › «Son el mismo bien»: escribe los dos números (o el de la etiqueta vieja) y marca cuál se queda",
