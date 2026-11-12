@@ -248,7 +248,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -419,6 +419,7 @@ public class ProductosController {
             case "factura"   -> Platform.runLater(this::onMismaFactura);
             case "juntar"    -> Platform.runLater(this::onJuntarBienes);
             case "fotos"     -> Platform.runLater(this::onFotosRepetidas);
+            case "folio"     -> Platform.runLater(this::onFolioFiscal);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
@@ -586,6 +587,7 @@ public class ProductosController {
     @FXML private MenuItem btnSeriesRepetidas;
     @FXML private MenuItem btnMismaFactura;
     @FXML private MenuItem btnJuntarBienes;
+    @FXML private MenuItem btnFolioFiscal;
     @FXML private MenuItem btnFotosRepetidas;
     @FXML private MenuItem btnCostoLotes;
     @FXML private MenuItem btnEtiquetasArea;
@@ -646,6 +648,44 @@ public class ProductosController {
     private void onJuntarBienes() {
         Producto elegido = table.getSelectionModel().getSelectedItem();
         conInventario(bienes -> com.sibim.controller.dialogs.JuntarBienesDialog.show(bienes, elegido, this::alCorregirDatos));
+    }
+
+    /** The UUID typed in «Factura» goes to «Folio fiscal», after showing which bienes; undone
+     *  from the notice. */
+    @FXML
+    private void onFolioFiscal() {
+        conInventario(bienes -> {
+            List<Producto> estos = com.sibim.service.CalidadDatosService.folioEnFactura(bienes);
+            if (estos.isEmpty()) {
+                NotificacionUtil.info(table.getScene(), "Ningún bien tiene el folio fiscal escrito en «Factura»");
+                return;
+            }
+            java.util.Map<String, Long> porArea = estos.stream().collect(java.util.stream.Collectors.groupingBy(
+                p -> java.util.Objects.requireNonNullElse(p.getArea(), "Sin área"), java.util.stream.Collectors.counting()));
+            String areas = porArea.entrySet().stream().sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(6).map(e -> "• " + e.getKey() + ": " + e.getValue())
+                .collect(java.util.stream.Collectors.joining("\n")) + (porArea.size() > 6 ? "\n…" : "");
+            Producto ej = estos.get(0);
+            if (!com.sibim.util.ConfirmacionUtil.confirmar("Folio fiscal a su lugar",
+                    FormatUtils.plural(estos.size(), "bien tiene", "bienes tienen") + " el folio fiscal (UUID) escrito en «Factura» "
+                        + "y «Folio fiscal» vacío:\n\n" + areas
+                        + "\n\nPor ejemplo, " + ej.getCodigo() + ": «" + ej.getNumeroFactura().trim() + "».\n\n"
+                        + "Pasa a «Folio fiscal» y «Factura» queda vacía para su número, si lo tienes. "
+                        + "En los formatos se imprime igual. ¿Pasarlos?", "Pasarlos")) return;
+            List<Producto> antes = estos.stream().map(Producto::copia).toList();
+            com.sibim.service.CalidadDatosService calidad = new com.sibim.service.CalidadDatosService();
+            javafx.scene.Scene scene = table.getScene();
+            DialogUtil.runAsyncWithProgress(scene, "Pasando los folios fiscales…",
+                () -> calidad.pasarFolioFiscal(estos),
+                n -> {
+                    alCorregirDatos();
+                    NotificacionUtil.exitoConAccion(scene, FormatUtils.plural(n, "folio fiscal pasó", "folios fiscales pasaron") + " a su lugar",
+                        "Deshacer", () -> DialogUtil.runAsync(() -> calidad.regresarFolioFiscal(antes),
+                            m -> { alCorregirDatos(); NotificacionUtil.info(scene, FormatUtils.plural(m, "folio regresó", "folios regresaron") + " a «Factura»"); },
+                            ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                },
+                ex -> NotificacionUtil.error(scene, "No se pasaron: " + com.sibim.util.MensajeError.de(ex)));
+        });
     }
 
     @FXML

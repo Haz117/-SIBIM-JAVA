@@ -73,6 +73,48 @@ class MismaFacturaTest {
         assertFalse(MismaFactura.mismaCompra(silla, anaquel), "otra fecha es otra compra");
     }
 
+    /** 12-nov-2026: the body cams of factura A 87, «BODY CAM» typed one by one. Marca and
+     *  modelo go to the pieces of the same name; «SIN MARCA» counts as empty. */
+    @Test
+    void laMarcaYElModeloVanALosDelMismoNombre() {
+        Producto antes = bien("BODY CAM", "A 87");
+        Producto despues = antes.copia();
+        despues.setMarca("HIKVISION");
+        despues.setModelo("DS-MCW406");
+        Producto otra = bien("BODY CAM", "A87");
+        Producto conPlaceholder = bien("BODY CAM", "A 87");
+        conPlaceholder.setMarca("SIN MARCA");
+        Producto otraCosa = bien("RADIO", "A 87");
+
+        List<Cambio> cambios = MismaFactura.proponer(antes, despues, List.of(antes, otra, conPlaceholder, otraCosa));
+        assertEquals(Set.of(otra.getCodigo(), conPlaceholder.getCodigo()), codigos(de(cambios, Dato.MARCA)));
+        assertEquals(Set.of(otra.getCodigo(), conPlaceholder.getCodigo()), codigos(de(cambios, Dato.MODELO)));
+    }
+
+    /** 12-nov-2026: 581 bienes had only the UUID of their CFDI. The same UUID is one
+     *  purchase, with or without a factura number; two UUIDs are two purchases. */
+    @Test
+    void elMismoFolioFiscalEsLaMismaCompra_aunqueNoTenganNumeroDeFactura() {
+        Producto a = bien("CAMARA BALA", null);
+        a.setFolioFiscal("3822637c-8b6a-410a-b7c9-6c29c9eeb359");
+        a.setProveedor("HIKVISION MEXICO");
+        Producto b = bien("CAMARA BALA", null);
+        b.setFolioFiscal("3822637C8B6A410AB7C96C29C9EEB359");
+        Producto conNumero = bien("SWITCH", "A 912");
+        conNumero.setFolioFiscal("3822637C-8B6A-410A-B7C9-6C29C9EEB359");
+        Producto otraCompra = bien("CAMARA BALA", "A 912");
+        otraCompra.setFolioFiscal("11111111-2222-3333-4444-555555555555");
+
+        assertTrue(MismaFactura.mismaCompra(a, b));
+        assertTrue(MismaFactura.mismaCompra(a, conNumero), "el número de factura no hace falta si el CFDI es el mismo");
+        assertFalse(MismaFactura.mismaCompra(conNumero, otraCompra), "misma factura, otro CFDI: otra compra");
+        assertTrue(MismaFactura.tieneCompra(a));
+        assertTrue(MismaFactura.etiqueta(a).startsWith("con folio fiscal 3822637c"), MismaFactura.etiqueta(a));
+
+        Cambio proveedor = de(MismaFactura.pendientes(List.of(a, b, conNumero, otraCompra)), Dato.PROVEEDOR);
+        assertEquals(Set.of(b.getCodigo(), conNumero.getCodigo()), codigos(proveedor));
+    }
+
     @Test
     void corregirElFolioLlegaALosQueTeniaElEquivocado() {
         Producto antes = bien("LAPTOP", "F-AG-010192");

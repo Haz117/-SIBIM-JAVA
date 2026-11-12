@@ -54,7 +54,7 @@ public final class MismaFacturaDialog {
      *  @param antes the bien before the form, null if it was just registered */
     public static void ofrecer(Scene scene, ProductoService servicio, Producto antes, Producto guardado,
                                Runnable alCambiar, Runnable despues) {
-        if (guardado == null || MismaFactura.clave(guardado.getNumeroFactura()) == null) {
+        if (guardado == null || !MismaFactura.tieneCompra(guardado)) {
             despues.run();
             return;
         }
@@ -62,12 +62,12 @@ public final class MismaFacturaDialog {
             propuesta -> {
                 if (!propuesta.isEmpty()) {
                     long bienes = propuesta.stream().flatMap(c -> c.bienes().stream()).map(Producto::getId).distinct().count();
-                    String factura = guardado.getNumeroFactura().trim();
+                    String factura = MismaFactura.etiqueta(guardado);
                     new MismaFacturaDialog(propuesta, true, "Lo mismo para la factura " + factura,
                         "Lo que capturaste en " + Objects.requireNonNullElse(guardado.getCodigo(), "este bien")
                             + " también les falta a otros " + FormatUtils.plural(bienes, "bien", "bienes") + " de esa factura",
-                        "Se compraron juntos: proveedor, folio fiscal y fecha van a todos los de la factura; costo, vida útil y "
-                            + "color, solo a los del mismo nombre. Solo se llenan los que no lo tienen o tenían lo mismo que este; "
+                        "Se compraron juntos: proveedor, folio fiscal y fecha van a todos los de la factura; costo, vida útil, "
+                            + "color, marca y modelo, solo a los del mismo nombre. Solo se llenan los que no lo tienen o tenían lo mismo que este; "
                             + "un dato distinto que alguien capturó no se toca. Quita la marca de lo que no quieras pasar.",
                         alCambiar).abrir(scene, servicio);
                 }
@@ -91,7 +91,7 @@ public final class MismaFacturaDialog {
         new MismaFacturaDialog(propuesta, false, "Copiar datos de la misma factura",
             "Lo que un bien ya tiene y a los demás de su factura les falta, en " + FormatUtils.plural(facturas, "factura", "facturas"),
             "Solo se llenan los bienes que no tienen ese dato, y solo cuando todos los de la factura que sí lo tienen dicen lo mismo. "
-                + "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil y color, a los del mismo nombre. "
+                + "Proveedor, folio fiscal y fecha van a toda la factura; costo, vida útil, color, marca y modelo, a los del mismo nombre. "
                 + "Quita la marca de lo que no quieras pasar.",
             alCambiar).abrir(scene, servicio);
     }

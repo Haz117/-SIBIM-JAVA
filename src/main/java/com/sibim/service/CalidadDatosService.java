@@ -565,6 +565,53 @@ public class CalidadDatosService {
         return c.startsWith("1.2.4") ? "MUEBLE" : null;
     }
 
+    // ── Folio fiscal escrito en «Factura» ────────────────────────────────────
+
+    /** Active bienes whose «Factura» holds the UUID of the CFDI and whose «Folio fiscal» is
+     *  empty: 581 on 12-nov-2026, 301 of them of Seguridad Pública C-2 (the lists brought
+     *  the UUID in the factura column). The form moves it since 1.0.24; these came before. */
+    public static List<Producto> folioEnFactura(List<Producto> bienes) {
+        return bienes.stream()
+            .filter(p -> p.getFechaBaja() == null && Producto.pareceFolioFiscal(p.getNumeroFactura())
+                && (p.getFolioFiscal() == null || p.getFolioFiscal().isBlank()))
+            .toList();
+    }
+
+    /** Moves the UUID from «Factura» to «Folio fiscal»; the formats print the same (they
+     *  show the factura or the folio). @return how many moved */
+    public int pasarFolioFiscal(List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<Producto> estos = folioEnFactura(bienes);
+        if (estos.isEmpty()) return 0;
+        int n = repo.pasarFolioFiscal(estos.stream().map(Producto::getId).toList());
+        if (n > 0) audit.log("producto", estos.get(0).getId(), "Varios bienes: folio fiscal", "actualizar",
+            "El folio fiscal (UUID) estaba escrito en «Factura»: pasó a «Folio fiscal» en " + n + " bienes: " + codigos(estos));
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
+    /** Undo of {@link #pasarFolioFiscal}: each UUID back in «Factura», on the bienes nobody
+     *  changed since. @param antes the bienes as they were before */
+    public int regresarFolioFiscal(List<Producto> antes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        Map<String, String> factura = new LinkedHashMap<>();
+        for (Producto p : antes)
+            if (Producto.pareceFolioFiscal(p.getNumeroFactura())) factura.put(p.getId(), p.getNumeroFactura());
+        if (factura.isEmpty()) return 0;
+        int n = repo.regresarFolioFiscal(factura);
+        if (n > 0) audit.log("producto", antes.get(0).getId(), "Varios bienes: folio fiscal", "actualizar",
+            "Se deshizo: el folio fiscal regresó a «Factura» en " + n + " bienes");
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
+    private static String codigos(List<Producto> bienes) {
+        return bienes.stream().limit(60).map(p -> Objects.requireNonNullElse(p.getCodigo(), p.getId()))
+            .collect(Collectors.joining(", ")) + (bienes.size() > 60 ? " y " + (bienes.size() - 60) + " más" : "");
+    }
+
     /** One text dato for several bienes at once; a bien that has its own keeps it.
      *  @return how many took it */
     public int asignarTexto(Dato dato, String valor, List<Producto> bienes) throws SQLException {
@@ -601,6 +648,8 @@ public class CalidadDatosService {
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
         agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
             "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
+        agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
+            "Pasarlo a su lugar", "productos", "folio");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
         agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
         agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");

@@ -32,6 +32,9 @@ public final class MismaFactura {
         COSTO("Costo", false, Producto::getPrecioCompra, (p, v) -> p.setPrecioCompra((BigDecimal) v)),
         VIDA_UTIL("Vida útil", false, Producto::getVidaUtilAnios, (p, v) -> p.setVidaUtilAnios((Integer) v)),
         COLOR("Color", false, Producto::getColor, (p, v) -> p.setColor((String) v)),
+        // 12-nov-2026: «BODY CAM» typed 20 times for the body cams of one factura.
+        MARCA("Marca", false, Producto::getMarca, (p, v) -> p.setMarca((String) v)),
+        MODELO("Modelo", false, Producto::getModelo, (p, v) -> p.setModelo((String) v)),
         TIPO_BIEN("Tipo de bien", false, Producto::getTipoBien, (p, v) -> p.setTipoBien((String) v));
 
         public final String etiqueta;
@@ -84,9 +87,33 @@ public final class MismaFactura {
         return clave.length() <= 6;
     }
 
-    /** Bought together: the same factura, no date or folio fiscal that says otherwise and,
-     *  for a short factura number, the same name, date or folio. */
+    /** The folio fiscal as a key: the 32 hex digits of the CFDI's UUID, whatever the case or
+     *  dashes. Null when it isn't a whole UUID. */
+    public static String uuid(String folio) {
+        if (folio == null) return null;
+        String h = folio.toUpperCase(Locale.ROOT).replaceAll("[^0-9A-F]", "");
+        return h.length() == 32 ? h : null;
+    }
+
+    /** Whether the bien says which purchase it came from: a factura number or the UUID of
+     *  its CFDI (on 12-nov-2026, 581 bienes had the UUID and no other number). */
+    public static boolean tieneCompra(Producto p) {
+        return clave(p.getNumeroFactura()) != null || uuid(p.getFolioFiscal()) != null;
+    }
+
+    /** How the screens name the purchase: its factura, or its folio fiscal when it has none. */
+    public static String etiqueta(Producto p) {
+        if (clave(p.getNumeroFactura()) != null) return p.getNumeroFactura().trim();
+        String f = p.getFolioFiscal() == null ? "" : p.getFolioFiscal().trim();
+        return uuid(f) != null ? "con folio fiscal " + f.substring(0, Math.min(8, f.length())) + "…" : "";
+    }
+
+    /** Bought together: the same CFDI (folio fiscal) when both have one; otherwise the same
+     *  factura, no date or folio fiscal that says otherwise and, for a short factura number,
+     *  the same name, date or folio. */
     public static boolean mismaCompra(Producto a, Producto b) {
+        String ua = uuid(a.getFolioFiscal()), ub = uuid(b.getFolioFiscal());
+        if (ua != null && ub != null) return ua.equals(ub) && !distintos(a.getFechaAdquisicion(), b.getFechaAdquisicion());
         String k = clave(a.getNumeroFactura());
         if (k == null || !k.equals(clave(b.getNumeroFactura()))) return false;
         if (distintos(a.getFechaAdquisicion(), b.getFechaAdquisicion()) || distintos(a.getFolioFiscal(), b.getFolioFiscal())) return false;
@@ -97,7 +124,7 @@ public final class MismaFactura {
 
     /** The other active bienes bought with {@code p}. */
     public static List<Producto> hermanos(Producto p, List<Producto> todos) {
-        if (clave(p.getNumeroFactura()) == null) return List.of();
+        if (!tieneCompra(p)) return List.of();
         return todos.stream()
             .filter(o -> o.getFechaBaja() == null && !Objects.equals(o.getId(), p.getId()))
             .filter(o -> mismaCompra(p, o))
@@ -119,12 +146,13 @@ public final class MismaFactura {
     public static List<Cambio> proponer(Producto antes, Producto despues, List<Producto> todos) {
         // Who was bought with it is judged on the bien as it was: correcting its folio or
         // date must reach the siblings that have the old one.
-        boolean mismaFactura = antes != null && clave(despues.getNumeroFactura()) != null
-            && clave(despues.getNumeroFactura()).equals(clave(antes.getNumeroFactura()));
+        boolean mismaFactura = antes != null && (
+            (clave(despues.getNumeroFactura()) != null && clave(despues.getNumeroFactura()).equals(clave(antes.getNumeroFactura())))
+            || (uuid(despues.getFolioFiscal()) != null && uuid(despues.getFolioFiscal()).equals(uuid(antes.getFolioFiscal()))));
         List<Producto> hermanos = hermanos(mismaFactura ? antes : despues, todos).stream()
             .filter(o -> !Objects.equals(o.getId(), despues.getId())).toList();
         if (hermanos.isEmpty()) return List.of();
-        String factura = despues.getNumeroFactura().trim();
+        String factura = etiqueta(despues);
         List<Cambio> out = new ArrayList<>();
         for (Dato d : Dato.values()) {
             Object nuevo = d.de(despues);
@@ -143,11 +171,8 @@ public final class MismaFactura {
      *  value is taken when all the bienes that have it agree, and it goes only to the
      *  bienes with nothing there. Costo, vida útil and color, per kind of bien. */
     public static List<Cambio> pendientes(List<Producto> todos) {
-        Map<String, List<Producto>> porFactura = todos.stream()
-            .filter(p -> p.getFechaBaja() == null && clave(p.getNumeroFactura()) != null)
-            .collect(Collectors.groupingBy(p -> clave(p.getNumeroFactura()), TreeMap::new, Collectors.toList()));
         List<Cambio> out = new ArrayList<>();
-        for (List<Producto> bienes : porFactura.values()) {
+        for (List<Producto> bienes : compras(todos)) {
             if (bienes.size() < 2) continue;
             for (Dato d : Dato.values()) {
                 // Each bien that lacks it takes it from those bought with it, when they agree.
@@ -164,11 +189,44 @@ public final class MismaFactura {
                     original.putIfAbsent(k, valores.get(0));
                     porValor.computeIfAbsent(k, x -> new ArrayList<>()).add(sin);
                 }
-                String factura = bienes.get(0).getNumeroFactura().trim();
+                String factura = bienes.stream().filter(p -> clave(p.getNumeroFactura()) != null).findFirst()
+                    .map(MismaFactura::etiqueta).orElse(etiqueta(bienes.get(0)));
                 porValor.forEach((k, sin) -> out.add(new Cambio(d, factura, original.get(k), sin)));
             }
         }
         return out;
+    }
+
+    /** The active bienes that can be one purchase, joined by their factura number or by
+     *  the UUID of their CFDI (a bien with both links the two); which pairs really are one
+     *  purchase is still {@link #mismaCompra}. By factura, as before. */
+    static List<List<Producto>> compras(List<Producto> todos) {
+        List<Producto> con = todos.stream().filter(p -> p.getFechaBaja() == null && tieneCompra(p)).toList();
+        int[] padre = new int[con.size()];
+        for (int i = 0; i < padre.length; i++) padre[i] = i;
+        Map<String, Integer> primero = new HashMap<>();
+        for (int i = 0; i < con.size(); i++) {
+            String k = clave(con.get(i).getNumeroFactura()), u = uuid(con.get(i).getFolioFiscal());
+            for (String llave : new String[]{k == null ? null : "F:" + k, u == null ? null : "U:" + u}) {
+                if (llave == null) continue;
+                Integer j = primero.putIfAbsent(llave, i);
+                if (j != null) unir(padre, i, j);
+            }
+        }
+        Map<Integer, List<Producto>> grupos = new LinkedHashMap<>();
+        for (int i = 0; i < con.size(); i++) grupos.computeIfAbsent(raiz(padre, i), x -> new ArrayList<>()).add(con.get(i));
+        return grupos.values().stream()
+            .sorted(Comparator.comparing((List<Producto> g) -> Objects.requireNonNullElse(clave(g.get(0).getNumeroFactura()), "~")))
+            .toList();
+    }
+
+    private static int raiz(int[] padre, int i) {
+        while (padre[i] != i) i = padre[i] = padre[padre[i]];
+        return i;
+    }
+
+    private static void unir(int[] padre, int a, int b) {
+        padre[raiz(padre, a)] = raiz(padre, b);
     }
 
     /** Puts the changes on their bienes, each bien saved once with all its data, through
@@ -217,9 +275,12 @@ public final class MismaFactura {
 
     // ── comparar ──────────────────────────────────────────────────────────────
 
+    /** What the inventory writes when it has nothing: a bien with «SIN MARCA» can take the marca. */
+    private static final Set<String> NADA = Set.of("SIN MARCA", "SIN MODELO", "S/M", "SM", "N/A", "NA", "-", "--", "SIN DATO");
+
     static boolean vacio(Object v) {
         if (v == null) return true;
-        if (v instanceof String s) return s.isBlank();
+        if (v instanceof String s) return s.isBlank() || NADA.contains(s.trim().toUpperCase(java.util.Locale.ROOT));
         if (v instanceof BigDecimal b) return b.signum() == 0;
         return false;
     }

@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /** The corrections that touch many rows at once, in one round-trip: going through
  *  ProductoRepository bien by bien is several queries each, minutes for the inventory. */
@@ -148,6 +149,74 @@ public class CalidadDatosRepository {
             this.columna = columna;
             this.leer = leer;
             this.poner = poner;
+        }
+    }
+
+    /** A UUID, with or without its dashes, as {@link Producto#pareceFolioFiscal} says. */
+    private static final String ES_UUID =
+        "^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32})$";
+
+    /** The UUID that was typed in «Factura» goes to «Folio fiscal», on the bienes that still
+     *  have it there and no folio of their own. @return how many moved */
+    public int pasarFolioFiscal(List<String> bienes) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : bienes) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                if (!Producto.pareceFolioFiscal(p.getNumeroFactura()) || (p.getFolioFiscal() != null && !p.getFolioFiscal().isBlank())) continue;
+                p.setFolioFiscal(p.getNumeroFactura().trim().toUpperCase(java.util.Locale.ROOT));
+                p.setNumeroFactura(null);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET folio_fiscal = upper(btrim(numero_factura)), numero_factura = NULL, updated_at = NOW() "
+                     + "WHERE id = ANY(?) AND (folio_fiscal IS NULL OR btrim(folio_fiscal) = '') "
+                     + "AND lower(btrim(numero_factura)) ~ '" + ES_UUID + "'")) {
+            ps.setArray(1, conn.createArrayOf("text", bienes.toArray(new String[0])));
+            return ps.executeUpdate();
+        }
+    }
+
+    /** Undo of {@link #pasarFolioFiscal}: the UUID back in «Factura», only on the bienes
+     *  still as it left them. @param facturaPorId what each bien had in «Factura» */
+    public int regresarFolioFiscal(Map<String, String> facturaPorId) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (var e : facturaPorId.entrySet()) {
+                var o = local.findProductoById(e.getKey());
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                if (p.getNumeroFactura() != null && !p.getNumeroFactura().isBlank()) continue;
+                if (p.getFolioFiscal() == null || !p.getFolioFiscal().trim().equalsIgnoreCase(e.getValue().trim())) continue;
+                p.setNumeroFactura(e.getValue());
+                p.setFolioFiscal(null);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET numero_factura = ?, folio_fiscal = NULL, updated_at = NOW() "
+                     + "WHERE id = ? AND (numero_factura IS NULL OR btrim(numero_factura) = '') "
+                     + "AND upper(btrim(folio_fiscal)) = upper(btrim(?))")) {
+            for (var e : facturaPorId.entrySet()) {
+                ps.setString(1, e.getValue());
+                ps.setString(2, e.getKey());
+                ps.setString(3, e.getValue());
+                ps.addBatch();
+            }
+            int n = 0;
+            for (int r : ps.executeBatch()) n += Math.max(r, 0);
+            return n;
         }
     }
 
