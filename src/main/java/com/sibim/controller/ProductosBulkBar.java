@@ -22,8 +22,9 @@ final class ProductosBulkBar {
     private final Label lblBulkCount;
     private final Button btnBulkArea;
     private final Button btnBulkResguardante;
-    private final Button btnBulkMarcarEtiquetado;
+    private final javafx.scene.control.MenuItem btnBulkMarcarEtiquetado;
     private final Button btnComparar;
+    private final Button btnBulkDatos;
     private final BooleanSupplier canEdit;
 
     private boolean visible = false;
@@ -33,8 +34,9 @@ final class ProductosBulkBar {
             Label lblBulkCount,
             Button btnBulkArea,
             Button btnBulkResguardante,
-            Button btnBulkMarcarEtiquetado,
+            javafx.scene.control.MenuItem btnBulkMarcarEtiquetado,
             Button btnComparar,
+            Button btnBulkDatos,
             BooleanSupplier canEdit) {
         this.bulkBar = bulkBar;
         this.lblBulkCount = lblBulkCount;
@@ -42,6 +44,7 @@ final class ProductosBulkBar {
         this.btnBulkResguardante = btnBulkResguardante;
         this.btnBulkMarcarEtiquetado = btnBulkMarcarEtiquetado;
         this.btnComparar = btnComparar;
+        this.btnBulkDatos = btnBulkDatos;
         this.canEdit = canEdit;
     }
 
@@ -57,8 +60,11 @@ final class ProductosBulkBar {
         // Who holds a bien is said by a signed resguardo, and the label is checked by
         // Patrimonio: neither is something an área changes for many bienes at once.
         if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(mover); btnBulkResguardante.setManaged(mover); }
-        if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(mover); btnBulkMarcarEtiquetado.setManaged(mover); }
+        if (btnBulkMarcarEtiquetado != null) btnBulkMarcarEtiquetado.setVisible(mover);
         if (btnComparar != null) { btnComparar.setVisible(n == 2); btnComparar.setManaged(n == 2); }
+        // The factura, the costo and the rest of the record are Patrimonio's (as in the form).
+        boolean datos = edit && com.sibim.session.Permisos.editaFichaCompleta();
+        if (btnBulkDatos != null) { btnBulkDatos.setVisible(datos); btnBulkDatos.setManaged(datos); }
         if (show == visible) return;
         visible = show;
         if (show) {

@@ -105,8 +105,48 @@ public final class TutorialOverlay {
             cerrar[0].run();
             javafx.application.Platform.runLater(() -> buildAndShow(outerStack, g));
         };
-        lista.getChildren().add(filaGuia(TutorialGuias.novedades(), true, abrirGuia));
-        for (TutorialGuias.Guia g : TutorialGuias.disponibles()) lista.getChildren().add(filaGuia(g, false, abrirGuia));
+        // 22 guides for Patrimonio since the old Novedades became guides (13-nov-2026): a search
+        // over each guide's title, description and steps finds «baja» or «resguardo».
+        java.util.Map<javafx.scene.Node, String> textoDe = new java.util.LinkedHashMap<>();
+        java.util.List<TutorialGuias.Guia> guias = new java.util.ArrayList<>();
+        guias.add(TutorialGuias.novedades());
+        guias.addAll(TutorialGuias.disponibles());
+        for (TutorialGuias.Guia g : guias) {
+            HBox fila = filaGuia(g, g == guias.get(0), abrirGuia);
+            lista.getChildren().add(fila);
+            StringBuilder t = new StringBuilder(g.titulo()).append(' ').append(g.descripcion());
+            for (TutorialGuias.Paso p : g.pasos()) {
+                t.append(' ').append(p.title());
+                if (p.bullets() != null) for (String b : p.bullets()) t.append(' ').append(b);
+            }
+            textoDe.put(fila, plano(t.toString()));
+        }
+        javafx.scene.control.TextField buscar = new javafx.scene.control.TextField();
+        buscar.setPromptText("Buscar una guía: baja, resguardo, etiquetas…");
+        buscar.getStyleClass().add("search-field");
+        buscar.setAccessibleText("Buscar una guía");
+        Label ninguna = new Label("Ninguna guía habla de eso");
+        ninguna.getStyleClass().add("muted-sm");
+        ninguna.setVisible(false);
+        ninguna.setManaged(false);
+        lista.getChildren().add(ninguna);
+        buscar.textProperty().addListener((o, a, b) -> {
+            String[] palabras = plano(b).split("\\s+");
+            boolean alguna = false;
+            for (var e : textoDe.entrySet()) {
+                boolean ver = java.util.Arrays.stream(palabras).allMatch(w -> w.isEmpty() || e.getValue().contains(w));
+                e.getKey().setVisible(ver);
+                e.getKey().setManaged(ver);
+                alguna |= ver;
+            }
+            ninguna.setVisible(!alguna);
+            ninguna.setManaged(!alguna);
+        });
+        // Enter opens the first one left.
+        buscar.setOnAction(e -> {
+            for (int i = 0; i < guias.size(); i++)
+                if (lista.getChildren().get(i).isVisible()) { abrirGuia.accept(guias.get(i)); return; }
+        });
 
         javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(lista);
         scroll.setFitToWidth(true);
@@ -135,7 +175,7 @@ public final class TutorialOverlay {
         pie.setAlignment(Pos.CENTER_LEFT);
         pie.setPadding(new Insets(10, 18, 14, 18));
 
-        VBox cuerpo = new VBox(scroll);
+        VBox cuerpo = new VBox(8, buscar, scroll);
         cuerpo.setPadding(new Insets(0, 14, 0, 18));
         VBox.setVgrow(cuerpo, Priority.ALWAYS);
         VBox card = new VBox(12, header, cuerpo, pie);
@@ -159,6 +199,13 @@ public final class TutorialOverlay {
         };
         outerStack.getChildren().addAll(dim, capa);
         if (!lista.getChildren().isEmpty()) javafx.application.Platform.runLater(lista.getChildren().get(0)::requestFocus);
+    }
+
+    /** Lower case, without accents: «Baja» finds «bajas», «Resguardo» finds «resguardos». */
+    private static String plano(String s) {
+        if (s == null) return "";
+        return java.text.Normalizer.normalize(s.toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "").trim();
     }
 
     private static HBox filaGuia(TutorialGuias.Guia g, boolean destacada, java.util.function.Consumer<TutorialGuias.Guia> abrir) {

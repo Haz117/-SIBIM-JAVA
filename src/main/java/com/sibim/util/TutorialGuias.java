@@ -56,14 +56,14 @@ final class TutorialGuias {
         }
     }
 
-    static final String NUEVO = "Nuevo en esta versión", ANTERIOR = "De la versión anterior", ANTES = "De versiones anteriores";
+    static final String NUEVO = "Nuevo en esta versión", ANTERIOR = "De la versión anterior";
 
     /** The version whose changes {@link #novedades()} tells. Novedades open by
      *  themselves once per user for this version, not for every version: a
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.27";
+    public static final String VERSION_NOVEDADES = "1.0.28";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -99,6 +99,12 @@ final class TutorialGuias {
             g.add(transferir());
             g.add(darDeBaja());
             g.add(prepararFormatos());
+            g.add(areasYAvance());
+            g.add(resguardosAlDia());
+            g.add(encontrarYCorregir());
+            g.add(formatosYReportes());
+            g.add(transferenciasYBajas());
+            g.add(masComodo());
         } else {
             g.add(misBienes());
             g.add(resguardoDePersona());
@@ -113,9 +119,35 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: más datos en Completar datos, juntar dos registros de un bien, la misma factura y el IVA; luego el avance de las áreas",
+                "Primero lo más nuevo: cambiar los datos de varios bienes a la vez, separar un área en una nueva y el tamaño del texto; luego lo de la versión anterior",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
-                "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+                "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
+                "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
+            p.add(paso("mdi2p-pencil-box-multiple-outline", GUINDA, GUINDA_D, "Cambiar datos de varios bienes a la vez", "productos", "#table",
+                "Marca varios bienes en la tabla (Ctrl o Shift + clic) y en la barra de abajo pulsa «Cambiar datos»",
+                "Llena solo lo que cambia: proveedor, factura, folio fiscal, fecha, costo, vida útil, valor residual, color, tipo, marca, modelo o ubicación; lo vacío no se toca",
+                "Junto a cada dato ves lo que tienen ahora; «Sumarle el IVA» y «El 15 % del costo» se calculan para cada bien",
+                "Si marcaste toda la página (Ctrl+A) y el filtro tiene más, te pregunta si van también los demás; también está en el clic derecho",
+                "Antes de guardar ves bien por bien qué cambia, y se deshace desde el aviso"));
+            p.add(probar(paso("mdi2c-call-split", DORADO, DORADO_D, "Separar un área en una nueva", "configuracion", null,
+                "Configuración › Áreas y prefijos: elige el área y pulsa «Separar en un área nueva…»",
+                "Escribe el nombre (el prefijo se sugiere solo) y marca qué bienes pasan; «Marcar los de…» marca todos los de una persona o de una ubicación",
+                "Cada quien se lleva sus bienes en un resguardo nuevo con su mismo cargo, y los resguardos que se quedan vacíos se cancelan solos",
+                "Al terminar, «Imprimir resguardos» saca los nuevos para firmar"),
+                "Ir a Configuración", ir("configuracion")));
+            p.add(paso("mdi2f-format-size", VERDE, VERDE_D, "Menos tecleo y texto más grande", "productos", "#btnEditar",
+                "Debajo del valor residual, «Poner el 15 % del costo» hace la cuenta con el costo que escribiste",
+                "El tamaño del texto (Normal, Grande, Extra) está también en el menú de tu cuenta, arriba a la izquierda",
+                "Ctrl + «+» agranda el texto y Ctrl + «−» lo achica, en cualquier pantalla",
+                "En Datos de los formatos › Titulares, «Usar las sugerencias» escribe la primera sugerencia en todas las áreas sin titular: revisas, corriges y guardas",
+                "En el formulario de un bien, Ctrl+S guarda y Ctrl+Shift+S guarda y abre el siguiente, sin soltar el teclado"));
+            p.add(paso("mdi2c-check-all", GUINDA, GUINDA_D, "Detalles que se arreglaron", null, null,
+                "Etiquetas, resguardos y reportes llevan el logo del Gobierno Municipal 2024-2027 aunque no se haya cargado uno en Configuración",
+                "Los bienes de cada resguardo salen en orden de número (MM/01, MM/02… MM/10), en el PDF y en la pantalla",
+                "En el resguardo, un bien sin precio capturado dice «—» en vez de «$0.00», y el total avisa que hay bienes sin precio",
+                "Si la sesión se cierra por inactividad, al volver a entrar regresas a la pantalla donde estabas, con tu búsqueda de Bienes",
+                "El aviso de inactividad ya no cierra la sesión dos veces ni te borra lo que empezabas a escribir al entrar",
+                "Si la sesión se te cierra muy seguido, el mismo aviso tiene «Dale más tiempo»: te lleva al ajuste en Configuración"));
             p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos, con más datos", "productos", "#btnMasBienes",
                 "Además de precio, fecha, vida útil y foto: proveedor, folio fiscal, factura, color y tipo de bien",
                 "Se escribe en la lista y Enter pasa al siguiente, sin abrir el formulario de cada bien",
@@ -167,190 +199,11 @@ final class TutorialGuias {
             p.add(paso("mdi2c-cash-plus", VERDE, VERDE_D, "Menos tecleo", "productos", "#btnEditar",
                 "Debajo del costo de un bien, «Sumarle el IVA (16 %)» hace la cuenta y la escribe; se usa una sola vez por costo",
                 "Al abrir SIBIM, tu usuario ya está escrito: solo pones la contraseña"));
-            p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
-                "Arriba, cinco tarjetas: cuántas áreas faltan por entrar, cuántas revisan sus bienes, cuántas ponen etiquetas y cuántas terminaron; un clic filtra",
-                "Las áreas van agrupadas por secretaría, cada una con sus tres pasos en una sola barra",
-                "Cada área dice si ya tiene cuenta: sin cuenta no puede entrar; «Crear las cuentas» te lleva a hacerlo",
-                "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado",
-                "En el detalle, el paso 3 abre «Etiquetas por área» ya en esa área: imprimes sus etiquetas y marcas las pegadas"),
-                "Abrir el avance", abrir("organigrama", "avance")));
-            p.add(probar(paso("mdi2f-file-document-edit-outline", GUINDA, GUINDA_D, "Los datos de los formatos, en un solo lugar", "configuracion", null,
-                "RFC, domicilio, quién firma cada formato y el titular de cada área, en una sola ventana con tres tarjetas",
-                "Cada área tiene su campo, agrupadas por secretaría, y «Solo las que faltan» deja las pendientes",
-                "Debajo de cada campo salen sugerencias de quién firma resguardos ahí como director o titular: un clic lo escribe",
-                "Guarda las veces que quieras sin cerrar; también se abre desde «Por hacer» del Inicio"),
-                "Abrir Datos de los formatos", abrir("configuracion", "formatos")));
-            p.add(paso("mdi2a-account-multiple-outline", GUINDA, GUINDA_D, "Cuentas de las áreas, antes de crearlas", "configuracion", null,
-                "Configuración › Usuarios › «Cuentas por área» (o «Crear las cuentas» en el Avance) ahora abre una lista",
-                "Cada área dice qué usuario le toca, qué podrá ver y si ya entró",
-                "Marca con su casilla cuáles crear: todas de una vez o unas cuantas",
-                "Sale un PDF con una hoja para entregar a cada área: su usuario, su contraseña y qué hacer el primer día; la primera es tu control",
-                "Si un área pierde su contraseña, «Contraseña nueva» le da otra con su propia hoja"));
-            p.add(paso("mdi2c-clipboard-check-multiple-outline", DORADO, DORADO_D, "Revisar bienes, más fácil para las áreas", "organigrama", "#btnAvanceAreas",
-                "Cuando un área revisa sus bienes, cada renglón tiene «Sí es» / «No es», «Ya la tiene» y «Completar»",
-                "Ya no hace falta Ctrl ni Shift: varios se marcan con su casilla",
-                "Debajo del nombre sale marca, modelo, serie y ubicación, para reconocerlo",
-                "Cada respuesta se puede deshacer; tú lo ves desde el detalle de cada área en «Avance de las áreas»"));
-            p.add(probar(paso("mdi2a-alert-circle-outline", DORADO, DORADO_D, "Los avisos «No es de mi área», ahí mismo", "dashboard", null,
-                "Cuando un área dice que un bien no es suyo, en «Por hacer» de tu Inicio sale «Revisar avisos», con lo que escribió",
-                "Cada aviso tiene «Pasar a otra área»: abre Transferir con ese bien ya marcado y el aviso como motivo",
-                "«Es suyo» se lo regresa a «Por revisar» con un mensaje tuyo, que el área lee junto al bien",
-                "«Ver» abre su ficha: quién lo tenía, sus fotos y sus movimientos; cada cosa se puede deshacer"),
-                "Abrir los avisos", abrir("productos", "observados")));
-            p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
-                "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
-                "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
-                "Se cancelan todos sus resguardos de esa área, con una nota de a quién pasaron, y sale uno nuevo para firmar",
-                "Si quien recibe ya tenía resguardo en esa área, queda todo en uno solo"));
-            p.add(paso("mdi2g-gesture-tap-button", VERDE, VERDE_D, "Botones que dicen lo que hacen", null, null,
-                "Al confirmar, el botón dice la acción: «Cancelar el resguardo», «Descartar cambios», «Abrir el PDF»",
-                "Lo que no tiene vuelta sale en rojo, y Enter no lo aprieta por costumbre",
-                "Si algo falla, el aviso lo dice en palabras: sin conexión, dato repetido, sin permiso",
-                "El «Deshacer» de los avisos también funciona con Ctrl+Z, y el aviso espera mientras tengas el mouse encima"));
-            p.add(paso("mdi2f-file-document-outline", GUINDA, GUINDA_D, "Resguardo con marca, serie y precio", "productos", "#searchField",
-                "La lista de bienes del resguardo trae Marca, Serie y Precio, con el Total al final",
-                "Ya no lleva Tipo de bien, Asignación ni Color",
-                "En un lote, el precio es el total y abajo dice cuántas piezas por cuánto",
-                "Las áreas ven la marca y la serie, pero no el precio"));
-            p.add(paso("mdi2c-car-outline", VERDE, VERDE_D, "El resguardo de un vehículo", "productos", "#searchField",
-                "Busca el vehículo en Bienes, márcalo y pulsa «Resguardo PDF» en la barra de abajo",
-                "Sale la hoja oficial del vehículo: sus datos, fotos, la responsiva y las tres firmas",
-                "Antes solo salían los de todos los vehículos juntos, en Reportes › Parque Vehicular",
-                "En Configuración del Sistema escribe el RFC, el domicilio y quién firma Elaboró y Vo. Bo.; el color se escribe a mano"));
-            p.add(paso("mdi2m-magnify", GUINDA, GUINDA_D, "Busca un reporte", "reportes", "#buscarReporte",
-                "Arriba en Reportes escribe lo que necesitas: vehículos, baja, resguardo, CONAC…",
-                "Encuentra también lo que está dentro de un menú, como el resguardo de cada vehículo",
-                "Sin acentos también lo encuentra"));
-            p.add(paso("mdi2c-calendar-clock", VERDE, VERDE_D, "La columna Garantía", "productos", "#statusChipsBar",
-                "En Bienes, la que decía «Estado: Activo» en todos era la garantía: ahora se llama así",
-                "Dice «Vencida» si ya venció y «—» si el bien no tiene garantía",
-                "El filtro de abajo es «Garantía: Todos · Sin vencer · Vencida»"));
-            p.add(paso("mdi2s-speedometer", DORADO, DORADO_D, "Modo ligero para computadoras lentas", "configuracion", "#chkModoLigero",
-                "En una computadora sin buena tarjeta de video quita sombras y animaciones: las pantallas y el tutorial ya no se traban",
-                "SIBIM lo enciende solo si nota que la computadora va lenta",
-                "Está en Configuración › Accesibilidad y rendimiento, por si lo quieres encender o apagar"));
-            p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
-                "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
-                "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
-                "Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano"));
-            p.add(paso("mdi2s-scale-balance", VERDE, VERDE_D, "Reportes para Tesorería y Transparencia", "reportes", "#listaFormatos .report-row",
-                "«Saldos por cuenta contable (CONAC)»: costo, depreciación y valor en libros por cuenta, para cuadrar con Tesorería",
-                "«Relación de Bienes Muebles (para publicar)»: el formato CONAC con código, descripción y valor en libros, sin datos personales",
-                "Los dos salen en PDF y en Excel"));
-            p.add(probar(paso("mdi2c-calculator-variant-outline", GUINDA, GUINDA_D, "Costo de los lotes", "productos", "#btnMasBienes",
-                "Bienes › Más › Costo de los lotes: los bienes de varias piezas, de mayor a menor total",
-                "Si el costo capturado es el total de la factura, «Es el total del lote» lo divide entre las piezas",
-                "Si te equivocas, «Deshacer» en el mismo renglón lo regresa"),
-                "Abrir Costo de los lotes", abrir("productos", "lotes")));
-            p.add(probar(paso("mdi2a-account-edit-outline", DORADO, DORADO_D, "Corregir el nombre de una persona", "reportes", "#listaListados .report-row",
-                "Busca a la persona en «Resguardos por resguardante» y pulsa «Corregir nombre»",
-                "Se corrige de una vez en sus bienes, sus resguardos vigentes y donde sea titular de área",
-                "Al terminar, «Deshacer» lo regresa"),
-                "Abrir el reporte", abrir("reportes", "resguardante")));
-            p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Avance de las áreas", "organigrama", "#btnAvanceAreas",
-                "Cada área da tres pasos: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
-                "En el organigrama cada área lleva sus pasos 1·2·3; verde es hecho, dorado es a medias",
-                "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas, por dependencia",
-                "Arriba, cinco tarjetas dicen cuántas van en cada paso (un clic filtra); cada área dice si ya tiene cuenta",
-                "Si un área dice que un bien no es suyo, aparece en «Por hacer» para que lo revises"));
-            p.add(paso("mdi2n-numeric", GUINDA, GUINDA_D, "Los números ya no se repiten", "productos", "#searchField",
-                "El número de un bien dado de baja, transferido o borrado ya no se le da a otro bien",
-                "El siguiente bien de un área toma el número que sigue al más alto que se ha usado",
-                "Si deshaces una transferencia o reactivas un bien, vuelve con su mismo número"));
-            p.add(paso("mdi2l-lock-check-outline", DORADO, DORADO_D, "Bajas definitivas", "bajas", "#chipDefinitivas",
-                "En Bajas: «En proceso» son las dadas de baja; «Definitivas», las que ya se destruyeron, donaron o subastaron",
-                "Selecciona una o varias y «Baja definitiva» pide la fecha y el documento que la autoriza",
-                "Una baja definitiva ya no se puede reactivar"));
-            p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Las áreas piden la baja por SIBIM", "bajas", null,
-                "Cuando un área pide la baja de un bien te llega el aviso en la campana, en «Por hacer» y aquí en Bajas",
-                "El área entrega el formato firmado en Recursos Materiales y Patrimonio: «Recibí el formato» anota su folio",
-                "«Revisar» abre cada solicitud: «Ver el bien», «Dar de baja» (con su motivo y el folio ya escritos) o «No procede» con el porqué",
-                "El área ve tu respuesta en su Inicio, y si le falta entregar el formato"));
-            p.add(probar(paso("mdi2c-card-account-details-outline", GUINDA, GUINDA_D, "Solo el nombre, sin Lic. ni Ing.", "productos", "#btnMasBienes",
-                "Bienes › Más › Quitar títulos de los nombres: ves cómo queda cada uno antes de cambiarlo",
-                "Desde ahora los nombres se guardan sin título al escribirlos",
-                "Los resguardos cancelados y los bienes dados de baja se quedan como se firmaron"),
-                "Abrir Quitar títulos", abrir("productos", "titulos")));
-            p.add(paso("mdi2m-magnify", VERDE, VERDE_D, "Escribe en los filtros", "productos", "#resguardanteFilter",
-                "En los filtros de área, persona y categoría ya puedes escribir para encontrarla rápido",
-                "Cada palabra cuenta, sin acentos; Enter toma la primera",
-                "Borra lo escrito para volver a ver todos"));
-            p.add(paso("mdi2p-paw-outline", VERDE, VERDE_D, "Activos Biológicos", "categorias", null,
-                "Categoría nueva para animales y plantas del municipio (cuenta CONAC 1.2.4.8)",
-                "En la clave armonizada de cada bien puedes poner su subcuenta: perros 1.2.4.8.7, caballos 1.2.4.8.6…"));
-            p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
-                "Lo que le falta al inventario, con su número real",
-                "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));
-            p.add(probar(paso("mdi2b-badge-account-outline", VERDE, VERDE_D, "Resguardos de una persona", "reportes", "#listaListados .report-row",
-                "Es la primera fila de Reportes: busca a la persona sin entrar a Resguardos",
-                "Escribe parte del nombre y Enter genera el PDF",
-                "También da clic en un nombre en Bienes o Resguardos, o búscalo con Ctrl+K: abre lo mismo",
-                "Si tiene bienes sin resguardo, el botón «Registrar como resguardo» los deja vigentes"),
-                "Abrir el reporte", abrir("reportes", "resguardante")));
-            p.add(probar(paso("mdi2c-clipboard-account-outline", DORADO, DORADO_D, "Nuevo Resguardo, rediseñado", "resguardos", "#btnNuevo",
-                "A la izquierda la persona, a la derecha sus bienes, ya marcados",
-                "Un bien que está en otro resguardo vigente te dice en cuál",
-                "Avisa si la persona también aparece con su nombre en otro orden"),
-                "Abrir Nuevo Resguardo", abrir("resguardos", "nuevo")));
-            p.add(probar(paso("mdi2c-clipboard-check-outline", VERDE, VERDE_D, "Conteo físico, rediseñado", null, "nav:conteo",
-                "Ya abre con todo el inventario sin problema: antes podía tronar el sistema",
-                "Eliges área o categoría y ves su avance; un clic en el bien lo marca como visto",
-                "La cantidad solo aparece en los lotes; tu avance se guarda solo al cerrar"),
-                "Abrir el Conteo físico", ir("conteo")));
-            p.add(probar(paso("mdi2d-drag-variant", VERDE, VERDE_D, "Transferir varios de una vez", "movimientos", "#btnArrastrar",
-                "Un clic marca cada bien, ya no hace falta Ctrl; lo marcado sigue marcado aunque busques otro",
-                "Escribe el código y Enter lo marca: así juntas varios y salen en un solo resguardo",
-                "A la misma área, la siguiente vuelta ya trae el motivo y la persona",
-                "Si la persona ya tiene resguardo en esa área, se agregan al suyo de más bienes en lugar de hacer uno más, aunque escribas su nombre con otro título",
-                "Si escribes un nombre casi igual a uno que ya existe, te pregunta si es esa persona"),
-                "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
-            p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Juntar resguardos de una persona", "resguardos", "#btnMasResguardos",
-                "Está en Resguardos › Más › Juntar resguardos de una persona",
-                "Quien tiene varios resguardos en la misma área aparece primero, con cuántos tiene",
-                "Marca los que se juntan: quedan cancelados como se firmaron y se hace uno nuevo con todos sus bienes",
-                "Imprime el nuevo para que lo firme"),
-                "Abrir Juntar resguardos", abrir("resguardos", "juntar")));
-            p.add(paso("mdi2i-inbox-arrow-down-outline", DORADO, DORADO_D, "Por recibir, por área", "movimientos", "#btnPorRecibir",
-                "Las transferencias que el área no ha confirmado, juntas por área",
-                "Cuando te llegue su acuse firmado en papel, «Confirmar las N» las da por recibidas de una vez",
-                "Queda registrado con tu nombre y «acuse en papel»"));
-            p.add(paso("mdi2c-clipboard-search-outline", DORADO, DORADO_D, "Buscar en Resguardos", "resguardos", "#searchField",
-                "Busca por persona, folio, área o el código de un bien: te dice en qué resguardo está",
-                "Sin acentos también lo encuentra",
-                "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo",
-                "En el detalle ya se leen el código y el valor de cada bien, y puedes reimprimir el PDF"));
-            p.add(paso("mdi2t-tag-text-outline", VERDE, VERDE_D, "Buscar por el número anterior", "productos", "#searchField",
-                "En Bienes y con Ctrl+K encuentras un bien por el número que trae pegado, el del inventario anterior",
-                "En el Conteo físico, escanéalo o escríbelo y queda como visto",
-                "En Transferir, el número anterior y Enter también lo marca",
-                "Con el lector, en cualquier pantalla, abre su ficha"));
-            p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
-                "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
-                "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
-                "El detalle del bien ya trae «Editar», y al registrar uno nuevo puedes seguir con «Guardar y registrar otro»",
-                "Marca, modelo y serie tienen «No tiene»: ya no hace falta escribir «SIN MARCA»",
-                "Al escribir el resguardante te sugiere los nombres que ya existen"));
-            p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos", "productos", "#btnMasBienes",
-                "Está en Bienes › Más › Completar datos",
-                "Por área: precio, fecha, vida útil y foto, en la misma lista",
-                "Escribe el valor y Enter guarda y pasa al siguiente; la vida útil se puede proponer según CONAC"),
-                "Abrir Completar datos", abrir("productos", "completar")));
-            p.add(probar(paso("mdi2a-account-multiple-check-outline", GUINDA, GUINDA_D, "Unir personas y series repetidas", "productos", "#btnMasBienes",
-                "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden, con título o con una letra distinta",
-                "Bienes › Más › Series repetidas: una serie en varios bienes; si no es serie, se quita a todos de una vez",
-                "Tú decides cada caso; «Son personas distintas» no vuelve a preguntar"),
-                "Abrir Unir personas", abrir("productos", "unir")));
-            p.add(probar(paso("mdi2t-tag-multiple-outline", DORADO, DORADO_D, "Etiquetas y resguardos en lote", "productos", "#btnMasBienes",
-                "Bienes › Más › Etiquetas por área: imprime por área y ve el avance",
-                "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
-                "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
-                "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
-            // After the intro: 1.0.26 (la misma factura, el IVA), then 1.0.25 (el avance de las áreas…),
-            // then everything before (1.0.24: pasar a otra persona; 1.0.22 and older).
-            int anterior = indice(p, "El avance de las áreas, más claro"), antes = indice(p, "Pasar un resguardo a otra persona");
+            // After the intro: 1.0.28, then 1.0.26–1.0.27. What came before is in the guides
+            // (13-nov-2026: Novedades had 53 steps; «lo más viejo, en ayudas normales»).
+            int anterior = indice(p, "Completar datos, con más datos");
             enGrupo(p, 1, anterior, NUEVO);
-            enGrupo(p, anterior, antes, ANTERIOR);
-            enGrupo(p, antes, p.size(), ANTES);
+            enGrupo(p, anterior, p.size(), ANTERIOR);
         } else {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Cada paso te lleva a la pantalla y marca dónde está",
@@ -651,5 +504,182 @@ final class TutorialGuias {
                 "Cuando Patrimonio te transfiere un bien, aparece «Bienes por recibir» en la campana y en Inicio",
                 "Ábrelo y confirma cuando lo tengas físicamente",
                 "Lo que tu área necesite se pide a Finanzas, fuera de SIBIM")));
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia areasYAvance() {
+        List<Paso> p = new ArrayList<>();
+            p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Avance de las áreas", "organigrama", "#btnAvanceAreas",
+                "Cada área da tres pasos: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
+                "En el organigrama cada área lleva sus pasos 1·2·3; verde es hecho, dorado es a medias",
+                "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas, por dependencia",
+                "Arriba, cinco tarjetas dicen cuántas van en cada paso (un clic filtra); cada área dice si ya tiene cuenta",
+                "Si un área dice que un bien no es suyo, aparece en «Por hacer» para que lo revises"));
+            p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
+                "Arriba, cinco tarjetas: cuántas áreas faltan por entrar, cuántas revisan sus bienes, cuántas ponen etiquetas y cuántas terminaron; un clic filtra",
+                "Las áreas van agrupadas por secretaría, cada una con sus tres pasos en una sola barra",
+                "Cada área dice si ya tiene cuenta: sin cuenta no puede entrar; «Crear las cuentas» te lleva a hacerlo",
+                "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado",
+                "En el detalle, el paso 3 abre «Etiquetas por área» ya en esa área: imprimes sus etiquetas y marcas las pegadas"),
+                "Abrir el avance", abrir("organigrama", "avance")));
+            p.add(paso("mdi2a-account-multiple-outline", GUINDA, GUINDA_D, "Cuentas de las áreas, antes de crearlas", "configuracion", null,
+                "Configuración › Usuarios › «Cuentas por área» (o «Crear las cuentas» en el Avance) ahora abre una lista",
+                "Cada área dice qué usuario le toca, qué podrá ver y si ya entró",
+                "Marca con su casilla cuáles crear: todas de una vez o unas cuantas",
+                "Sale un PDF con una hoja para entregar a cada área: su usuario, su contraseña y qué hacer el primer día; la primera es tu control",
+                "Si un área pierde su contraseña, «Contraseña nueva» le da otra con su propia hoja"));
+            p.add(paso("mdi2c-clipboard-check-multiple-outline", DORADO, DORADO_D, "Revisar bienes, más fácil para las áreas", "organigrama", "#btnAvanceAreas",
+                "Cuando un área revisa sus bienes, cada renglón tiene «Sí es» / «No es», «Ya la tiene» y «Completar»",
+                "Ya no hace falta Ctrl ni Shift: varios se marcan con su casilla",
+                "Debajo del nombre sale marca, modelo, serie y ubicación, para reconocerlo",
+                "Cada respuesta se puede deshacer; tú lo ves desde el detalle de cada área en «Avance de las áreas»"));
+            p.add(probar(paso("mdi2a-alert-circle-outline", DORADO, DORADO_D, "Los avisos «No es de mi área», ahí mismo", "dashboard", null,
+                "Cuando un área dice que un bien no es suyo, en «Por hacer» de tu Inicio sale «Revisar avisos», con lo que escribió",
+                "Cada aviso tiene «Pasar a otra área»: abre Transferir con ese bien ya marcado y el aviso como motivo",
+                "«Es suyo» se lo regresa a «Por revisar» con un mensaje tuyo, que el área lee junto al bien",
+                "«Ver» abre su ficha: quién lo tenía, sus fotos y sus movimientos; cada cosa se puede deshacer"),
+                "Abrir los avisos", abrir("productos", "observados")));
+            p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Las áreas piden la baja por SIBIM", "bajas", null,
+                "Cuando un área pide la baja de un bien te llega el aviso en la campana, en «Por hacer» y aquí en Bajas",
+                "El área entrega el formato firmado en Recursos Materiales y Patrimonio: «Recibí el formato» anota su folio",
+                "«Revisar» abre cada solicitud: «Ver el bien», «Dar de baja» (con su motivo y el folio ya escritos) o «No procede» con el porqué",
+                "El área ve tu respuesta en su Inicio, y si le falta entregar el formato"));
+        return new Guia("areas-avance", "Las áreas: cuentas, avance y avisos", "Crear sus cuentas, ver cómo van y atender lo que te avisan", "mdi2s-stairs-up", p);
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia resguardosAlDia() {
+        List<Paso> p = new ArrayList<>();
+            p.add(paso("mdi2c-clipboard-search-outline", DORADO, DORADO_D, "Buscar en Resguardos", "resguardos", "#searchField",
+                "Busca por persona, folio, área o el código de un bien: te dice en qué resguardo está",
+                "Sin acentos también lo encuentra",
+                "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo",
+                "En el detalle ya se leen el código y el valor de cada bien, y puedes reimprimir el PDF"));
+            p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Juntar resguardos de una persona", "resguardos", "#btnMasResguardos",
+                "Está en Resguardos › Más › Juntar resguardos de una persona",
+                "Quien tiene varios resguardos en la misma área aparece primero, con cuántos tiene",
+                "Marca los que se juntan: quedan cancelados como se firmaron y se hace uno nuevo con todos sus bienes",
+                "Imprime el nuevo para que lo firme"),
+                "Abrir Juntar resguardos", abrir("resguardos", "juntar")));
+            p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
+                "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
+                "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
+                "Se cancelan todos sus resguardos de esa área, con una nota de a quién pasaron, y sale uno nuevo para firmar",
+                "Si quien recibe ya tenía resguardo en esa área, queda todo en uno solo"));
+            p.add(paso("mdi2f-file-document-outline", GUINDA, GUINDA_D, "Resguardo con marca, serie y precio", "productos", "#searchField",
+                "La lista de bienes del resguardo trae Marca, Serie y Precio, con el Total al final",
+                "Ya no lleva Tipo de bien, Asignación ni Color",
+                "En un lote, el precio es el total y abajo dice cuántas piezas por cuánto",
+                "Las áreas ven la marca y la serie, pero no el precio"));
+            p.add(paso("mdi2c-car-outline", VERDE, VERDE_D, "El resguardo de un vehículo", "productos", "#searchField",
+                "Busca el vehículo en Bienes, márcalo y pulsa «Resguardo PDF» en la barra de abajo",
+                "Sale la hoja oficial del vehículo: sus datos, fotos, la responsiva y las tres firmas",
+                "Antes solo salían los de todos los vehículos juntos, en Reportes › Parque Vehicular",
+                "En Configuración del Sistema escribe el RFC, el domicilio y quién firma Elaboró y Vo. Bo.; el color se escribe a mano"));
+        return new Guia("resguardos-al-dia", "Resguardos: buscar, juntar y pasar", "Encontrar un resguardo, juntar los de una persona o pasarlos a otra", "mdi2c-clipboard-search-outline", p);
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia encontrarYCorregir() {
+        List<Paso> p = new ArrayList<>();
+            p.add(paso("mdi2t-tag-text-outline", VERDE, VERDE_D, "Buscar por el número anterior", "productos", "#searchField",
+                "En Bienes y con Ctrl+K encuentras un bien por el número que trae pegado, el del inventario anterior",
+                "En el Conteo físico, escanéalo o escríbelo y queda como visto",
+                "En Transferir, el número anterior y Enter también lo marca",
+                "Con el lector, en cualquier pantalla, abre su ficha"));
+            p.add(paso("mdi2m-magnify", VERDE, VERDE_D, "Escribe en los filtros", "productos", "#resguardanteFilter",
+                "En los filtros de área, persona y categoría ya puedes escribir para encontrarla rápido",
+                "Cada palabra cuenta, sin acentos; Enter toma la primera",
+                "Borra lo escrito para volver a ver todos"));
+            p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
+                "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
+                "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
+                "El detalle del bien ya trae «Editar», y al registrar uno nuevo puedes seguir con «Guardar y registrar otro»",
+                "Marca, modelo y serie tienen «No tiene»: ya no hace falta escribir «SIN MARCA»",
+                "Al escribir el resguardante te sugiere los nombres que ya existen"));
+            p.add(paso("mdi2c-calendar-clock", VERDE, VERDE_D, "La columna Garantía", "productos", "#statusChipsBar",
+                "En Bienes, la que decía «Estado: Activo» en todos era la garantía: ahora se llama así",
+                "Dice «Vencida» si ya venció y «—» si el bien no tiene garantía",
+                "El filtro de abajo es «Garantía: Todos · Sin vencer · Vencida»"));
+            p.add(paso("mdi2n-numeric", GUINDA, GUINDA_D, "Los números ya no se repiten", "productos", "#searchField",
+                "El número de un bien dado de baja, transferido o borrado ya no se le da a otro bien",
+                "El siguiente bien de un área toma el número que sigue al más alto que se ha usado",
+                "Si deshaces una transferencia o reactivas un bien, vuelve con su mismo número"));
+            p.add(probar(paso("mdi2c-calculator-variant-outline", GUINDA, GUINDA_D, "Costo de los lotes", "productos", "#btnMasBienes",
+                "Bienes › Más › Costo de los lotes: los bienes de varias piezas, de mayor a menor total",
+                "Si el costo capturado es el total de la factura, «Es el total del lote» lo divide entre las piezas",
+                "Si te equivocas, «Deshacer» en el mismo renglón lo regresa"),
+                "Abrir Costo de los lotes", abrir("productos", "lotes")));
+            p.add(probar(paso("mdi2c-card-account-details-outline", GUINDA, GUINDA_D, "Solo el nombre, sin Lic. ni Ing.", "productos", "#btnMasBienes",
+                "Bienes › Más › Quitar títulos de los nombres: ves cómo queda cada uno antes de cambiarlo",
+                "Desde ahora los nombres se guardan sin título al escribirlos",
+                "Los resguardos cancelados y los bienes dados de baja se quedan como se firmaron"),
+                "Abrir Quitar títulos", abrir("productos", "titulos")));
+            p.add(probar(paso("mdi2a-account-edit-outline", DORADO, DORADO_D, "Corregir el nombre de una persona", "reportes", "#listaListados .report-row",
+                "Busca a la persona en «Resguardos por resguardante» y pulsa «Corregir nombre»",
+                "Se corrige de una vez en sus bienes, sus resguardos vigentes y donde sea titular de área",
+                "Al terminar, «Deshacer» lo regresa"),
+                "Abrir el reporte", abrir("reportes", "resguardante")));
+            p.add(paso("mdi2p-paw-outline", VERDE, VERDE_D, "Activos Biológicos", "categorias", null,
+                "Categoría nueva para animales y plantas del municipio (cuenta CONAC 1.2.4.8)",
+                "En la clave armonizada de cada bien puedes poner su subcuenta: perros 1.2.4.8.7, caballos 1.2.4.8.6…"));
+        return new Guia("bienes-corregir", "Encontrar y corregir bienes", "Buscar por el número viejo, filtrar escribiendo y corregir datos de una vez", "mdi2m-magnify", p);
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia formatosYReportes() {
+        List<Paso> p = new ArrayList<>();
+            p.add(paso("mdi2m-magnify", GUINDA, GUINDA_D, "Busca un reporte", "reportes", "#buscarReporte",
+                "Arriba en Reportes escribe lo que necesitas: vehículos, baja, resguardo, CONAC…",
+                "Encuentra también lo que está dentro de un menú, como el resguardo de cada vehículo",
+                "Sin acentos también lo encuentra"));
+            p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
+                "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
+                "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
+                "Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano"));
+            p.add(paso("mdi2s-scale-balance", VERDE, VERDE_D, "Reportes para Tesorería y Transparencia", "reportes", "#listaFormatos .report-row",
+                "«Saldos por cuenta contable (CONAC)»: costo, depreciación y valor en libros por cuenta, para cuadrar con Tesorería",
+                "«Relación de Bienes Muebles (para publicar)»: el formato CONAC con código, descripción y valor en libros, sin datos personales",
+                "Los dos salen en PDF y en Excel"));
+        return new Guia("reportes", "Formatos y reportes", "Encontrar un reporte, quién firma y los de Tesorería", "mdi2f-file-chart-outline", p);
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia transferenciasYBajas() {
+        List<Paso> p = new ArrayList<>();
+            p.add(probar(paso("mdi2d-drag-variant", VERDE, VERDE_D, "Transferir varios de una vez", "movimientos", "#btnArrastrar",
+                "Un clic marca cada bien, ya no hace falta Ctrl; lo marcado sigue marcado aunque busques otro",
+                "Escribe el código y Enter lo marca: así juntas varios y salen en un solo resguardo",
+                "A la misma área, la siguiente vuelta ya trae el motivo y la persona",
+                "Si la persona ya tiene resguardo en esa área, se agregan al suyo de más bienes en lugar de hacer uno más, aunque escribas su nombre con otro título",
+                "Si escribes un nombre casi igual a uno que ya existe, te pregunta si es esa persona"),
+                "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
+            p.add(paso("mdi2i-inbox-arrow-down-outline", DORADO, DORADO_D, "Por recibir, por área", "movimientos", "#btnPorRecibir",
+                "Las transferencias que el área no ha confirmado, juntas por área",
+                "Cuando te llegue su acuse firmado en papel, «Confirmar las N» las da por recibidas de una vez",
+                "Queda registrado con tu nombre y «acuse en papel»"));
+            p.add(paso("mdi2l-lock-check-outline", DORADO, DORADO_D, "Bajas definitivas", "bajas", "#chipDefinitivas",
+                "En Bajas: «En proceso» son las dadas de baja; «Definitivas», las que ya se destruyeron, donaron o subastaron",
+                "Selecciona una o varias y «Baja definitiva» pide la fecha y el documento que la autoriza",
+                "Una baja definitiva ya no se puede reactivar"));
+        return new Guia("transferencias-bajas", "Transferencias y bajas", "Varios bienes de una vez, lo que falta por recibir y las bajas definitivas", "mdi2s-swap-horizontal-bold", p);
+    }
+
+    /** Was in Novedades until 1.0.28 (steps of 1.0.25 and before), now a guide of its own. */
+    private static Guia masComodo() {
+        List<Paso> p = new ArrayList<>();
+            p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
+                "Lo que le falta al inventario, con su número real",
+                "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));
+            p.add(paso("mdi2g-gesture-tap-button", VERDE, VERDE_D, "Botones que dicen lo que hacen", null, null,
+                "Al confirmar, el botón dice la acción: «Cancelar el resguardo», «Descartar cambios», «Abrir el PDF»",
+                "Lo que no tiene vuelta sale en rojo, y Enter no lo aprieta por costumbre",
+                "Si algo falla, el aviso lo dice en palabras: sin conexión, dato repetido, sin permiso",
+                "El «Deshacer» de los avisos también funciona con Ctrl+Z, y el aviso espera mientras tengas el mouse encima"));
+            p.add(paso("mdi2s-speedometer", DORADO, DORADO_D, "Modo ligero para computadoras lentas", "configuracion", "#chkModoLigero",
+                "En una computadora sin buena tarjeta de video quita sombras y animaciones: las pantallas y el tutorial ya no se traban",
+                "SIBIM lo enciende solo si nota que la computadora va lenta",
+                "Está en Configuración › Accesibilidad y rendimiento, por si lo quieres encender o apagar"));
+        return new Guia("comodo", "SIBIM más cómodo", "Por hacer, avisos que se deshacen y una computadora lenta", "mdi2g-gesture-tap-button", p);
     }
 }

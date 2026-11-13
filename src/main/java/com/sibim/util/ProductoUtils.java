@@ -91,4 +91,15 @@ public final class ProductoUtils {
         String n = inventarioAnterior(p);
         return n != null && !sinEspacios(leido).isEmpty() && sinEspacios(n).equals(sinEspacios(leido));
     }
+
+    /** The valor residual Patrimonio gives a bien: 61 of the 63 typed on 12/13-nov-2026 (and 132
+     *  of 136 before) were exactly this, worked out by hand. Offered, never imposed: the rest
+     *  of the inventory has $0 and stays so. */
+    public static final java.math.BigDecimal PORCENTAJE_RESIDUAL = new java.math.BigDecimal("15");
+
+    /** {@link #PORCENTAJE_RESIDUAL} of the costo, to the centavo; null without a costo. */
+    public static java.math.BigDecimal residualSugerido(java.math.BigDecimal costo) {
+        if (costo == null || costo.signum() <= 0) return null;
+        return costo.multiply(PORCENTAJE_RESIDUAL).divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+    }
 }

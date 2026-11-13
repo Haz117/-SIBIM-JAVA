@@ -99,8 +99,11 @@ public class ReporteService {
         return LogoMunicipal.rutaLocal(configRepo);
     }
 
-    /** Resource path of the municipality logo shipped with the app. */
-    static final String BUNDLED_LOGO = "/img/logo-municipio.png";
+    /** Resource path of the logo shipped with the app: the one of the official formatos (the
+     *  vehicle sheet and the inventario fotográfico already print it). It was
+     *  "/img/logo-municipio.png", which was never in the build: with no logo configured
+     *  (production on 12-nov-2026) etiquetas, resguardos and reportes came out without one. */
+    static final String BUNDLED_LOGO = "/img/formato/gobierno-municipal-2024-2027.png";
     private static volatile String bundledLogoFile;
 
     /** The shipped municipality logo, copied once to a temp file so every

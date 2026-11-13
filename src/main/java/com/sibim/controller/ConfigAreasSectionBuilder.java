@@ -146,7 +146,16 @@ class ConfigAreasSectionBuilder {
                 ev.consume();
             }
         });
-        HBox actions = new HBox(8, btnNueva, btnEditar);
+        // The Rastro (7-nov-2026) and the Mercado Municipal (13-nov) were separated outside
+        // the app: here they were three loose tasks. Now one, from the área they leave.
+        Button btnSeparar = new Button("Separar en un área nueva…");
+        btnSeparar.getStyleClass().add("btn-secondary");
+        btnSeparar.setGraphic(new FontIcon("mdi2c-call-split"));
+        btnSeparar.setTooltip(new Tooltip("Pasa una parte del área seleccionada (sus bienes y quien los tiene) a un área nueva"));
+        btnSeparar.disableProperty().bind(table.getSelectionModel().selectedItemProperty().isNull());
+        btnSeparar.setOnAction(e -> com.sibim.controller.dialogs.SepararAreaDialog.show(table.getScene(),
+            table.getSelectionModel().getSelectedItem(), this::refrescar));
+        HBox actions = new HBox(8, btnNueva, btnEditar, btnSeparar);
         if (capturarTitulares != null) {
             Button btnTitulares = new Button("Capturar titulares");
             btnTitulares.getStyleClass().add("btn-secondary");
@@ -160,6 +169,8 @@ class ConfigAreasSectionBuilder {
             btnNueva.setDisable(true);
             btnEditar.disableProperty().unbind();
             btnEditar.setDisable(true);
+            btnSeparar.disableProperty().unbind();
+            btnSeparar.setDisable(true);
             Label offline = new Label("Sin conexión a la base de datos: las áreas se muestran pero no se pueden editar.");
             offline.getStyleClass().add("muted-sm");
             actions.getChildren().add(offline);

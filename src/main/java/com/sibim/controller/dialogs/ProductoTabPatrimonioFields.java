@@ -252,9 +252,13 @@ class ProductoTabPatrimonioFields {
         grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
             "Número de años en que el bien se deprecia completamente (depreciación en línea recta)\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10;\nse sugiere al elegir la categoría). Vacío: el bien no se deprecia."),
                                                          0, rp); grid.add(fVidaUtil,      1, rp++);
+        lnkResidual.getStyleClass().add("field-hint");
+        lnkResidual.setPadding(javafx.geometry.Insets.EMPTY);
+        lnkResidual.setVisible(false);
+        lnkResidual.setManaged(false);
         grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                         0, rp); grid.add(fValorResidual, 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fValorResidual, lnkResidual), 1, rp++);
 
         rp = seccion("El bien", rp, true);
         grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
@@ -291,6 +295,41 @@ class ProductoTabPatrimonioFields {
 
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
     final Label avisoFolio = new Label();
+
+    /** Under the valor residual: «Poner el 15 % del costo: $X» (see {@link #ofrecerResidual}). */
+    final javafx.scene.control.Hyperlink lnkResidual = new javafx.scene.control.Hyperlink();
+
+    /** The 15 % of the costo typed in {@code costo}, one click away under the valor residual:
+     *  on 12/13-nov-2026, 61 of 63 valores residuales were exactly that, worked out by hand.
+     *  Hidden while it is already that, without a costo, or when the field can't be changed. */
+    void ofrecerResidual(TextField costo) {
+        Runnable explicar = () -> {
+            java.math.BigDecimal sugerido = null;
+            try { sugerido = com.sibim.util.ProductoUtils.residualSugerido(new java.math.BigDecimal(costo.getText().trim())); }
+            catch (NumberFormatException ignored) { /* no costo yet */ }
+            java.math.BigDecimal escrito = null;
+            try { escrito = new java.math.BigDecimal(fValorResidual.getText().trim()); }
+            catch (NumberFormatException ignored) { /* empty or being typed */ }
+            boolean ver = sugerido != null && !fValorResidual.isDisabled()
+                && (escrito == null || escrito.compareTo(sugerido) != 0);
+            lnkResidual.setVisible(ver);
+            lnkResidual.setManaged(ver);
+            if (ver) {
+                lnkResidual.setText("Poner el " + com.sibim.util.ProductoUtils.PORCENTAJE_RESIDUAL.toPlainString()
+                    + " % del costo: " + com.sibim.util.FormatUtils.formatCurrency(sugerido));
+                lnkResidual.setUserData(sugerido);
+            }
+        };
+        lnkResidual.setOnAction(e -> {
+            if (!(lnkResidual.getUserData() instanceof java.math.BigDecimal sugerido)) return;
+            fValorResidual.setText(sugerido.toPlainString());
+            fValorResidual.positionCaret(fValorResidual.getText().length());
+        });
+        costo.textProperty().addListener((o, a, b) -> explicar.run());
+        fValorResidual.textProperty().addListener((o, a, b) -> explicar.run());
+        fValorResidual.disabledProperty().addListener((o, a, b) -> explicar.run());
+        explicar.run();
+    }
 
     /** The row the costo goes in, inside «Compra». */
     private int filaCosto;

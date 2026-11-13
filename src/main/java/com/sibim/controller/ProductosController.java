@@ -103,8 +103,9 @@ public class ProductosController {
     @FXML private Label lblBulkCount;
     @FXML private Button btnBulkArea;
     @FXML private Button btnBulkResguardante;
-    @FXML private Button btnBulkMarcarEtiquetado;
+    @FXML private MenuItem btnBulkMarcarEtiquetado;
     @FXML private Button btnComparar;
+    @FXML private Button btnBulkDatos;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
     @FXML private MenuItem miVerQr;
@@ -189,7 +190,7 @@ public class ProductosController {
             DialogUtil.makeCollapsible("bienes.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
         bulkBarManager = new ProductosBulkBar(bulkBar, lblBulkCount, btnBulkArea,
-            btnBulkResguardante, btnBulkMarcarEtiquetado, btnComparar, () -> canEdit);
+            btnBulkResguardante, btnBulkMarcarEtiquetado, btnComparar, btnBulkDatos, () -> canEdit);
         setupTable();
         setupFilters();
         setupStatusChips();
@@ -334,6 +335,7 @@ public class ProductosController {
         if (btnFicha != null) btnFicha.disableProperty().bind(sinSeleccion);
         if (btnEtiqueta != null) btnEtiqueta.disableProperty().bind(sinSeleccion);
         tableManager.setup();
+        agregarCambiarDatosAlMenu();
         ProductosColumnSetup.configureResguardante(colResguardante);
         // Captured now, before the saved column preferences are applied, so it restores the FXML defaults.
         DialogUtil.setupColumnReset(table, btnResetColumns, null);
@@ -1061,6 +1063,32 @@ public class ProductosController {
         runBulkIfValid(sel -> ProductosBulkDialog.showCambiarResguardante(
             sel, table.getScene(), productoService, table,
             () -> { refreshing = true; loadData(); }, this::onBulkCambiarResguardante));
+    }
+
+    /** Right click with several selected: «Cambiar datos de los N seleccionados…», where it is
+     *  looked for first (the bar with it shows at the bottom, under the table). */
+    private void agregarCambiarDatosAlMenu() {
+        javafx.scene.control.ContextMenu cm = table.getContextMenu();
+        if (cm == null || !canEdit || !com.sibim.session.Permisos.editaFichaCompleta()) return;
+        MenuItem mi = new MenuItem();
+        mi.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2p-pencil-box-multiple-outline"));
+        mi.setOnAction(e -> onBulkCambiarDatos());
+        cm.getItems().add(0, mi);
+        cm.addEventHandler(javafx.stage.WindowEvent.WINDOW_SHOWING, e -> {
+            int n = table.getSelectionModel().getSelectedItems().size();
+            mi.setVisible(n >= 2);
+            mi.setText("Cambiar datos de los " + n + " seleccionados…");
+        });
+    }
+
+    @FXML
+    private void onBulkCambiarDatos() {
+        if (!com.sibim.session.Permisos.editaFichaCompleta()) return;
+        // Ctrl+A marks the page: with the filter longer than it, ask (as Etiquetas QR does).
+        runBulkIfValid(sel -> conLosDelFiltro(sel, "Cambiar datos", "mdi2p-pencil-box-multiple-outline", "a cambiar",
+            1000, "Son más de 1,000 bienes para cambiar de una vez: filtra un poco más (por área, por factura…)",
+            cuales -> conInventario(todos -> com.sibim.controller.dialogs.EditarVariosDialog.show(
+                table.getScene(), productoService, cuales, todos, this::alCorregirDatos))));
     }
 
     @FXML

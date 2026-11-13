@@ -350,6 +350,12 @@ public final class DatosFormatosDialog {
         Tooltip.install(soloFaltan, new Tooltip("Muestra solo las áreas sin titular (se actualiza al buscar o al volver a pulsarlo)"));
         HBox barra = new HBox(10, buscar, soloFaltan);
         barra.setAlignment(Pos.CENTER_LEFT);
+        Button usarSugerencias = botonUsarSugerencias();
+        if (usarSugerencias != null) {
+            Region hueco = new Region();
+            HBox.setHgrow(hueco, Priority.ALWAYS);
+            barra.getChildren().addAll(hueco, usarSugerencias);
+        }
 
         Map<String, Node> filas = new LinkedHashMap<>();
         for (String a : areas) filas.put(a, filaTitular(a));
@@ -399,6 +405,47 @@ public final class DatosFormatosDialog {
         VBox v = new VBox(10, ayuda, barra, marco);
         VBox.setVgrow(v, Priority.ALWAYS);
         return v;
+    }
+
+    /** «Usar las sugerencias (N)»: the first suggestion in every área still without a titular,
+     *  written in the fields and not saved — «Guardar N cambios» says how many to review. By
+     *  13-nov-2026 none of the 58 áreas had one, though 46 had a suggestion (on 9-nov the first
+     *  was nearly always right): one click each had been too many. Pressed again, it takes back
+     *  exactly what it wrote. Null when there is nothing to suggest. */
+    private Button botonUsarSugerencias() {
+        if (!editable) return null;
+        Map<String, String> propuestas = new LinkedHashMap<>();
+        for (String a : areas) {
+            String clave = TitularesArea.clave(a);
+            List<Candidato> c = candidatos.getOrDefault(a, List.of());
+            if (vacio(clave) && !c.isEmpty()) propuestas.put(clave, c.get(0).nombre());
+        }
+        if (propuestas.isEmpty()) return null;
+        Button b = new Button();
+        b.getStyleClass().add("btn-secondary");
+        b.setGraphic(new FontIcon("mdi2a-auto-fix"));
+        b.setTooltip(new Tooltip("Escribe la primera sugerencia en cada área que no tiene titular. No se guarda hasta que "
+            + "pulses «Guardar»: revisa y corrige antes."));
+        List<String> puestas = new ArrayList<>();
+        Runnable texto = () -> b.setText(puestas.isEmpty()
+            ? "Usar las sugerencias (" + propuestas.size() + ")" : "Quitar las " + puestas.size() + " sugerencias puestas");
+        b.setOnAction(e -> {
+            if (puestas.isEmpty()) {
+                propuestas.forEach((clave, nombre) -> {
+                    TextField t = campos.get(clave);
+                    if (t != null && t.getText().isBlank()) { t.setText(nombre); puestas.add(clave); }
+                });
+            } else {
+                for (String clave : puestas) {
+                    TextField t = campos.get(clave);
+                    if (t != null && t.getText().equals(propuestas.get(clave))) t.clear();
+                }
+                puestas.clear();
+            }
+            texto.run();
+        });
+        texto.run();
+        return b;
     }
 
     private Node filaTitular(String area) {

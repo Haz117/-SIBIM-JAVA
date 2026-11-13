@@ -610,6 +610,7 @@ public class ResguardoService {
                     .setBackgroundColor(COLOR_HEADER).setPadding(5).setBorder(null));
             }
             BigDecimal totalValor = BigDecimal.ZERO;
+            boolean faltaPrecio = false;
             int idx = 1;
             for (ResguardoItem item : r.getItems()) {
                 boolean alt = idx % 2 == 0;
@@ -617,20 +618,24 @@ public class ResguardoService {
                 // A lote is one renglón of several pieces: it says how many, and the
                 // total counts all of them (it used to add the price of one).
                 int piezas = Math.max(1, item.getCantidad());
+                // No price captured is not a price of $0 (13-nov-2026: 30 of the 35 bienes of
+                // RSG-2026-000355 said «$0.00»): «—», as the official resguardo says it.
+                boolean conPrecio = item.getValorUnitario() != null && item.getValorUnitario().signum() > 0;
+                if (!conPrecio) faltaPrecio = true;
                 addTableRow(bienesTable, bold, regular, rowBg,
                     String.valueOf(idx++),
                     orDash(item.getProductoCodigo()),
                     (piezas > 1 ? piezas + " piezas: " : "") + item.getProductoNombre(),
                     orDash(item.getArea()),
                     orDash(item.getNumeroSerie()),
-                    item.getValorUnitario() != null
-                        ? com.sibim.session.Permisos.pesos(item.getValorUnitario()) : "—");
-                if (item.getValorUnitario() != null)
+                    conPrecio ? com.sibim.session.Permisos.pesos(item.getValorUnitario()) : "—");
+                if (conPrecio)
                     totalValor = totalValor.add(item.getValorUnitario().multiply(BigDecimal.valueOf(piezas)));
             }
             // Total row
             com.itextpdf.layout.element.Cell totalLbl = new com.itextpdf.layout.element.Cell(1, 5)
-                .add(new Paragraph("VALOR TOTAL").setFont(bold).setFontSize(8)
+                .add(new Paragraph("VALOR TOTAL" + (faltaPrecio && com.sibim.session.Permisos.veValores()
+                        ? "  (hay bienes sin precio capturado)" : "")).setFont(bold).setFontSize(8)
                     .setTextAlignment(TextAlignment.RIGHT))
                 .setBackgroundColor(COLOR_SUBHEAD).setPadding(5).setBorder(null);
             com.itextpdf.layout.element.Cell totalVal = new com.itextpdf.layout.element.Cell()

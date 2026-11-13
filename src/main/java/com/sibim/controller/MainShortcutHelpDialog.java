@@ -67,6 +67,7 @@ class MainShortcutHelpDialog {
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
             {"Ctrl + N",        "Nuevo registro (Bienes / Movimientos / Categorías)"},
             {"Ctrl + E",        "Editar fila seleccionada (Bienes / Categorías)"},
+            {"Ctrl + S",        "En el formulario del bien: guardar (Ctrl + Shift + S: guardar y el siguiente)"},
             {"Ctrl + I",        "Importar bienes desde CSV (solo en Bienes)"},
             {"Supr",            "Dar de baja / eliminar fila seleccionada"},
             {"Escape",          "Deseleccionar todas las filas de la tabla"},
@@ -90,6 +91,7 @@ class MainShortcutHelpDialog {
             {"F2",          "Guías paso a paso: te llevan a cada pantalla"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},
             {"Ctrl+F",      "Enfocar campo de búsqueda"},
+            {"Ctrl + «+» / «−»", "Texto más grande / más chico (también en el menú de tu cuenta)"},
             {"Ctrl+0",      "Auditoría del sistema  (solo administrador)"},
         });
 

@@ -274,7 +274,7 @@
         <Button fx:id="btnTextSize" onAction="#onToggleTextSize" styleClass="density-btn"
                 text="Texto: Normal" graphicTextGap="5" contentDisplay="LEFT">
             <graphic><FontIcon iconLiteral="mdi2f-format-size" styleClass="status-icon"/></graphic>
-            <tooltip><Tooltip text="Tamaño de texto: Normal → Grande → Extra grande" wrapText="true" maxWidth="220"/></tooltip>
+            <tooltip><Tooltip text="Tamaño de texto: Normal → Grande → Extra grande (también Ctrl + «+» y Ctrl + «−»)" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>

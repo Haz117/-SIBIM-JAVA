@@ -329,6 +329,12 @@
         <FontIcon iconLiteral="mdi2c-checkbox-multiple-marked-outline" styleClass="bulk-bar-icon"/>
         <Label fx:id="lblBulkCount" text="" styleClass="bulk-count-label"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <!-- The same data for all of them at once (EditarVarios): first, it is what is done most. -->
+        <Button fx:id="btnBulkDatos" text="Cambiar datos" onAction="#onBulkCambiarDatos"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2p-pencil-box-multiple-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Poner los mismos datos (proveedor, factura, color, vida útil…) a todos los bienes seleccionados a la vez"/></tooltip>
+        </Button>
         <!-- The same board as the Transferir button above (motivo, resguardo, Deshacer). -->
         <Button fx:id="btnBulkArea" text="Transferir" onAction="#onTransferir"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
@@ -345,16 +351,20 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Genera un PDF de resguardo con los bienes seleccionados: uno por cada resguardante. Si solo son vehículos, sale la hoja oficial de cada vehículo"/></tooltip>
         </Button>
-        <Button text="Etiquetas QR" onAction="#onBulkEtiquetasQr"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Generar PDF con etiquetas QR de todos los bienes seleccionados"/></tooltip>
-        </Button>
-        <Button fx:id="btnBulkMarcarEtiquetado" text="Marcar etiquetado" onAction="#onBulkMarcarEtiquetado"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+        <!-- The two of the labels in one menu, as «Etiqueta» above: with «Cambiar datos» the bar
+             no longer fit at 1366 px and the buttons were cut («Transf…»). -->
+        <MenuButton fx:id="btnBulkEtiquetas" text="Etiquetas" styleClass="btn-secondary" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Marcar los bienes seleccionados como etiquetados físicamente"/></tooltip>
-        </Button>
+            <tooltip><Tooltip text="Imprimir las etiquetas QR de los seleccionados o marcarlos como etiquetados"/></tooltip>
+            <items>
+                <MenuItem text="Imprimir etiquetas QR (PDF)" onAction="#onBulkEtiquetasQr">
+                    <graphic><FontIcon iconLiteral="mdi2q-qrcode"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnBulkMarcarEtiquetado" text="Marcar como etiquetados" onAction="#onBulkMarcarEtiquetado">
+                    <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
         <Button fx:id="btnComparar" text="Comparar" onAction="#onComparar"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6"
                 visible="false" managed="false">

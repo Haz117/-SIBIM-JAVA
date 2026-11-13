@@ -162,6 +162,7 @@ public final class ProductoDialogFactory {
             extras.resguardantes() != null ? extras.resguardantes() : List.of());
         // The costo is captured with the factura, in «Datos Patrimoniales › Compra».
         patrimonioTab.ponerCosto(stockTab.etiquetaCosto, stockTab.cajaCosto);
+        patrimonioTab.ofrecerResidual(stockTab.fPrecioC);
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
@@ -457,6 +458,22 @@ public final class ProductoDialogFactory {
             // last one "Guardar" (which validates and then saves).
             if (!btnNextNav.isDisabled()) { btnNextNav.fire(); e.consume(); }
         });
+        // Ctrl+S saves and Ctrl+Shift+S saves and opens the next one, from any field: the
+        // 1,197 edits since 28-oct-2026 each ended reaching for the mouse.
+        dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.S || !e.isShortcutDown()) return;
+            e.consume();
+            // A new bien goes through its steps (saving from any of them skipped the rest).
+            if (isNewProduct && tabs.getSelectionModel().getSelectedIndex() != 2) return;
+            if (e.isShiftDown()) {
+                if (seguir != null && btnSeguir.isVisible() && !btnSeguir.isDisabled()) btnSeguir.fire();
+            } else if (!btnGuardar.isDisabled()) {
+                btnGuardar.fire();
+            }
+        });
+        btnGuardar.setTooltip(new Tooltip("Guardar  (Ctrl+S)"));
+        if (seguir != null && btnSeguir.getTooltip() != null)
+            btnSeguir.getTooltip().setText(btnSeguir.getTooltip().getText() + "  (Ctrl+Shift+S)");
         // The dialog's own OK button used to sit next to "Siguiente" and saved
         // from any step, skipping the rest of the wizard. It stays in the pane
         // (btnGuardar fires it to run the result converter) but out of sight.

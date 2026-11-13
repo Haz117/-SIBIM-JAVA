@@ -270,6 +270,14 @@ public final class AccessibilityUtils {
         return next;
     }
 
+    /** Sets the text size (0 Normal, 1 Grande, 2 Extra; out of range is kept in range).
+     *  @return the size now in use */
+    public static int setTextScaleIndex(int index) {
+        int i = Math.max(0, Math.min(TEXT_SCALE_CLASSES.length - 1, index));
+        TEXT_SCALE_PREFS.putInt("index", i);
+        return i;
+    }
+
     /** Removes any previous scale class from {@code node} and applies the
      *  current one, if any (index 0 = "Normal" = no class). Safe to call on
      *  any Parent — the main content area, or an individual dialog pane. */

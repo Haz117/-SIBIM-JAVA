@@ -195,7 +195,7 @@ public class MainController {
         mostrarUsuario();
         setupUserCardMenu();
         NotificationCenter.setup(btnNotificaciones, notifBadge, alertProductoService, prestamoService, this::navigateTo);
-        navigateTo("dashboard", btnDashboard);
+        if (!regresarDondeEstaba()) navigateTo("dashboard", btnDashboard);
         densityIndex = DENSITY_PREFS.getInt("index", 1);
         applyDensityClass();
         applyTextScaleClass();
@@ -334,7 +334,7 @@ public class MainController {
 
     private void setupUserCardMenu() {
         MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout, this::onShowTutorial, this::onAcercaDe,
-            this::mostrarUsuario);
+            this::mostrarUsuario, this::ponerTamanoTexto);
     }
 
     /** The name, role and initial of whoever is signed in, in the side menu
@@ -578,6 +578,17 @@ public class MainController {
         applyTextScaleClass();
     }
 
+    /** From the account menu and Ctrl + «+» / «−»: the same three sizes as the button of the
+     *  status bar, which is at the bottom and easy to miss. */
+    void ponerTamanoTexto(int indice) {
+        int antes = AccessibilityUtils.getTextScaleIndex();
+        int ahora = AccessibilityUtils.setTextScaleIndex(indice);
+        applyTextScaleClass();
+        if (ahora != antes && contentArea != null && contentArea.getScene() != null)
+            com.sibim.util.NotificacionUtil.info(contentArea.getScene(),
+                "Texto: " + AccessibilityUtils.TEXT_SCALE_LABELS[ahora]);
+    }
+
     private void applyTextScaleClass() {
         // On the window's root, not only the content: the sidebar and the
         // status bar grow too (see EscalaTexto).
@@ -672,15 +683,21 @@ public class MainController {
             // the whole logout+showLogin sequence on top of the one this branch
             // is about to run, which can reload the login screen out from under
             // someone who already started typing on the first one.
+            // close() with no result picks the CANCEL_CLOSE button («Cerrar sesión»): the
+            // mark makes the warning ignore it (13-nov-2026: every timeout with the warning
+            // open was logged twice and reloaded the sign-in screen twice).
             if (activeInactivityDialog != null) {
+                activeInactivityDialog.getDialogPane().getProperties().put(CERRADO_POR_TIEMPO, Boolean.TRUE);
                 activeInactivityDialog.close();
                 activeInactivityDialog = null;
             }
             stopTimers();
             Usuario me = SessionManager.getCurrentUser();
-            if (me != null)
+            if (me != null) {
                 auditRepo.logEnFondo("sesion", me.getId(), me.getNombre(),
                     "logout", "Cierre automático por inactividad");
+                recordarDondeEstaba(me);
+            }
             SessionManager.logout();
             cerrarVentanasAbiertas();
             try { MainApp.showLogin(); }
@@ -707,6 +724,16 @@ public class MainController {
         Label lblCountdown = new Label("5:00");
         lblCountdown.getStyleClass().add("inactivity-countdown");
         VBox body = buildInactivityBody(lblCountdown);
+        // From 28-oct to 13-nov-2026, 23 of 90 sessions closed this way, several with
+        // Patrimonio back 39–48 minutes later: the time is Configuración's, one click away.
+        boolean[] irAlAjuste = { false };
+        if (SessionManager.isAdmin()) {
+            javafx.scene.control.Hyperlink masTiempo = new javafx.scene.control.Hyperlink(
+                "¿Se cierra muy seguido? Dale más tiempo (ahora " + (ultimoTimeoutMs / 60_000) + " min)");
+            masTiempo.getStyleClass().add("field-hint");
+            masTiempo.setOnAction(e -> { irAlAjuste[0] = true; dlg.setResult(btnContinuar); dlg.close(); });
+            body.getChildren().add(masTiempo);
+        }
 
         AnimationUtils.staggeredFadeInUp(List.of(header, body), 260, 70);
         dlg.getDialogPane().setContent(new VBox(header, body));
@@ -725,9 +752,67 @@ public class MainController {
         countdown.play();
         activeInactivityDialog = dlg;
 
-        dlg.showAndWait().ifPresent(r -> handleInactivityResult(r, btnContinuar, countdown));
+        dlg.showAndWait().ifPresent(r -> {
+            if (!dlg.getDialogPane().getProperties().containsKey(CERRADO_POR_TIEMPO)) handleInactivityResult(r, btnContinuar, countdown);
+        });
         countdown.stop();
-        activeInactivityDialog = null;
+        if (activeInactivityDialog == dlg) activeInactivityDialog = null;
+        if (irAlAjuste[0] && SessionManager.getCurrentUser() != null) {
+            navigateToView("configuracion");
+            // Once the screen has loaded: the field, focused and in sight.
+            javafx.animation.PauseTransition espera = new javafx.animation.PauseTransition(Duration.millis(700));
+            espera.setOnFinished(e -> {
+                if (contentArea.lookup("#spInactividadTimeout") instanceof javafx.scene.control.Spinner<?> sp) {
+                    sp.requestFocus();
+                    for (javafx.scene.Parent p = sp.getParent(); p != null; p = p.getParent()) {
+                        if (!(p instanceof javafx.scene.control.ScrollPane scroll) || scroll.getContent() == null) continue;
+                        Node contenido = scroll.getContent();
+                        double alto = contenido.getBoundsInLocal().getHeight(), visible = scroll.getViewportBounds().getHeight();
+                        if (alto > visible) {
+                            var b = contenido.sceneToLocal(sp.localToScene(sp.getBoundsInLocal()));
+                            scroll.setVvalue(Math.min(1, Math.max(0, (b.getMinY() - visible / 3) / (alto - visible))));
+                        }
+                        break;
+                    }
+                }
+            });
+            espera.play();
+        }
+    }
+
+    /** Marks the warning the 1-minute check already closed (see {@link #checkInactivity}). */
+    private static final String CERRADO_POR_TIEMPO = "sibim.cerradoPorTiempo";
+
+    /** The screen and its search, to come back to them on signing in again (DondeEstabas). */
+    private void recordarDondeEstaba(Usuario me) {
+        String busqueda = null;
+        if (contentArea != null && contentArea.lookup("#searchField") instanceof TextField tf) busqueda = tf.getText();
+        com.sibim.session.DondeEstabas.recordar(me.getId(), vistaActual, busqueda);
+    }
+
+    /** After a session closed for inactivity: back to that screen and its search, not to Inicio.
+     *  @return whether it went there */
+    private boolean regresarDondeEstaba() {
+        Usuario yo = SessionManager.getCurrentUser();
+        var lugar = com.sibim.session.DondeEstabas.tomar(yo != null ? yo.getId() : null).orElse(null);
+        if (lugar == null || "dashboard".equals(lugar.vista()) || navRegistry.byView(lugar.vista()).isEmpty()) return false;
+        if (!SessionManager.isAdmin() && navRegistry.byView(lugar.vista()).map(NavItem::adminOnly).orElse(false)) return false;
+        if (lugar.busqueda() != null && "productos".equals(lugar.vista()))
+            com.sibim.session.NavigationContext.setPendingBusqueda(lugar.busqueda());
+        navigateToView(lugar.vista());
+        String nombre = navRegistry.byView(lugar.vista()).map(NavItem::button).map(Button::getText).orElse(lugar.vista());
+        Runnable avisar = () -> NotificacionUtil.info(contentArea.getScene(),
+            "Regresaste a " + nombre + ", donde estabas antes de que se cerrara la sesión");
+        if (contentArea.getScene() != null) javafx.application.Platform.runLater(avisar);
+        else contentArea.sceneProperty().addListener(new javafx.beans.value.ChangeListener<>() {
+            @Override public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Scene> o,
+                                          javafx.scene.Scene a, javafx.scene.Scene s) {
+                if (s == null) return;
+                contentArea.sceneProperty().removeListener(this);
+                javafx.application.Platform.runLater(avisar);
+            }
+        });
+        return true;
     }
 
     private VBox buildInactivityBody(Label lblCountdown) {
@@ -754,6 +839,8 @@ public class MainController {
                 SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
                 SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
                 "logout", "Cierre de sesión desde aviso de inactividad");
+            // Also when the countdown reached zero by itself: nobody was there to choose.
+            if (SessionManager.getCurrentUser() != null) recordarDondeEstaba(SessionManager.getCurrentUser());
             // Stop timers + clear instance before showLogin() so the old sessionGuard
             // timeline doesn't keep firing after the user is on the login screen.
             stopTimers();
@@ -777,6 +864,14 @@ public class MainController {
         });
         a.put(new KeyCodeCombination(KeyCode.F1), () -> MainShortcutHelpDialog.show());
         a.put(new KeyCodeCombination(KeyCode.F2), () -> onShowTutorial());
+        // Text size as in any browser: the «+» key of the row or of the number pad.
+        // (Ctrl+0 is Auditoría, so «Normal» is in the account menu.)
+        Runnable mas = () -> ponerTamanoTexto(AccessibilityUtils.getTextScaleIndex() + 1);
+        Runnable menos = () -> ponerTamanoTexto(AccessibilityUtils.getTextScaleIndex() - 1);
+        for (KeyCode k : new KeyCode[]{KeyCode.PLUS, KeyCode.ADD, KeyCode.EQUALS})
+            a.put(new KeyCodeCombination(k, KeyCombination.SHORTCUT_DOWN), mas);
+        for (KeyCode k : new KeyCode[]{KeyCode.MINUS, KeyCode.SUBTRACT})
+            a.put(new KeyCodeCombination(k, KeyCombination.SHORTCUT_DOWN), menos);
     }
 
     private void focusCurrentSearch(javafx.scene.Scene scene) {

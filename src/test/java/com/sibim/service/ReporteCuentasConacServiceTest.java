@@ -137,8 +137,9 @@ class ReporteCuentasConacServiceTest {
         File pdf = service.exportRelacionBienesMueblesPdf(bienes);
         try (PdfDocument doc = new PdfDocument(new PdfReader(pdf))) {
             String texto = PdfTextExtractor.getTextFromPage(doc.getPage(1)).replaceAll("\\s+", " ");
-            // The folio column sits beside the title: the extracted text puts it inside the line.
-            assertTrue(texto.contains("Relación de Bienes Muebles que Componen el"), texto);
+            // The folio column sits beside the title, and since the logo is always there (13-nov-2026)
+            // the title takes two lines: the extracted text puts other things between them.
+            assertTrue(texto.contains("Relación de Bienes Muebles que Componen") && texto.contains("el Patrimonio"), texto);
             assertTrue(texto.contains("Al " + java.time.LocalDate.now().getDayOfMonth() + " de "), texto);
             assertTrue(texto.contains("Descripción del bien mueble"));
             assertTrue(texto.indexOf("F/1") < texto.indexOf("F/2"), "en orden de código");

@@ -11,7 +11,8 @@ class MainUserMenu {
     private MainUserMenu() {}
 
     static void setup(VBox userInfoVBox, StackPane contentArea, Runnable onLogout,
-                      Runnable onTutorial, Runnable onAbout, Runnable onOperadorCambiado) {
+                      Runnable onTutorial, Runnable onAbout, Runnable onOperadorCambiado,
+                      java.util.function.IntConsumer onTamanoTexto) {
         if (userInfoVBox == null) return;
         javafx.scene.Node card = userInfoVBox.getParent();
         if (card == null) return;
@@ -69,7 +70,20 @@ class MainUserMenu {
                 }));
             menu.getItems().add(miOperador);
         }
-        menu.getItems().addAll(miTutorial, miGuia, miAbout, sep, miLogout);
+        // The text size, where whoever sees badly looks for it first (the button of the
+        // status bar is at the very bottom); Ctrl + «+» / «−» do the same.
+        Menu tamano = new Menu("Tamaño del texto");
+        tamano.setGraphic(new FontIcon("mdi2f-format-size"));
+        ToggleGroup tamanos = new ToggleGroup();
+        for (int i = 0; i < AccessibilityUtils.TEXT_SCALE_LABELS.length; i++) {
+            int indice = i;
+            RadioMenuItem r = new RadioMenuItem(AccessibilityUtils.TEXT_SCALE_LABELS[i]);
+            r.setToggleGroup(tamanos);
+            r.setOnAction(e -> onTamanoTexto.accept(indice));
+            tamano.getItems().add(r);
+        }
+        menu.setOnShowing(e -> tamanos.selectToggle(tamanos.getToggles().get(AccessibilityUtils.getTextScaleIndex())));
+        menu.getItems().addAll(miTutorial, miGuia, tamano, miAbout, sep, miLogout);
         card.setOnMouseClicked(e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY)
                 menu.show(card, e.getScreenX(), e.getScreenY());
