@@ -374,6 +374,8 @@ public class ResguardoService {
             Resguardo full = repo.findById(resguardo.getId());
             if (full != null) resguardo = full;
         }
+        // One just made comes in the order its bienes were chosen or dropped.
+        com.sibim.repository.ResguardoRepository.ordenar(resguardo);
         // The vehicle sheet names who holds the vehicle today and has no room for an
         // Estado: a cancelled resguardo goes on the general one, which says CANCELADO.
         List<com.sibim.model.Producto> vehiculos = resguardo.isActivo() ? soloVehiculos(resguardo) : List.of();

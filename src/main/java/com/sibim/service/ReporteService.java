@@ -166,28 +166,8 @@ public class ReporteService {
     protected static final DeviceRgb BORDER_LIGHT = new DeviceRgb(226, 228, 233); // light gray border
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private static final java.util.regex.Pattern NUMERO_FINAL = java.util.regex.Pattern.compile("(.*?)(\\d+)\\s*");
-
-    /** "DGOB/09" before "DGOB/10" before "DGOB/100": an área can have more than 99 bienes.
-     *  Compares (prefix, número, whole código) so that it is a consistent order even for
-     *  old códigos without a número, which a sort would otherwise reject. */
-    public static final java.util.Comparator<String> POR_CODIGO = (a, b) -> {
-        String[] ka = claveCodigo(a), kb = claveCodigo(b);
-        for (int i = 0; i < ka.length; i++) {
-            int c = i == 2 && ka[2].length() != kb[2].length() ? Integer.compare(ka[2].length(), kb[2].length())
-                : ka[i].compareTo(kb[i]);
-            if (c != 0) return c;
-        }
-        return 0;
-    };
-
-    /** {prefix, "0" with a número / "1" without, the número without leading zeros, the whole código}. */
-    private static String[] claveCodigo(String codigo) {
-        String c = codigo.trim().toLowerCase();
-        java.util.regex.Matcher m = NUMERO_FINAL.matcher(c);
-        if (!m.matches()) return new String[]{c, "1", "", c};
-        return new String[]{m.group(1), "0", m.group(2).replaceFirst("^0+(?=.)", ""), c};
-    }
+    /** "DGOB/09" before "DGOB/10" before "DGOB/100" — {@link com.sibim.util.OrdenCodigo#POR_CODIGO}. */
+    public static final java.util.Comparator<String> POR_CODIGO = com.sibim.util.OrdenCodigo.POR_CODIGO;
 
     /** By área in organigrama order (as the filters and the organigrama list them),
      *  and within each área by número ({@link #POR_CODIGO}). */

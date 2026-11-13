@@ -139,6 +139,29 @@ class ResguardoRepositoryIntegrationTest extends IntegrationTestBase {
     }
 
     /**
+     * The renglones come back by código (prefix, then número), not by their random id:
+     * on 13-nov the PDF of a 35-bien resguardo listed MM/04, MM/26, MM/22…
+     */
+    @Test
+    void items_regresanEnOrdenDeCodigo_enFindByIdYFindAll() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        List<String> codigos = List.of("MM/10", "MM/2", "", "MM/01", "MM/35", "MM/100", "MM/03");
+        List<ResguardoItem> items = new java.util.ArrayList<>();
+        for (String codigo : codigos) {
+            String pid = UUID.randomUUID().toString();
+            productoRepo.saveOnline(buildProducto(pid));
+            ResguardoItem it = buildItem(pid, "Bien " + codigo);
+            it.setProductoCodigo(codigo.isEmpty() ? null : codigo);
+            items.add(it);
+        }
+        Resguardo saved = repo.save(buildResguardo("Juan Orden", items));
+
+        List<String> esperado = java.util.Arrays.asList("MM/01", "MM/2", "MM/03", "MM/10", "MM/35", "MM/100", null);
+        assertEquals(esperado, repo.findById(saved.getId()).getItems().stream().map(ResguardoItem::getProductoCodigo).toList());
+        assertEquals(esperado, repo.findAll().get(0).getItems().stream().map(ResguardoItem::getProductoCodigo).toList());
+    }
+
+    /**
      * Two consecutive saves must generate sequential folio numbers for the current year.
      */
     @Test

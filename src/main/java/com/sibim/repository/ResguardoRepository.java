@@ -40,11 +40,27 @@ public class ResguardoRepository {
         }
     }
 
+    /** The renglones of a resguardo as the PDF and the screen list them: by código
+     *  (RCE/2 before RCE/10), the ones without código last. The rows themselves have no
+     *  order of their own: their id is random. */
+    public static final java.util.Comparator<ResguardoItem> EN_ORDEN = java.util.Comparator.comparing(
+        ResguardoItem::getProductoCodigo, java.util.Comparator.nullsLast(com.sibim.util.OrdenCodigo.POR_CODIGO));
+
+    /** Puts the renglones of {@code r} in {@link #EN_ORDEN} (in a list of its own: the one
+     *  it had may not be changeable). */
+    public static void ordenar(Resguardo r) {
+        if (r.getItems() == null || r.getItems().size() < 2) return;
+        List<ResguardoItem> items = new ArrayList<>(r.getItems());
+        items.sort(EN_ORDEN);
+        r.setItems(items);
+    }
+
     /** Offline: this PC's copy (see OfflineDocs), with the same área scope. */
     private static List<Resguardo> locales() throws SQLException {
         java.util.Set<String> acc = SessionManager.getAccessibleAreas();
         return OfflineDocs.todos(OfflineDocs.RESGUARDO, Resguardo.class).stream()
             .filter(r -> acc == null || acc.contains(r.getResguardanteArea()))
+            .peek(ResguardoRepository::ordenar)
             .sorted(java.util.Comparator.comparing(Resguardo::getCreadoEn,
                 java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
             .toList();
@@ -90,6 +106,7 @@ public class ResguardoRepository {
                 }
             }
         }
+        resguardos.forEach(ResguardoRepository::ordenar);
     }
 
     public Resguardo findById(String id) throws SQLException {
@@ -497,6 +514,7 @@ public class ResguardoRepository {
                 while (rs.next()) items.add(mapItem(rs));
             }
         }
+        items.sort(EN_ORDEN);
         return items;
     }
 
