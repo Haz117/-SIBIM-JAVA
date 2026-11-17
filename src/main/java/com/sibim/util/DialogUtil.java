@@ -148,6 +148,7 @@ public final class DialogUtil {
         pane.getStylesheets().addAll(EscalaTexto.hojas());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         anchoSegunTexto(pane, AccessibilityUtils.getTextScaleIndex());
+        sinTopeDelTema(pane);
         // A Dialog's pane already has its scene when it is created, so hook the
         // things callers add afterwards (buttons, content) instead. The "?" help
         // badges turn into tooltips here too: a scene listener never fired for a
@@ -161,6 +162,23 @@ public final class DialogUtil {
             (javafx.collections.ListChangeListener<ButtonType>) c -> Platform.runLater(ajustar));
         pane.contentProperty().addListener((o, a, b) -> Platform.runLater(ajustar));
         Platform.runLater(ajustar);
+    }
+
+    /** The theme caps every dialog at 600 px wide (AtlantaFX's .dialog-pane max-width): a
+     *  window that asks for more — Transferir, Completar datos, the resguardo's detail, Cambiar
+     *  datos — was squeezed to 600 (17-nov-2026: Transferir cut its second column, Completar
+     *  datos stacked its filters and ran its hint under «Cerrar»). One that asks for more gets
+     *  the «dialog-ancho» class, whose cap (1400 px, 20-accesibilidad.css) only holds it inside
+     *  the screen; the rest keep the theme's. Also for a width set after this call. */
+    static void sinTopeDelTema(DialogPane pane) {
+        Runnable revisar = () -> {
+            boolean ancho = pane.getPrefWidth() > 600;
+            if (ancho && !pane.getStyleClass().contains("dialog-ancho")) pane.getStyleClass().add("dialog-ancho");
+            else if (!ancho && pane.getProperties().containsKey("sibim.anchoPorPref")) pane.getStyleClass().remove("dialog-ancho");
+            if (ancho) pane.getProperties().put("sibim.anchoPorPref", Boolean.TRUE);
+        };
+        revisar.run();
+        pane.prefWidthProperty().addListener((o, a, b) -> revisar.run());
     }
 
     /** At "Texto: Grande / Extra" a dialog is as much wider as its text is

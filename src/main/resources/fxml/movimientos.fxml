@@ -253,14 +253,14 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colProducto"   text="Bien"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
-            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="138" sortable="true" minWidth="132"/>
+            <TableColumn fx:id="colProducto"   text="Bien"    prefWidth="300" maxWidth="460" sortable="true" minWidth="190"/>
+            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="132" sortable="true" minWidth="124"/>
             <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="66"  sortable="true" minWidth="60"/>
             <TableColumn fx:id="colStock"      text="Qué cambió" prefWidth="176" sortable="false" minWidth="176"/>
             <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true" minWidth="110"/>
-            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true" minWidth="100"/>
-            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="120"/>
-            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="124" sortable="true" minWidth="118"/>
+            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="130" sortable="true" minWidth="90"/>
+            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="134"/>
+            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="120" sortable="true" minWidth="112"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

@@ -126,9 +126,9 @@
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
         <columns>
-            <TableColumn fx:id="colNumero"       text="Folio"        prefWidth="110"/>
-            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="190" maxWidth="260"/>
-            <TableColumn fx:id="colArea"         text="Área"         prefWidth="200" maxWidth="260"/>
+            <TableColumn fx:id="colNumero"       text="Folio"        prefWidth="160" minWidth="156"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="300" maxWidth="420"/>
+            <TableColumn fx:id="colArea"         text="Área"         prefWidth="210" maxWidth="300"/>
             <TableColumn fx:id="colFecha"        text="Fecha"        prefWidth="95"/>
             <TableColumn fx:id="colBienes"       text="Bienes"       prefWidth="65"/>
             <TableColumn fx:id="colEstado"       text="Estado"       prefWidth="90"/>

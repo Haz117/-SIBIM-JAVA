@@ -109,6 +109,20 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosCsv(exportTarget())
         );
         setupSearchListener();
+        // The cancelled ones (a change of resguardante, several joined in one: 33 of 354 on
+        // 17-nov-2026, four in a row of the same person) out of the way unless asked for.
+        if (filterBar != null) {
+            verCancelados = new CheckBox("Ver cancelados");
+            verCancelados.setMinWidth(Region.USE_PREF_SIZE);
+            verCancelados.setSelected(getFilterPrefsNode().getBoolean("verCancelados", false));
+            verCancelados.setTooltip(new Tooltip("Los resguardos cancelados (por un cambio de resguardante o al juntar varios en uno) "
+                + "no se ven en la lista hasta que marcas esta casilla"));
+            verCancelados.selectedProperty().addListener((o, a, b) -> {
+                getFilterPrefsNode().putBoolean("verCancelados", b);
+                applyFilter();
+            });
+            filterBar.getChildren().add(Math.min(1, filterBar.getChildren().size()), verCancelados);
+        }
 
         if (btnCancelar != null) { btnCancelar.setVisible(canCreate); btnCancelar.setManaged(canCreate); }
         if (btnCancelar != null)
@@ -301,6 +315,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         return cm;
     }
 
+    /** «Ver cancelados» in the filter bar: off, the list has only the resguardos in force. */
+    private CheckBox verCancelados;
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     @Override
@@ -310,6 +327,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
         List<Resguardo> filtered = DialogUtil.coincidencias(allData, ResguardosController::textoDeBusqueda, q).stream()
             .filter(r -> statQuickFilter == null || statQuickFilter.equals(r.getEstado()))
+            .filter(r -> verCancelados == null || verCancelados.isSelected() || r.isActivo() || "CANCELADO".equals(statQuickFilter))
             .filter(r -> {
                 LocalDate f = r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate() : null;
                 if (desde != null && (f == null || f.isBefore(desde))) return false;
@@ -599,27 +617,39 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             AppColors.PRIMARY, AppColors.PRIMARY_D);
         DialogUtil.addCopyButton(header, r.getNumero());
 
-        GridPane meta = DialogUtil.formGrid(140);
+        // Two data per row and the observaciones in two lines (whole on hover): the bienes, what
+        // the detail is opened for, get the room (17-nov-2026: at 768 px three of them showed).
+        GridPane meta = DialogUtil.formGrid(120);
         String[][] infoRows = {
-            {"Área:",          r.getResguardanteArea()  != null ? r.getResguardanteArea()  : "—"},
-            {"Fecha:",         r.getCreadoEn()          != null ? FormatUtils.formatDate(r.getCreadoEn().toLocalDate()) : "—"},
-            {"Registrado por:",r.getCreadoPorNombre()   != null ? r.getCreadoPorNombre()   : "—"},
-            {"Estado:",        r.getEstado()},
-            {"Observaciones:", r.getObservaciones()     != null && !r.getObservaciones().isBlank()
-                ? r.getObservaciones() : "—"},
+            {"Área:",          r.getResguardanteArea()  != null ? r.getResguardanteArea()  : "—",
+             "Fecha:",         r.getCreadoEn()          != null ? FormatUtils.formatDate(r.getCreadoEn().toLocalDate()) : "—"},
+            {"Registrado por:",r.getCreadoPorNombre()   != null ? r.getCreadoPorNombre()   : "—",
+             "Estado:",        r.getEstado()},
         };
         int i = 0;
         for (String[] row : infoRows) {
-            Label k = new Label(row[0]); k.getStyleClass().add("dlg-detail-label"); k.setMinWidth(135);
-            Label v = new Label(row[1]); v.getStyleClass().add("dlg-detail-value"); v.setWrapText(true);
-            meta.add(k, 0, i); meta.add(v, 1, i++);
+            for (int c = 0; c < 2; c++) {
+                Label k = new Label(row[2 * c]); k.getStyleClass().add("dlg-detail-label"); k.setMinWidth(Region.USE_PREF_SIZE);
+                Label v = new Label(row[2 * c + 1]); v.getStyleClass().add("dlg-detail-value"); v.setWrapText(true);
+                meta.add(k, 2 * c, i); meta.add(v, 2 * c + 1, i);
+            }
+            i++;
         }
+        String obs = r.getObservaciones() != null && !r.getObservaciones().isBlank() ? r.getObservaciones().trim() : "—";
+        Label kObs = new Label("Observaciones:"); kObs.getStyleClass().add("dlg-detail-label"); kObs.setMinWidth(Region.USE_PREF_SIZE);
+        Label vObs = new Label(obs); vObs.getStyleClass().add("dlg-detail-value"); vObs.setWrapText(true);
+        vObs.setMaxHeight(38);   // two lines
+        if (obs.length() > 120) vObs.setTooltip(new Tooltip(obs));
+        meta.add(kObs, 0, i); meta.add(vObs, 1, i, 3, 1);
 
         Label lblBienes = new Label("BIENES EN RESGUARDO");
         lblBienes.getStyleClass().add("dash-section-label");
 
         ObservableList<ResguardoItem> items = FXCollections.observableArrayList(r.getItems());
         TableView<ResguardoItem> itemsTable = tablaDeBienes(items, r.getResguardanteArea());
+        // As tall as the screen allows for its bienes (a resguardo of 35 showed three at a time).
+        double alto = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight();
+        itemsTable.setPrefHeight(Math.max(200, Math.min(alto - 380, 48 + 44.0 * Math.max(3, items.size()))));
 
         itemsTable.setPlaceholder(EmptyStateUtil.build(
             "mdi2b-badge-account-outline",
