@@ -253,7 +253,7 @@ class ProductoTabPatrimonioFields {
         // 175 with the costo too): the purchase first, with the costo; then the bien,
         // where it is, its maintenance and the vehicle's papers.
         int rp = 0;
-        rp = seccion("Compra", rp, false);
+        rp = seccion(grid, "Compra", rp, false);
         // «Copiar de PRES/12: …», beside the title (see ofrecerAnterior); next in the Tab order.
         lnkAnterior.getStyleClass().add("field-hint");
         lnkAnterior.setPadding(javafx.geometry.Insets.EMPTY);
@@ -294,37 +294,96 @@ class ProductoTabPatrimonioFields {
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
                                                          0, rp); grid.add(new javafx.scene.layout.VBox(2, fValorResidual, lnkResidual), 1, rp++);
 
-        rp = seccion("El bien", rp, true);
-        grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(new javafx.scene.layout.VBox(2, fTipoBien, lblTipoPropuesto), 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Marca"),         0, rp); grid.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
-        grid.add(DialogUtil.fieldLabel("Modelo"),        0, rp); grid.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
-        grid.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); grid.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
+        GridPane g = gridBien;
+        rp = seccion(g, "El bien", 0, false);
+        g.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); g.add(fColor, 1, rp++);
+        g.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); g.add(new javafx.scene.layout.VBox(2, fTipoBien, lblTipoPropuesto), 1, rp++);
+        g.add(DialogUtil.fieldLabel("Marca"),         0, rp); g.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
+        g.add(DialogUtil.fieldLabel("Modelo"),        0, rp); g.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
+        g.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); g.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
+        g.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
             "Clave CONAC del bien: la de su categoría (Ej. 1.2.4.1.1.511).\nSe llena al elegir la categoría. Aparece en ANEXO V.4 e Inventario de Parque Vehicular."),
-            0, rp); grid.add(fClaveArm, 1, rp++);
+            0, rp); g.add(fClaveArm, 1, rp++);
 
-        rp = seccion("Dónde está", rp, true);
-        grid.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); grid.add(fUbicacion,    1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Resguardante",
+        g = gridDonde;
+        rp = seccion(g, "Dónde está", 0, false);
+        g.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); g.add(fUbicacion,    1, rp++);
+        g.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
-                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fResguardante, avisoResguardante, lblResguardoActivo), 1, rp++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Estado físico",
+                                                         0, rp); g.add(new javafx.scene.layout.VBox(2, fResguardante, avisoResguardante, lblResguardoActivo), 1, rp++);
+        g.add(DialogUtil.fieldLabelWithHelp("Estado físico",
             "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
-                                                         0, rp); grid.add(fEstadoFisico, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
-        grid.add(fEtiquetado, 1, rp++);
+                                                         0, rp); g.add(fEstadoFisico, 1, rp++);
+        g.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
+        g.add(fEtiquetado, 1, rp++);
 
-        rp = seccion("Mantenimiento", rp, true);
-        grid.add(DialogUtil.fieldLabelWithHelp("Próxima revisión",
+        g = gridMant;
+        rp = seccion(g, "Mantenimiento", 0, false);
+        g.add(DialogUtil.fieldLabelWithHelp("Próxima revisión",
             "Fecha programada para la próxima revisión o mantenimiento preventivo del bien."),
-            0, rp); grid.add(fProximaRevision, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); grid.add(fNotasMant, 1, rp++);
+            0, rp); g.add(fProximaRevision, 1, rp++);
+        g.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); g.add(fNotasMant, 1, rp++);
 
-        rp = seccion("Vehículos", rp, true);
-        grid.add(DialogUtil.fieldLabel("N° de Motor"), 0, rp); grid.add(fNoMotor, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); grid.add(fNoTarjeta, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); grid.add(fNoPoliza, 1, rp);
+        g = gridVeh;
+        rp = seccion(g, "Vehículos", 0, false);
+        g.add(DialogUtil.fieldLabel("N° de Motor"), 0, rp); g.add(fNoMotor, 1, rp++);
+        g.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); g.add(fNoTarjeta, 1, rp++);
+        g.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); g.add(fNoPoliza, 1, rp);
+
+        vista = armarVista();
+    }
+
+    /** «El bien», «Dónde está», «Mantenimiento» and «Vehículos», each its own grid (the first,
+     *  «Compra», is {@link #grid}). */
+    final GridPane gridBien = DialogUtil.formGrid(140), gridDonde = DialogUtil.formGrid(140),
+        gridMant = DialogUtil.formGrid(140), gridVeh = DialogUtil.formGrid(140);
+
+    /** What the tab shows: on a wide screen «Compra» beside «El bien» and, under them, «Dónde
+     *  está» beside «Mantenimiento» and «Vehículos» (17-nov-2026: at 580 px the tab showed six
+     *  fields at a time, on a 2,560 px screen); on a narrow one, one under the other as before.
+     *  Tab follows the order of the factura: Compra, El bien, Dónde está, Mantenimiento, Vehículos. */
+    final javafx.scene.layout.Region vista;
+
+    /** Two columns when the screen is wide enough for them at the chosen text size. */
+    static boolean dosColumnas() {
+        double ancho = javafx.stage.Screen.getPrimary().getVisualBounds().getWidth();
+        int escala = com.sibim.util.AccessibilityUtils.getTextScaleIndex();
+        return ancho >= 1280 + 220 * escala;
+    }
+
+    private javafx.scene.layout.Region armarVista() {
+        if (!dosColumnas()) {
+            javafx.scene.layout.VBox v = new javafx.scene.layout.VBox();
+            for (GridPane gp : List.of(grid, gridBien, gridDonde, gridMant, gridVeh)) {
+                if (!v.getChildren().isEmpty()) {
+                    gp.setPadding(new javafx.geometry.Insets(6, 22, 20, 22));
+                    javafx.scene.control.Separator s = new javafx.scene.control.Separator();
+                    javafx.scene.layout.VBox.setMargin(s, new javafx.geometry.Insets(0, 22, 0, 22));
+                    v.getChildren().add(s);
+                }
+                v.getChildren().add(gp);
+            }
+            return v;
+        }
+        GridPane c = new GridPane();
+        c.getStyleClass().add("form-dos-columnas");
+        for (int k = 0; k < 2; k++) {
+            javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+            col.setPercentWidth(50);
+            col.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+            c.getColumnConstraints().add(col);
+        }
+        javafx.scene.layout.VBox derecha = new javafx.scene.layout.VBox(gridMant, gridVeh);
+        gridVeh.setPadding(new javafx.geometry.Insets(6, 22, 20, 22));
+        javafx.scene.control.Separator s = new javafx.scene.control.Separator();
+        GridPane.setMargin(s, new javafx.geometry.Insets(0, 22, 0, 22));
+        c.add(grid, 0, 0);
+        c.add(gridBien, 1, 0);
+        c.add(s, 0, 1, 2, 1);
+        c.add(gridDonde, 0, 2);
+        c.add(derecha, 1, 2);
+        for (javafx.scene.Node n : List.of(grid, gridBien, gridDonde, derecha)) GridPane.setValignment(n, javafx.geometry.VPos.TOP);
+        return c;
     }
 
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
@@ -621,11 +680,11 @@ class ProductoTabPatrimonioFields {
     private int filaCosto;
 
     /** A section title, as the tab already had them (a line, then its name). */
-    private int seccion(String titulo, int rp, boolean conLinea) {
-        if (conLinea) { grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++; }
+    private static int seccion(GridPane g, String titulo, int rp, boolean conLinea) {
+        if (conLinea) { g.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++; }
         Label l = new Label(titulo);
         l.getStyleClass().add("dialog-field-label");
-        grid.add(l, 0, rp, 2, 1);
+        g.add(l, 0, rp, 2, 1);
         return rp + 1;
     }
 

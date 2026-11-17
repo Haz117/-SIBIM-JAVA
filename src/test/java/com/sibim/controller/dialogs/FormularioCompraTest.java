@@ -36,10 +36,25 @@ class FormularioCompraTest extends ApplicationTest {
         List<Node> hijos = pt[0].grid.getChildren();
         int factura = hijos.indexOf(pt[0].fNumeroFactura), folio = hijos.indexOf(pt[0].fFolioFiscal.getParent()),
             proveedor = hijos.indexOf(pt[0].fProveedor), fecha = hijos.indexOf(pt[0].fFechaAdq),
-            costo = hijos.indexOf(st[0].cajaCosto), vida = hijos.indexOf(pt[0].fVidaUtil), color = hijos.indexOf(pt[0].fColor);
-        assertTrue(factura < folio && folio < proveedor && proveedor < fecha && fecha < costo && costo < vida && vida < color,
-            "Tab sigue el orden de la factura: " + List.of(factura, folio, proveedor, fecha, costo, vida, color));
+            costo = hijos.indexOf(st[0].cajaCosto), vida = hijos.indexOf(pt[0].fVidaUtil);
+        assertTrue(factura >= 0 && factura < folio && folio < proveedor && proveedor < fecha && fecha < costo && costo < vida,
+            "Tab sigue el orden de la factura: " + List.of(factura, folio, proveedor, fecha, costo, vida));
+        // 17-nov-2026: «El bien» is its own group, beside «Compra» on a wide screen; Tab still goes
+        // from the purchase to the bien, then where it is, its maintenance and the vehicle's papers.
+        assertTrue(pt[0].gridBien.getChildren().contains(pt[0].fColor));
+        List<Node> orden = new java.util.ArrayList<>();
+        recorrer(pt[0].vista, orden);
+        int compra = orden.indexOf(pt[0].grid), bien = orden.indexOf(pt[0].gridBien), donde = orden.indexOf(pt[0].gridDonde),
+            mant = orden.indexOf(pt[0].gridMant), veh = orden.indexOf(pt[0].gridVeh);
+        assertTrue(compra >= 0 && compra < bien && bien < donde && donde < mant && mant < veh,
+            "Compra, El bien, Dónde está, Mantenimiento, Vehículos: " + List.of(compra, bien, donde, mant, veh));
         assertEquals(javafx.scene.layout.GridPane.getRowIndex(pt[0].fFechaAdq) + 1, javafx.scene.layout.GridPane.getRowIndex(st[0].cajaCosto));
         assertFalse(st[0].grid.lookupAll(".text-field").contains(st[0].fPrecioC), "el costo ya no está en la otra pestaña");
+    }
+
+    /** The nodes in the order Tab visits them (the scene graph's, depth first). */
+    private static void recorrer(Node n, List<Node> orden) {
+        orden.add(n);
+        if (n instanceof javafx.scene.Parent p) for (Node c : p.getChildrenUnmodifiable()) recorrer(c, orden);
     }
 }

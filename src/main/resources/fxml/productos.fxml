@@ -302,17 +302,19 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <!-- Minimum widths fit real content (a full código, a category badge, an área
-             name) so a narrow window scrolls sideways instead of turning every cell into "…". -->
+             name) so a narrow window scrolls sideways instead of turning every cell into "…".
+             The name asks for the most (17-nov-2026: at 1366 it got 160 px, «Archivero metálico…»):
+             ColumnasLegibles shares the width by what each column asks for. -->
         <columns>
             <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="62"  minWidth="62" maxWidth="62"  sortable="false" resizable="false"/>
-            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="220" maxWidth="320" sortable="true" minWidth="160"/>
-            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="140" sortable="true" minWidth="128"/>
-            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="185" sortable="true" minWidth="150"/>
-            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="190" maxWidth="260" sortable="true" minWidth="150"/>
-            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="170" maxWidth="240" sortable="true" minWidth="130"/>
+            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="420" maxWidth="640" sortable="true" minWidth="260"/>
+            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="120" sortable="true" minWidth="100"/>
+            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="170" sortable="true" minWidth="150"/>
+            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="210" maxWidth="260" sortable="true" minWidth="150"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="190" maxWidth="240" sortable="true" minWidth="130"/>
             <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>
             <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="115" minWidth="100" sortable="true"/>
-            <TableColumn fx:id="colEstado"    text="Garantía"          prefWidth="126" sortable="true" minWidth="126"/>
+            <TableColumn fx:id="colEstado"    text="Garantía"          prefWidth="110" sortable="true" minWidth="100"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

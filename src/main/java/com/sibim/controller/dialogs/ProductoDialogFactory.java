@@ -134,7 +134,10 @@ public final class ProductoDialogFactory {
         List<String> sugestProveedores = extras.proveedores();
         List<String> sugestUbicaciones = extras.ubicaciones();
 
-        Dialog<Producto> dialog = DialogUtil.create(580);
+        // On a wide screen the patrimonio data goes in two columns (ProductoTabPatrimonioFields.vista).
+        boolean dosColumnas = ProductoTabPatrimonioFields.dosColumnas();
+        Dialog<Producto> dialog = DialogUtil.create(dosColumnas ? 1040 : 580);
+        if (dosColumnas) dialog.getDialogPane().getStyleClass().add("dialog-ancho");
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
         HBox dialogHeader = DialogUtil.gradientHeader(
@@ -182,7 +185,7 @@ public final class ProductoDialogFactory {
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
         Tab tabStock      = new Tab("Cantidad y garantía", stockTab.grid);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
-        Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.grid);
+        Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.vista);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
         tabs.getTabs().addAll(tabInfo, tabStock, tabPatrimonio);
         tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
@@ -340,8 +343,8 @@ public final class ProductoDialogFactory {
         ScrollPane tabsScroll = new ScrollPane(tabs);
         tabsScroll.setFitToWidth(true);
         // As tall as the screen allows (was a fixed 420, which scrolled even on a big monitor).
-        tabsScroll.setMaxHeight(Math.max(380, Math.min(580,
-            javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() - 380)));
+        tabsScroll.setMaxHeight(Math.max(380, Math.min(dosColumnas ? 900 : 580,
+            javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() - (dosColumnas ? 300 : 380))));
         tabsScroll.getStyleClass().add("dlg-tabs-scroll");
 
         // ── Stepper navigation buttons ───────────────────────────────────────
