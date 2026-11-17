@@ -147,7 +147,8 @@ final class TutorialGuias {
                 "En el resguardo, un bien sin precio capturado dice «—» en vez de «$0.00», y el total avisa que hay bienes sin precio",
                 "Si la sesión se cierra por inactividad, al volver a entrar regresas a la pantalla donde estabas, con tu búsqueda de Bienes",
                 "El aviso de inactividad ya no cierra la sesión dos veces ni te borra lo que empezabas a escribir al entrar",
-                "Si la sesión se te cierra muy seguido, el mismo aviso tiene «Dale más tiempo»: te lleva al ajuste en Configuración"));
+                "Si la sesión se te cierra muy seguido, el mismo aviso tiene «Dale más tiempo»: te lleva al ajuste en Configuración",
+                "Los textos grises y los porcentajes dorados son un poco más oscuros, para que se lean mejor"));
             p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos, con más datos", "productos", "#btnMasBienes",
                 "Además de precio, fecha, vida útil y foto: proveedor, folio fiscal, factura, color y tipo de bien",
                 "Se escribe en la lista y Enter pasa al siguiente, sin abrir el formulario de cada bien",

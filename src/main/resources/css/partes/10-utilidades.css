@@ -102,7 +102,7 @@
 .dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #EADCC3; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
 .dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #FDF4F5; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.22), 8, 0, 0, 2); }
 .dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #5A4214; }
-.dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
+.dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: sibim-slate-500; }
 .dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
 
 /* Product detail dialog header card */

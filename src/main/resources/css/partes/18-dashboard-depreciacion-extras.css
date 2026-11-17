@@ -25,7 +25,7 @@
 .status-pct-green        { -fx-text-fill: sibim-green-dark; }
 .status-pct-amber        { -fx-text-fill: sibim-amber-dark; }
 .status-pct-red          { -fx-text-fill: sibim-red; }
-.status-pct-violet       { -fx-text-fill: sibim-violet; }
+.status-pct-violet       { -fx-text-fill: sibim-violet-dark; }   /* el dorado claro daba 3.99:1 sobre blanco */
 
 .status-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 16; }
 .status-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }

@@ -98,14 +98,14 @@
 .palette-group-header-cell {
     -fx-font-size: 11px;
     -fx-font-weight: 700;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-padding: 10 8 3 14;
     -fx-background-color: transparent;
 }
 .palette-group-header-cell:focused,
 .palette-group-header-cell:selected {
     -fx-background-color: transparent;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
 }
 /* Navigation entry row inside the palette */
 .palette-nav-cell {
