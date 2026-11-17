@@ -173,6 +173,7 @@ public final class ProductoDialogFactory {
         patrimonioTab.sugerirColorYTipo(extras.colores(), extras.tipos());
         if (com.sibim.session.Permisos.editaFichaCompleta())
             patrimonioTab.ofrecerAnterior(BienAnterior.get(), existing != null ? existing.getId() : null);
+        patrimonioTab.ofrecerXml(stockTab.fPrecioC, () -> infoTab.fNombre.getText());
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
@@ -264,6 +265,12 @@ public final class ProductoDialogFactory {
             if (!precioConfirmado(new BigDecimal(pcText), existing)) {
                 tabs.getSelectionModel().select(2);
                 stockTab.fPrecioC.requestFocus();
+                return;
+            }
+            if (!folioConfirmado(patrimonioTab.fFolioFiscal.getText(), existing)) {
+                tabs.getSelectionModel().select(2);
+                patrimonioTab.fFolioFiscal.requestFocus();
+                patrimonioTab.fFolioFiscal.end();
                 return;
             }
             savingNow[0] = true;
@@ -511,7 +518,7 @@ public final class ProductoDialogFactory {
                     patrimonioTab.fFechaAdq, patrimonioTab.fProximaRevision, patrimonioTab.fVidaUtil,
                     patrimonioTab.fValorResidual, patrimonioTab.fNotasMant, patrimonioTab.fClaveArm,
                     patrimonioTab.fColor, patrimonioTab.fTipoBien, patrimonioTab.fNoMotor, patrimonioTab.fNoTarjeta,
-                    patrimonioTab.fNoPoliza)) {
+                    patrimonioTab.fNoPoliza, patrimonioTab.lnkXml)) {
                 if (c == null) continue;
                 c.setDisable(true);
                 c.setTooltip(new javafx.scene.control.Tooltip("Solo Patrimonio (administrador) puede cambiar este dato"));
@@ -740,6 +747,20 @@ public final class ProductoDialogFactory {
         return ConfirmacionUtil.elegir("Costo muy alto",
             "El costo de adquisición es de " + com.sibim.util.FormatUtils.formatCurrency(precio) + " por pieza, más de diez millones. "
                 + "Revisa que no le sobren ceros.\n\n¿Es correcto?", "Sí, es correcto", "Corregirlo");
+    }
+
+    /** A folio fiscal typed with another shape is asked about on saving (13 to 17-nov-2026: 34
+     *  of 308 typed were left wrong, 16 with the last group a character short): «Corregirlo» is
+     *  what Enter or closing does. The one the bien already had is not asked about again. */
+    static boolean folioConfirmado(String folio, Producto existing) {
+        String problema = com.sibim.service.CalidadDatosService.problemaFolio(folio);
+        if (problema == null) return true;
+        String antes = existing != null ? existing.getFolioFiscal() : null;
+        if (antes != null && antes.trim().equalsIgnoreCase(folio.trim())) return true;
+        return ConfirmacionUtil.elegirPeligro("Folio fiscal",
+            "El folio fiscal «" + folio.trim() + "» " + problema + ".\n\n"
+                + "El folio fiscal (UUID) viene en la factura: 32 caracteres, del 0 al 9 y de la A a la F, "
+                + "en grupos de 8-4-4-4-12.\n\n¿Lo corriges o lo guardas así?", "Guardar así", "Corregirlo");
     }
 
     private static String nombreUnico() {

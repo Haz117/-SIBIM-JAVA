@@ -142,6 +142,13 @@ class ProductoTabPatrimonioFields {
                 ? existing.getFolioFiscal() : "");
         fFolioFiscal.setPromptText("UUID del CFDI, ej. A1B2C3D4-0000-4000-8000-000000000001");
         fFolioFiscal.getStyleClass().add("form-input");
+        // Only 0-9 and A-F go in a folio fiscal: what is typed goes in capitals, an O as a zero
+        // and an I or an L as a one. Same length: the caret and Backspace stay where they are.
+        fFolioFiscal.setTextFormatter(new TextFormatter<String>(c -> {
+            if (c.isContentChange() && !c.getText().isEmpty())
+                c.setText(com.sibim.service.CalidadDatosService.escribirFolio(c.getText()));
+            return c;
+        }));
         facturaOriginal = existing != null ? existing.getNumeroFactura() : null;
         fNumeroFactura.focusedProperty().addListener((o, antes, ahora) -> { if (!ahora) pasarFolioFiscal(); });
 
@@ -259,8 +266,18 @@ class ProductoTabPatrimonioFields {
             "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
                                                          0, rp); grid.add(fNumeroFactura, 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
-            "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo."),
-                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fFolioFiscal, avisoFolio), 1, rp++);
+            "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo.\n"
+                + "La O se escribe sola como 0, y la I o la L como 1.\n«Leer el XML de la factura…» lo llena desde el archivo."),
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fFolioFiscal, avisoFolio, lnkXml, lblXml), 1, rp++);
+        lnkXml.getStyleClass().add("field-hint");
+        lnkXml.setPadding(javafx.geometry.Insets.EMPTY);
+        lnkXml.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2f-file-code-outline"));
+        lblXml.getStyleClass().addAll("field-hint", "muted-sm");
+        lblXml.setWrapText(true);
+        lblXml.setMinHeight(Region.USE_PREF_SIZE);
+        lblXml.prefWidthProperty().bind(fFolioFiscal.widthProperty());
+        lblXml.setVisible(false);
+        lblXml.setManaged(false);
         grid.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); grid.add(fProveedor,    1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
@@ -312,6 +329,129 @@ class ProductoTabPatrimonioFields {
 
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
     final Label avisoFolio = new Label();
+
+    /** Under the folio fiscal: «Leer el XML de la factura…», and what it filled. */
+    final javafx.scene.control.Hyperlink lnkXml = new javafx.scene.control.Hyperlink("Leer el XML de la factura…");
+    final Label lblXml = new Label();
+
+    /** Where the last XML was picked from, to open there the next time. */
+    private static java.io.File carpetaXml;
+
+    /** «Leer el XML de la factura…»: picks the CFDI and fills the purchase from it.
+     *  @param costo the costo field (the other tab builds it)
+     *  @param nombreBien the bien's name as typed, to pick its concepto among several */
+    void ofrecerXml(TextField costo, java.util.function.Supplier<String> nombreBien) {
+        lnkXml.setOnAction(e -> {
+            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            fc.setTitle("XML de la factura");
+            fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Factura electrónica (XML)", "*.xml", "*.XML"));
+            if (carpetaXml != null && carpetaXml.isDirectory()) fc.setInitialDirectory(carpetaXml);
+            java.io.File archivo = fc.showOpenDialog(grid.getScene() != null ? grid.getScene().getWindow() : null);
+            if (archivo == null) return;
+            carpetaXml = archivo.getParentFile();
+            try {
+                aplicarFactura(com.sibim.util.FacturaXml.leer(archivo.toPath()), costo, nombreBien.get(), true);
+            } catch (com.sibim.util.FacturaXml.NoEsFactura ex) {
+                mostrarXml(ex.getMessage(), true);
+            } catch (Exception ex) {
+                mostrarXml("No se pudo leer el archivo: " + com.sibim.util.MensajeError.de(ex), true);
+            }
+        });
+    }
+
+    /** Fills from the factura what this bien lacks (a folio fiscal with another shape is replaced:
+     *  the XML's is the right one) and says under the link what it put and what it left.
+     *  @param preguntar whether to ask which concepto when the name doesn't tell (not in tests) */
+    void aplicarFactura(com.sibim.util.FacturaXml.Factura f, TextField costo, String nombreBien, boolean preguntar) {
+        List<String> puso = new java.util.ArrayList<>(), dejo = new java.util.ArrayList<>();
+        String folio = fFolioFiscal.getText() == null ? "" : fFolioFiscal.getText().trim();
+        if (folio.isEmpty() || com.sibim.service.CalidadDatosService.problemaFolio(folio) != null) {
+            fFolioFiscal.setText(f.uuid());
+            puso.add("folio fiscal");
+        } else if (!folio.equalsIgnoreCase(f.uuid())) {
+            dejo.add("el folio fiscal escrito no es el del XML (" + f.uuid() + ")");
+        }
+        if (f.numero() != null) llenar(fNumeroFactura, f.numero(), "factura " + f.numero(), "la factura", puso, dejo);
+        if (f.fecha() != null) {
+            if (fFechaAdq.getValue() == null) { fFechaAdq.setValue(f.fecha()); puso.add("fecha " + FormatUtils.formatDate(f.fecha())); }
+            else if (!fFechaAdq.getValue().equals(f.fecha())) dejo.add("la fecha (la factura es del " + FormatUtils.formatDate(f.fecha()) + ")");
+        }
+        if (f.emisor() != null) {
+            String prov = f.emisor().toUpperCase(java.util.Locale.forLanguageTag("es-MX"));
+            llenar(fProveedor, prov, "proveedor", "el proveedor (la factura dice " + prov + ")", puso, dejo);
+        }
+        if (costo != null) {
+            if (!f.enPesos()) {
+                dejo.add("el costo: la factura está en " + f.moneda());
+            } else {
+                com.sibim.util.FacturaXml.Concepto c = conceptoDelBien(f.conceptos(), nombreBien);
+                if (c == null && f.conceptos().size() > 1 && preguntar) c = elegirConcepto(f.conceptos());
+                java.math.BigDecimal unitario = c == null ? null : c.costoPorPieza();
+                if (unitario != null) {
+                    java.math.BigDecimal escrito = null;
+                    try { escrito = new java.math.BigDecimal(costo.getText().trim()); } catch (NumberFormatException ignored) { /* empty */ }
+                    if (escrito == null || escrito.signum() == 0) {
+                        costo.setText(unitario.toPlainString());
+                        puso.add("costo " + FormatUtils.formatCurrency(unitario) + " con IVA");
+                    } else if (escrito.compareTo(unitario) != 0) {
+                        dejo.add("el costo (en la factura, " + FormatUtils.formatCurrency(unitario) + " por pieza con IVA)");
+                    }
+                }
+            }
+        }
+        String texto = (puso.isEmpty() ? "Del XML no hizo falta nada" : "Del XML: " + enLista(puso))
+            + (dejo.isEmpty() ? "." : ". Se dejó como estaba " + enLista(dejo) + ".");
+        mostrarXml(texto, false);
+    }
+
+    /** The concepto that is this bien: the only one, or the one whose description is clearly its name. */
+    static com.sibim.util.FacturaXml.Concepto conceptoDelBien(List<com.sibim.util.FacturaXml.Concepto> conceptos, String nombre) {
+        if (conceptos.size() == 1) return conceptos.get(0);
+        if (nombre == null || nombre.isBlank()) return null;
+        String n = com.sibim.service.CalidadDatosService.claveTexto(nombre);
+        com.sibim.util.FacturaXml.Concepto mejor = null;
+        double max = 0, segundo = 0;
+        for (var c : conceptos) {
+            double s = ProductoDialogFactory.diceSimilarity(n, com.sibim.service.CalidadDatosService.claveTexto(c.descripcion()));
+            if (s > max) { segundo = max; max = s; mejor = c; } else if (s > segundo) segundo = s;
+        }
+        return max >= 0.5 && max - segundo >= 0.15 ? mejor : null;
+    }
+
+    private static com.sibim.util.FacturaXml.Concepto elegirConcepto(List<com.sibim.util.FacturaXml.Concepto> conceptos) {
+        java.util.Map<String, com.sibim.util.FacturaXml.Concepto> porTexto = new java.util.LinkedHashMap<>();
+        for (var c : conceptos) {
+            java.math.BigDecimal u = c.costoPorPieza();
+            String d = Objects.requireNonNullElse(c.descripcion(), "(sin descripción)");
+            porTexto.put((d.length() > 70 ? d.substring(0, 70) + "…" : d) + " — "
+                + (u == null ? "sin costo" : FormatUtils.formatCurrency(u) + " c/u con IVA"), c);
+        }
+        String sinCosto = "No poner costo";
+        List<String> opciones = new java.util.ArrayList<>(porTexto.keySet());
+        opciones.add(sinCosto);
+        javafx.scene.control.ChoiceDialog<String> d = new javafx.scene.control.ChoiceDialog<>(opciones.get(0), opciones);
+        d.setTitle("¿Cuál es este bien?");
+        d.setHeaderText("La factura trae " + conceptos.size() + " conceptos: elige el de este bien para tomar su costo");
+        d.setContentText(null);
+        DialogUtil.applyOwner(d);
+        DialogUtil.applyStylesheet(d.getDialogPane());
+        return d.showAndWait().filter(s -> !s.equals(sinCosto)).map(porTexto::get).orElse(null);
+    }
+
+    private static void llenar(TextField campo, String valor, String dicePuso, String diceDejo, List<String> puso, List<String> dejo) {
+        String actual = campo.getText() == null ? "" : campo.getText().trim();
+        if (actual.isEmpty()) { campo.setText(valor); puso.add(dicePuso); }
+        else if (!com.sibim.service.CalidadDatosService.claveTexto(actual).equals(com.sibim.service.CalidadDatosService.claveTexto(valor)))
+            dejo.add(diceDejo);
+    }
+
+    private void mostrarXml(String texto, boolean error) {
+        lblXml.setText(texto);
+        lblXml.getStyleClass().remove("field-hint-warn");
+        if (error) lblXml.getStyleClass().add("field-hint-warn");
+        lblXml.setVisible(true);
+        lblXml.setManaged(true);
+    }
 
     /** Beside «Compra»: «Copiar de PRES/12: factura, folio…», then «Quitar lo copiado». */
     final javafx.scene.control.Hyperlink lnkAnterior = new javafx.scene.control.Hyperlink();

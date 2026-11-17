@@ -564,9 +564,32 @@ public class CalidadDatosService {
             if (!Character.isDigit(c) && "ABCDEFabcdef-OoIiLl".indexOf(c) < 0) otras.add(c == ' ' ? "espacios" : "«" + c + "»");
         if (!otras.isEmpty()) partes.add("lleva " + String.join(", ", otras) + ", que no van en un folio fiscal");
         String digitos = t.replaceAll("[Oo]", "0").replaceAll("[IiLl]", "1").replaceAll("[^0-9A-Fa-f]", "");
-        if (digitos.length() != 32) partes.add("tiene " + digitos.length() + " de los 32 caracteres");
-        else if (partes.isEmpty()) partes.add("los guiones no están en su lugar (8-4-4-4-12)");
+        String donde = dondeEstaElError(t);
+        if (digitos.length() != 32) partes.add("tiene " + digitos.length() + " de los 32 caracteres" + (donde == null ? "" : ": " + donde));
+        else if (partes.isEmpty()) partes.add(donde != null ? donde : "los guiones no están en su lugar (8-4-4-4-12)");
         return String.join("; ", partes);
+    }
+
+    private static final int[] GRUPOS_UUID = {8, 4, 4, 4, 12};
+    private static final String[] NOMBRE_GRUPO = {"primer", "segundo", "tercer", "cuarto", "último"};
+
+    /** Which group of a folio written with dashes is short or long (17-nov-2026: of 34 folios typed
+     *  wrong in four days, 16 had the last group with 11 of its 12): «al último grupo le falta uno».
+     *  Null without dashes or when every group has its length. */
+    static String dondeEstaElError(String folio) {
+        if (folio == null || !folio.contains("-")) return null;
+        String[] g = folio.trim().split("-", -1);
+        if (g.length != GRUPOS_UUID.length)
+            return "tiene " + g.length + " grupos separados por guiones y van 5 (8-4-4-4-12)";
+        List<String> dif = new ArrayList<>();
+        for (int i = 0; i < g.length; i++) {
+            int d = g[i].trim().length() - GRUPOS_UUID[i];
+            if (d == 0) continue;
+            int k = Math.abs(d);
+            dif.add("al " + NOMBRE_GRUPO[i] + " grupo " + (d < 0 ? (k == 1 ? "le falta uno" : "le faltan " + k)
+                : (k == 1 ? "le sobra uno" : "le sobran " + k)));
+        }
+        return dif.isEmpty() ? null : String.join(" y ", dif);
     }
 
     /** What a text dato is written as: trimmed, spaces collapsed, in capitals as the
@@ -575,7 +598,16 @@ public class CalidadDatosService {
         if (texto == null) return null;
         String t = texto.trim().replaceAll("\\s+", " ");
         if (t.isEmpty()) return null;
+        if (dato == Dato.FOLIO || dato == Dato.FOLIO_REVISAR) return escribirFolio(t.replace(" ", ""));
         return t.toUpperCase(Locale.forLanguageTag("es-MX"));
+    }
+
+    /** As a folio fiscal is written: capitals, and an O as a zero, an I or an L as a one — only
+     *  0-9 and A-F go in a UUID (17-nov-2026: 7 folios had an O). Same length, so it can be
+     *  applied while typing. */
+    public static String escribirFolio(String texto) {
+        if (texto == null) return null;
+        return texto.toUpperCase(Locale.ROOT).replace('O', '0').replace('I', '1').replace('L', '1');
     }
 
     /** «MUEBLE» is what Patrimonio writes for every bien that is not a vehicle (243 of 249
@@ -767,7 +799,7 @@ public class CalidadDatosService {
     }
 
     /** As two ways of writing are compared: capitals, no accents, signs as spaces. */
-    static String claveTexto(String s) {
+    public static String claveTexto(String s) {
         if (s == null) return "";
         return java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
             .toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", " ").trim();

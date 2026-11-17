@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.31";
+    public static final String VERSION_NOVEDADES = "1.0.32";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,10 +119,16 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
+                "Primero lo más nuevo: leer el XML de la factura, copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
+            p.add(paso("mdi2f-file-code-outline", GUINDA, GUINDA_D, "El folio fiscal, sin teclearlo", "productos", "#btnEditar",
+                "Bajo el folio fiscal, «Leer el XML de la factura…»: eliges el XML y se llenan el folio fiscal, el número de factura, la fecha, el proveedor y el costo por pieza con su IVA",
+                "Solo llena lo que está vacío (un folio mal escrito sí lo cambia por el del XML) y dice abajo qué puso y qué dejó como estaba",
+                "Si la factura trae varios conceptos, toma el que se llama como el bien o te pregunta cuál es",
+                "Al escribir el folio a mano, la O se vuelve 0 y la I o la L se vuelven 1, y el aviso dice en qué grupo falta o sobra un carácter",
+                "Al guardar un folio mal escrito, pregunta si lo corriges o lo guardas así"));
             p.add(paso("mdi2c-content-copy", VERDE, VERDE_D, "Copiar lo del bien anterior", "productos", "#btnEditar",
                 "Al abrir el siguiente bien de una misma factura, junto a «Compra» dice «Copiar de TES/24: factura, folio fiscal, proveedor…»",
                 "Un clic (o Ctrl+D) llena esos datos con los del bien que guardaste antes: factura, folio fiscal, proveedor, fecha, color, tipo y vida útil",

@@ -50,10 +50,21 @@ class CompletarDatosTextoTest {
         assertNull(CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1-00155D012007"));
         assertNull(CalidadDatosService.problemaFolio("B9919A80CF6F11EDAA71AD3327DCEBEF"), "sin guiones también es UUID");
         assertNull(CalidadDatosService.problemaFolio("  "));
-        assertEquals("lleva la letra O donde va un cero; tiene 31 de los 32 caracteres",
+        assertEquals("lleva la letra O donde va un cero; tiene 31 de los 32 caracteres: al último grupo le falta uno",
             CalidadDatosService.problemaFolio("AAA1EC97-00B3-4CO7-B2E2-E1A11491D3E"));
-        assertEquals("tiene 31 de los 32 caracteres", CalidadDatosService.problemaFolio("444b81a-666e-4d4d-a4bd-d60bff0b3de3"));
-        assertEquals("tiene 28 de los 32 caracteres", CalidadDatosService.problemaFolio("ED65-589E-4CA0-B469-D7B9C7E69226"));
+        assertEquals("tiene 31 de los 32 caracteres: al primer grupo le falta uno",
+            CalidadDatosService.problemaFolio("444b81a-666e-4d4d-a4bd-d60bff0b3de3"));
+        assertEquals("tiene 28 de los 32 caracteres: al primer grupo le faltan 4",
+            CalidadDatosService.problemaFolio("ED65-589E-4CA0-B469-D7B9C7E69226"));
+        // 17-nov-2026: the commonest, the last group a character short; and one too many in the middle.
+        assertEquals("tiene 33 de los 32 caracteres: al cuarto grupo le sobra uno",
+            CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1A-00155D012007"));
+        assertEquals("tiene 4 grupos separados por guiones y van 5 (8-4-4-4-12)",
+            CalidadDatosService.problemaFolio("E2117159-960911EE-81C1-00155D012007"));
+        assertEquals("E2117159-9609-11EE-81C1-00155D012007", CalidadDatosService.escribirFolio("e2117159-96o9-11ee-81c1-0Ol55d012007"),
+            "la O es cero y la I o la L son uno");
+        assertEquals("E2117159-9609-11EE-81C1-00155D012007", CalidadDatosService.normalizarTexto(CalidadDatosService.Dato.FOLIO,
+            " e2117159-9609-11ee-81c1 -00155d0120o7 "));
         assertTrue(CalidadDatosService.problemaFolio("01329").startsWith("parece el número de la factura"));
         assertTrue(CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1-00155D01200G").contains("«G»"));
 
