@@ -1328,6 +1328,8 @@ public class ProductosController {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
                     GuardarBien.avisarSiFotoQuedoLocal(table.getScene(), p);
+                    // The next form offers to copy its purchase data («Copiar de …», Ctrl+D).
+                    com.sibim.controller.dialogs.BienAnterior.recordar(saved);
                     pendingHighlightId = saved.getId();
                     boolean aLaOtraPagina = hayOtraPagina && seguir != null && seguir.pedido();
                     if (aLaOtraPagina) {

@@ -14,6 +14,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Builds and holds all fields for the "Datos Patrimoniales" tab of the
  *  "Nuevo/Editar Bien" dialog.  Package-private — only used by
@@ -246,6 +247,14 @@ class ProductoTabPatrimonioFields {
         // where it is, its maintenance and the vehicle's papers.
         int rp = 0;
         rp = seccion("Compra", rp, false);
+        // «Copiar de PRES/12: …», beside the title (see ofrecerAnterior); next in the Tab order.
+        lnkAnterior.getStyleClass().add("field-hint");
+        lnkAnterior.setPadding(javafx.geometry.Insets.EMPTY);
+        lnkAnterior.setWrapText(true);
+        lnkAnterior.setVisible(false);
+        lnkAnterior.setManaged(false);
+        GridPane.setHalignment(lnkAnterior, javafx.geometry.HPos.RIGHT);
+        grid.add(lnkAnterior, 1, rp - 1);
         grid.add(DialogUtil.fieldLabelWithHelp("N° Factura",
             "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
                                                          0, rp); grid.add(fNumeroFactura, 1, rp++);
@@ -303,6 +312,101 @@ class ProductoTabPatrimonioFields {
 
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
     final Label avisoFolio = new Label();
+
+    /** Beside «Compra»: «Copiar de PRES/12: factura, folio…», then «Quitar lo copiado». */
+    final javafx.scene.control.Hyperlink lnkAnterior = new javafx.scene.control.Hyperlink();
+
+    /** What «Copiar» wrote, to put back: each field and what it had. */
+    private final List<Runnable> deshacerCopia = new java.util.ArrayList<>();
+
+    /** One dato «Copiar del anterior» fills: its name, whether this bien lacks it, whether the
+     *  other has it, and how it is copied (returning how to put it back). */
+    private record Copiable(String nombre, java.util.function.BooleanSupplier falta,
+                            java.util.function.Predicate<Producto> tiene,
+                            java.util.function.Function<Producto, Runnable> copiar) {}
+
+    private List<Copiable> copiables() {
+        return List.of(
+            texto("factura", fNumeroFactura, Producto::getNumeroFactura),
+            texto("folio fiscal", fFolioFiscal, Producto::getFolioFiscal),
+            texto("proveedor", fProveedor, Producto::getProveedor),
+            new Copiable("fecha", () -> fFechaAdq.getValue() == null, a -> a.getFechaAdquisicion() != null, a -> {
+                fFechaAdq.setValue(a.getFechaAdquisicion());
+                return () -> fFechaAdq.setValue(null);
+            }),
+            texto("color", fColor, Producto::getColor),
+            // The tipo the CONAC account proposed counts as empty: the bien before says it better.
+            new Copiable("tipo", () -> {
+                    String t = fTipoBien.getText() == null ? "" : fTipoBien.getText().trim();
+                    return t.isEmpty() || t.equals(tipoPropuesto);
+                }, a -> a.getTipoBien() != null && !a.getTipoBien().isBlank()
+                    && !a.getTipoBien().trim().equals(fTipoBien.getText() == null ? "" : fTipoBien.getText().trim()),
+                a -> {
+                    String antes = fTipoBien.getText();
+                    fTipoBien.setText(a.getTipoBien().trim());
+                    return () -> fTipoBien.setText(antes);
+                }),
+            new Copiable("vida útil", () -> vidaUtil() == null, a -> a.getVidaUtilAnios() != null, a -> {
+                fVidaUtil.getValueFactory().setValue(a.getVidaUtilAnios());
+                return () -> { fVidaUtil.getEditor().setText(""); fVidaUtil.getValueFactory().setValue(null); };
+            }));
+    }
+
+    private static Copiable texto(String nombre, TextField campo, java.util.function.Function<Producto, String> de) {
+        return new Copiable(nombre, () -> campo.getText() == null || campo.getText().isBlank(),
+            a -> de.apply(a) != null && !de.apply(a).isBlank(), a -> {
+                campo.setText(de.apply(a).trim());
+                return () -> campo.setText("");
+            });
+    }
+
+    /** «Copiar de PRES/12: …» beside «Compra», when the bien saved just before has purchase data
+     *  this one lacks; it fills only what is empty, and says from which bien. Ctrl+D does it too.
+     *  @param idEste this bien's id (the one just saved is not offered to itself) */
+    void ofrecerAnterior(Producto anterior, String idEste) {
+        Runnable explicar = () -> {
+            if (!deshacerCopia.isEmpty()) return;
+            List<String> que = anterior == null || Objects.equals(anterior.getId(), idEste) ? List.of()
+                : copiables().stream().filter(c -> c.falta().getAsBoolean() && c.tiene().test(anterior)).map(Copiable::nombre).toList();
+            boolean ver = !que.isEmpty();
+            lnkAnterior.setVisible(ver);
+            lnkAnterior.setManaged(ver);
+            if (ver) {
+                lnkAnterior.setText("Copiar de " + Objects.requireNonNullElse(anterior.getCodigo(), "el anterior") + ": "
+                    + enLista(que) + "  (Ctrl+D)");
+                lnkAnterior.setTooltip(new javafx.scene.control.Tooltip("Del bien que guardaste antes: "
+                    + Objects.requireNonNullElse(anterior.getNombre(), "") + ". Solo llena lo que está vacío."));
+            }
+        };
+        lnkAnterior.setOnAction(e -> {
+            if (!deshacerCopia.isEmpty()) {
+                // «Quitar lo copiado»: the fields as they were.
+                for (Runnable r : deshacerCopia) r.run();
+                deshacerCopia.clear();
+                explicar.run();
+                return;
+            }
+            if (anterior == null) return;
+            for (Copiable c : copiables())
+                if (c.falta().getAsBoolean() && c.tiene().test(anterior)) deshacerCopia.add(c.copiar().apply(anterior));
+            if (deshacerCopia.isEmpty()) { explicar.run(); return; }
+            lnkAnterior.setText("Quitar lo copiado de " + Objects.requireNonNullElse(anterior.getCodigo(), "el anterior")
+                + " (" + com.sibim.util.FormatUtils.plural(deshacerCopia.size(), "dato", "datos") + ")");
+            lnkAnterior.setTooltip(new javafx.scene.control.Tooltip("Deja vacío otra vez lo que se copió"));
+        });
+        explicar.run();
+    }
+
+    /** «factura, folio fiscal y proveedor». */
+    static String enLista(List<String> cosas) {
+        if (cosas.size() <= 1) return String.join("", cosas);
+        return String.join(", ", cosas.subList(0, cosas.size() - 1)) + " y " + cosas.get(cosas.size() - 1);
+    }
+
+    /** Ctrl+D in the form: copy (or put back) what «Copiar de …» says. */
+    void copiarAnterior() {
+        if (lnkAnterior.isVisible() && !lnkAnterior.isDisabled()) lnkAnterior.fire();
+    }
 
     /** Under the tipo de bien, while it says what the CONAC account proposed. */
     final Label lblTipoPropuesto = new Label("Propuesto por su clave CONAC; escribe otro si no es");

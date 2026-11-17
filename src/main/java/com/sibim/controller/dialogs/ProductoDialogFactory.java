@@ -171,6 +171,8 @@ public final class ProductoDialogFactory {
         patrimonioTab.ponerCosto(stockTab.etiquetaCosto, stockTab.cajaCosto);
         patrimonioTab.ofrecerResidual(stockTab.fPrecioC);
         patrimonioTab.sugerirColorYTipo(extras.colores(), extras.tipos());
+        if (com.sibim.session.Permisos.editaFichaCompleta())
+            patrimonioTab.ofrecerAnterior(BienAnterior.get(), existing != null ? existing.getId() : null);
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
@@ -478,6 +480,16 @@ public final class ProductoDialogFactory {
             } else if (!btnGuardar.isDisabled()) {
                 btnGuardar.fire();
             }
+        });
+        // Ctrl+D: «Copiar de …» (the purchase data of the bien saved just before), where it is seen.
+        dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.D || !e.isShortcutDown() || e.isShiftDown()) return;
+            e.consume();
+            if (tabs.getSelectionModel().getSelectedItem() != tabPatrimonio) {
+                if (isNewProduct) return;   // a new bien goes through its steps
+                tabs.getSelectionModel().select(tabPatrimonio);
+            }
+            patrimonioTab.copiarAnterior();
         });
         btnGuardar.setTooltip(new Tooltip("Guardar  (Ctrl+S)"));
         if (seguir != null && btnSeguir.getTooltip() != null)

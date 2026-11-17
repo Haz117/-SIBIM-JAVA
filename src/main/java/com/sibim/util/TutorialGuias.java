@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.29";
+    public static final String VERSION_NOVEDADES = "1.0.30";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,10 +119,16 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
+                "Primero lo más nuevo: copiar lo del bien anterior, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
+            p.add(paso("mdi2c-content-copy", VERDE, VERDE_D, "Copiar lo del bien anterior", "productos", "#btnEditar",
+                "Al abrir el siguiente bien de una misma factura, junto a «Compra» dice «Copiar de TES/24: factura, folio fiscal, proveedor…»",
+                "Un clic (o Ctrl+D) llena esos datos con los del bien que guardaste antes: factura, folio fiscal, proveedor, fecha, color, tipo y vida útil",
+                "Solo llena lo que está vacío; lo que ya tiene el bien no se toca",
+                "Si no era de la misma compra, «Quitar lo copiado» lo deja como estaba",
+                "Va muy bien con Ctrl+Shift+S, que guarda y abre el siguiente"));
             p.add(probar(paso("mdi2p-palette-outline", GUINDA, GUINDA_D, "El tipo y el color que ya se saben", "productos", "#btnMasBienes",
                 "Inicio › Por hacer › «Poner MUEBLE»: el tipo de bien a todos los que no lo tienen y, por su clave CONAC, no son vehículo; se deshace desde el aviso",
                 "Al abrir un bien sin tipo, ya viene escrito «MUEBLE» con la nota «Propuesto por su clave CONAC»; si es otro, escribe encima",
