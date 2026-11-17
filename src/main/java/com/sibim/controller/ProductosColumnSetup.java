@@ -195,8 +195,11 @@ class ProductosColumnSetup {
     static void configureStockYValor(TableColumn<Producto, Integer> colStock,
                                      TableColumn<Producto, String> colValor) {
         colStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockActual"));
-        colValor.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorUnitario())));
+        // «—» for a bien without its costo captured (1,089 on 17-nov-2026): «$0.00» read as worth nothing.
+        colValor.setCellValueFactory(c -> {
+            java.math.BigDecimal v = c.getValue().getValorUnitario();
+            return new javafx.beans.property.SimpleStringProperty(v == null || v.signum() == 0 ? "—" : FormatUtils.formatCurrency(v));
+        });
 
         colStock.setCellFactory(column -> new TableCell<>() {
             private final Label numLabel = new Label();

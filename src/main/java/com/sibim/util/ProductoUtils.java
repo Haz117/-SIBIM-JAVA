@@ -79,6 +79,27 @@ public final class ProductoUtils {
         return texto == null ? "" : texto.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
     }
 
+    /** Only letters and digits, in lower case: «A 667», «a-667» and «A667» are the same factura. */
+    public static String sinSignos(String texto) {
+        if (texto == null) return "";
+        return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+            .toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
+    /** Whether the bien's factura number or folio fiscal contains {@code q}: as written, or
+     *  without spaces and dashes (from three letters or digits, so «A» alone doesn't match all). */
+    public static boolean facturaContiene(com.sibim.model.Producto p, String q) {
+        if (q == null || q.isBlank()) return false;
+        String b = q.toLowerCase(java.util.Locale.ROOT);
+        String s = sinSignos(q);
+        for (String v : new String[]{p.getNumeroFactura(), p.getFolioFiscal()}) {
+            if (v == null || v.isBlank()) continue;
+            if (v.toLowerCase(java.util.Locale.ROOT).contains(b)) return true;
+            if (s.length() >= 3 && sinSignos(v).contains(s)) return true;
+        }
+        return false;
+    }
+
     /** Whether the bien's old number contains {@code q} (case and spaces ignored). */
     public static boolean anteriorContiene(com.sibim.model.Producto p, String q) {
         String n = inventarioAnterior(p);

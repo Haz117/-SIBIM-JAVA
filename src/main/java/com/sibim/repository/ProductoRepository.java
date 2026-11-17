@@ -93,10 +93,18 @@ public class ProductoRepository {
         if (f.soloSinEtiquetar()) conds.add("p.etiquetado = FALSE");
         if (f.busqueda() != null && !f.busqueda().isBlank()) {
             String like = Like.contiene(f.busqueda().toLowerCase());
+            // The factura's number and its folio fiscal too (17-nov-2026), also written without its
+            // spaces or dashes: «A667» finds «A 667», a UUID with or without its dashes.
+            String signos = ProductoUtils.sinSignos(f.busqueda());
             conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?"
+                + " OR LOWER(COALESCE(p.numero_factura,'')) LIKE ? OR LOWER(COALESCE(p.folio_fiscal,'')) LIKE ?"
+                + (signos.length() >= 3 ? " OR regexp_replace(LOWER(COALESCE(p.numero_factura,'')), '[^a-z0-9]', '', 'g') LIKE ?"
+                    + " OR regexp_replace(LOWER(COALESCE(p.folio_fiscal,'')), '[^a-z0-9]', '', 'g') LIKE ?" : "")
                 + " OR " + ANTERIOR_SQL + " LIKE ?)");
             params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
             params.add(like); params.add(like); params.add(like);
+            params.add(like); params.add(like);
+            if (signos.length() >= 3) { params.add(Like.contiene(signos)); params.add(Like.contiene(signos)); }
             params.add(Like.contiene(ProductoUtils.sinEspacios(f.busqueda())));
         }
         if (f.categoriaId() != null) { conds.add("p.categoria_id = ?"); params.add(f.categoriaId()); }
@@ -328,6 +336,7 @@ public class ProductoRepository {
                 || (p.getMarca() != null && p.getMarca().toLowerCase().contains(f.busqueda().toLowerCase()))
                 || (p.getModelo() != null && p.getModelo().toLowerCase().contains(f.busqueda().toLowerCase()))
                 || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || ProductoUtils.facturaContiene(p, f.busqueda())
                 || ProductoUtils.anteriorContiene(p, f.busqueda()))
             .filter(p -> f.categoriaId() == null || f.categoriaId().equals(p.getCategoriaId()))
             .filter(p -> f.area() == null || f.area().equals(p.getArea()))

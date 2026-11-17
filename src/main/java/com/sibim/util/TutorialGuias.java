@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.34";
+    public static final String VERSION_NOVEDADES = "1.0.35";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -131,7 +131,10 @@ final class TutorialGuias {
                 "En Resguardos, Bajas y las demás listas, los botones dicen «Exportar» y «Columnas» cuando caben",
                 "Las ventanas grandes (Transferir, Completar datos, Cambiar datos, el detalle de un resguardo) se abren a su ancho: antes se cortaban a 600 px",
                 "En Resguardos, los cancelados no se ven hasta que marcas «Ver cancelados», y el folio y el nombre se leen enteros; el detalle de un resguardo enseña más bienes a la vez",
-                "En Movimientos, el nombre del bien es la columna más ancha"));
+                "En Movimientos, el nombre del bien es la columna más ancha",
+                "El guinda es el del logo del Gobierno Municipal; el fondo es un gris cálido y los textos grises se leen mejor",
+                "En Bienes, las categorías llevan el texto oscuro y su color en el ícono, y un bien sin precio dice «—» en vez de «$0.00»",
+                "El buscador de Bienes también encuentra por número de factura o folio fiscal, con o sin espacios y guiones («A667» encuentra «A 667»)"));
             p.add(paso("mdi2f-file-code-outline", GUINDA, GUINDA_D, "El folio fiscal, sin teclearlo", "productos", "#btnEditar",
                 "Bajo el folio fiscal, «Leer el XML de la factura…»: eliges el XML y se llenan el folio fiscal, el número de factura, la fecha, el proveedor y el costo por pieza con su IVA",
                 "Solo llena lo que está vacío (un folio mal escrito sí lo cambia por el del XML) y dice abajo qué puso y qué dejó como estaba",

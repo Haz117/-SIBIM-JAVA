@@ -174,7 +174,7 @@
         <!-- Search stays in this row so collapsing the filters never hides it. -->
         <StackPane prefWidth="460" maxWidth="560" HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
-                       promptText="Buscar por nombre, código, número anterior, serie, marca, resguardante…"
+                       promptText="Buscar por nombre, código, número anterior, factura, serie, marca, resguardante…"
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false"

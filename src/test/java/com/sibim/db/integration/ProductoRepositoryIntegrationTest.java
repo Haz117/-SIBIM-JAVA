@@ -351,6 +351,39 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
         assertEquals(1, repo.countFiltrado(com.sibim.repository.ProductoFiltro.vacio().conBusqueda("adm-012")));
     }
 
+    /** 17-nov-2026: the search of Bienes finds by the factura's number and its folio fiscal, as
+     *  written or without its spaces and dashes; in PostgreSQL as in Java (offline). */
+    @Test
+    void busqueda_encuentraPorFacturaYFolioFiscal() throws SQLException {
+        Producto a = buildProducto(UUID.randomUUID().toString(), "Silla", "TES/24");
+        a.setNumeroFactura("A 667");
+        repo.saveOnline(a);
+        Producto b = buildProducto(UUID.randomUUID().toString(), "Mesa", "TES/25");
+        b.setFolioFiscal("9D23097F-A88A-4ADB-B318-300000000001");
+        repo.saveOnline(b);
+        Producto c = buildProducto(UUID.randomUUID().toString(), "Archivero", "TES/26");
+        c.setNumeroFactura("F-MR-003343");
+        repo.saveOnline(c);
+
+        java.util.function.Function<String, List<String>> buscar = q -> {
+            try {
+                return repo.findPaginated(com.sibim.repository.ProductoFiltro.vacio().conBusqueda(q), 50, 0)
+                    .stream().map(Producto::getCodigo).sorted().toList();
+            } catch (SQLException e) { throw new IllegalStateException(e); }
+        };
+        assertEquals(List.of("TES/24"), buscar.apply("A 667"));
+        assertEquals(List.of("TES/24"), buscar.apply("a667"), "sin el espacio");
+        assertEquals(List.of("TES/25"), buscar.apply("9d23097fa88a"), "el folio sin sus guiones");
+        assertEquals(List.of("TES/26"), buscar.apply("FMR003343"));
+        assertEquals(List.of("TES/26"), buscar.apply("f-mr-0033"));
+        assertEquals(1, repo.countFiltrado(com.sibim.repository.ProductoFiltro.vacio().conBusqueda("a667")));
+        // The same in Java, as the search works offline.
+        assertTrue(com.sibim.util.ProductoUtils.facturaContiene(a, "a-667"));
+        assertTrue(com.sibim.util.ProductoUtils.facturaContiene(b, "9D23097FA88A4ADB"));
+        assertFalse(com.sibim.util.ProductoUtils.facturaContiene(a, "zz"));
+        assertFalse(com.sibim.util.ProductoUtils.facturaContiene(c, "a6"), "dos letras sin signos no buscan sin signos");
+    }
+
     /** An old number several bienes had brings them all; a partial one brings none. */
     @Test
     void findByInventarioAnterior_exacto_yConRepetidos() throws SQLException {

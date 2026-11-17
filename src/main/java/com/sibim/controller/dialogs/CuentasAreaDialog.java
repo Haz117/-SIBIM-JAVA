@@ -142,6 +142,7 @@ public final class CuentasAreaDialog {
         crear.setMinWidth(Region.USE_PREF_SIZE);
         crear.setOnAction(e -> crearMarcadas());
         cuantas.getStyleClass().add("muted-sm");
+        cuantas.setMinWidth(Region.USE_PREF_SIZE);   // «Ninguna marcada» was cut to «Ningu…» by the note beside it
         Label nota = new Label("Al crearlas sale un PDF con una hoja para entregar a cada área (su usuario, su contraseña "
             + "y qué hacer el primer día) y una de control para ti: guárdalo, las contraseñas no se vuelven a ver.");
         nota.getStyleClass().add("muted-sm");

@@ -174,7 +174,7 @@ public final class ProductoDetailDialog {
         });
 
         VBox root = new VBox(14);
-        root.setPadding(new Insets(4, 20, 14, 20));
+        root.setPadding(new Insets(14, 20, 14, 20));   // the header card stuck to the window's top edge
 
         // ── Header card ────────────────────────────────────────────────
         HBox headerCard = new HBox(14);
