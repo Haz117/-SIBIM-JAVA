@@ -1,7 +1,7 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.service.CalidadDatosService;
-import com.sibim.service.CalidadDatosService.ProveedorRepetido;
+import com.sibim.service.CalidadDatosService.Repetido;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -19,63 +19,74 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.*;
 
-/** Bienes › Unir proveedores: one proveedor written in two ways («… SA DE CV» and without
- *  it, a name missing its last surname) becomes one, so the lists, the autocomplete and
- *  «Copiar datos de la misma factura» see one proveedor. Each way can be left out; undone
- *  from the notice. Laid out like «Quitar títulos». */
-public final class UnirProveedoresDialog {
+/** Bienes › Unir lo escrito de dos formas: a proveedor with and without «SA DE CV», a marca
+ *  as «SMITH WESSON» and «SMITH & WESSON», a color as «NEBRO», a tipo as «MUELE» become one
+ *  way, so the lists, the autocomplete and «Copiar datos de la misma factura» see one. Each
+ *  way can be left out; undone from the notice. Laid out like «Quitar títulos». */
+public final class UnirEscritosDialog {
 
     private final CalidadDatosService calidad = new CalidadDatosService();
-    private final List<ProveedorRepetido> repetidos;
+    private final List<Repetido> repetidos;
     private final Runnable alCambiar;
-    private final Map<ProveedorRepetido, SimpleBooleanProperty> elegidos = new LinkedHashMap<>();
+    private final Map<Repetido, SimpleBooleanProperty> elegidos = new LinkedHashMap<>();
     private final Button aplicar = new Button();
 
-    private UnirProveedoresDialog(List<ProveedorRepetido> repetidos, Runnable alCambiar) {
+    private UnirEscritosDialog(List<Repetido> repetidos, Runnable alCambiar) {
         this.repetidos = repetidos;
         this.alCambiar = alCambiar;
     }
 
-    /** @param alCambiar run when the proveedores changed (or were put back) */
-    public static void show(List<ProveedorRepetido> repetidos, Runnable alCambiar) {
-        new UnirProveedoresDialog(repetidos, alCambiar).abrir();
+    /** @param alCambiar run when something changed (or was put back) */
+    public static void show(List<Repetido> repetidos, Runnable alCambiar) {
+        new UnirEscritosDialog(repetidos, alCambiar).abrir();
     }
 
     private void abrir() {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Unir proveedores");
+        dialog.setTitle("Unir lo escrito de dos formas");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         javafx.geometry.Rectangle2D pantalla = javafx.stage.Screen.getPrimary().getVisualBounds();
-        dialog.getDialogPane().setPrefSize(Math.min(980, pantalla.getWidth() * 0.94), Math.min(560, pantalla.getHeight() * 0.88));
+        dialog.getDialogPane().setPrefSize(Math.min(1020, pantalla.getWidth() * 0.94), Math.min(580, pantalla.getHeight() * 0.88));
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
-        HBox header = DialogUtil.gradientHeader("mdi2s-store-outline", "Unir proveedores",
-            "Un mismo proveedor escrito de dos formas queda escrito de una", AppColors.PRIMARY, AppColors.PRIMARY_D);
+        HBox header = DialogUtil.gradientHeader("mdi2s-spellcheck", "Unir lo escrito de dos formas",
+            "Un mismo proveedor, marca, color o tipo escrito de dos formas queda escrito de una", AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         repetidos.forEach(r -> elegidos.put(r, new SimpleBooleanProperty(true)));
-        TableView<ProveedorRepetido> tabla = new TableView<>(FXCollections.observableArrayList(repetidos));
+        TableView<Repetido> tabla = new TableView<>(FXCollections.observableArrayList(repetidos));
         tabla.getStyleClass().add("data-table");
         tabla.setEditable(true);
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tabla.setPlaceholder(new Label("Cada proveedor está escrito de una sola forma"));
+        tabla.setPlaceholder(new Label("Cada dato está escrito de una sola forma"));
 
-        TableColumn<ProveedorRepetido, Boolean> si = new TableColumn<>("Unir");
+        TableColumn<Repetido, Boolean> si = new TableColumn<>("Unir");
         si.setCellValueFactory(c -> elegidos.get(c.getValue()));
         si.setCellFactory(CheckBoxTableCell.forTableColumn(si));
         si.setEditable(true);
         si.setPrefWidth(60);
         si.setMinWidth(60);
         si.setMaxWidth(70);
-        TableColumn<ProveedorRepetido, String> antes = columna("Se escribe así", 330, ProveedorRepetido::variante);
-        TableColumn<ProveedorRepetido, String> cuantos = columna("Bienes", 90, r -> String.valueOf(r.bienes()));
+        TableColumn<Repetido, String> dato = columna("Dato", 110, r -> r.campo().etiqueta);
+        dato.setMinWidth(100);
+        TableColumn<Repetido, String> antes = columna("Se escribe así", 300, Repetido::variante);
+        TableColumn<Repetido, String> cuantos = columna("Bienes", 90, r -> String.valueOf(r.bienes()));
         cuantos.setMinWidth(90);
-        TableColumn<ProveedorRepetido, String> queda = columna("Queda como", 380, ProveedorRepetido::queda);
-        tabla.getColumns().addAll(List.of(si, antes, cuantos, queda));
+        TableColumn<Repetido, String> queda = columna("Queda como", 340, Repetido::queda);
+        tabla.getColumns().addAll(List.of(si, dato, antes, cuantos, queda));
+        // Space ticks the row the keyboard is on, as in the other lists to pick from.
+        tabla.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.SPACE) return;
+            Repetido r = tabla.getSelectionModel().getSelectedItem();
+            if (r == null) return;
+            elegidos.get(r).set(!elegidos.get(r).get());
+            e.consume();
+        });
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
-        Label ayuda = new Label("Se queda la forma más completa del nombre. Cambia en todos los bienes que lo tienen escrito así. "
-            + "Quita la marca si no es el mismo proveedor.");
+        Label ayuda = new Label("En el proveedor se queda la forma más completa del nombre; en la marca, el color y el tipo, la que "
+            + "escriben más bienes, con sus acentos. Cambia en todos los bienes que lo tienen escrito así. "
+            + "Quita la marca si no es lo mismo (dos marcas que se parecen, por ejemplo).");
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
@@ -107,18 +118,18 @@ public final class UnirProveedoresDialog {
     }
 
     private void aplicar(Dialog<ButtonType> dialog) {
-        List<ProveedorRepetido> cuales = elegidos.entrySet().stream().filter(e -> e.getValue().get()).map(Map.Entry::getKey).toList();
+        List<Repetido> cuales = elegidos.entrySet().stream().filter(e -> e.getValue().get()).map(Map.Entry::getKey).toList();
         if (cuales.isEmpty()) return;
         Scene scene = dialog.getOwner() != null ? dialog.getOwner().getScene() : dialog.getDialogPane().getScene();
         aplicar.setDisable(true);
-        DialogUtil.runAsync(() -> calidad.unirProveedores(cuales),
+        DialogUtil.runAsync(() -> calidad.unirEscritos(cuales),
             hecho -> {
                 dialog.close();
                 if (alCambiar != null) alCambiar.run();
                 int bienes = hecho.stream().mapToInt(u -> u.ids().size()).sum();
-                NotificacionUtil.exitoConAccion(scene, "Proveedor unido en " + FormatUtils.plural(bienes, "bien", "bienes"),
-                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.separarProveedores(hecho),
-                        n -> { if (alCambiar != null) alCambiar.run(); NotificacionUtil.info(scene, "Los proveedores regresaron como estaban escritos"); },
+                NotificacionUtil.exitoConAccion(scene, "Escrito de una forma en " + FormatUtils.plural(bienes, "bien", "bienes"),
+                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.separarEscritos(hecho),
+                        n -> { if (alCambiar != null) alCambiar.run(); NotificacionUtil.info(scene, "Los datos regresaron como estaban escritos"); },
                         ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
             },
             ex -> {
@@ -127,9 +138,9 @@ public final class UnirProveedoresDialog {
             });
     }
 
-    private static TableColumn<ProveedorRepetido, String> columna(String titulo, double ancho,
-                                                                  java.util.function.Function<ProveedorRepetido, String> valor) {
-        TableColumn<ProveedorRepetido, String> c = new TableColumn<>(titulo);
+    private static TableColumn<Repetido, String> columna(String titulo, double ancho,
+                                                         java.util.function.Function<Repetido, String> valor) {
+        TableColumn<Repetido, String> c = new TableColumn<>(titulo);
         c.setCellValueFactory(cd -> new SimpleStringProperty(valor.apply(cd.getValue())));
         c.setPrefWidth(ancho);
         c.setEditable(false);

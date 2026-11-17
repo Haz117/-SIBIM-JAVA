@@ -423,6 +423,7 @@ public class ProductosController {
             case "fotos"     -> Platform.runLater(this::onFotosRepetidas);
             case "folio"     -> Platform.runLater(this::onFolioFiscal);
             case "proveedores" -> Platform.runLater(this::onUnirProveedores);
+            case "tipo"      -> Platform.runLater(this::onPonerMueble);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
@@ -654,15 +655,50 @@ public class ProductosController {
         conInventario(bienes -> com.sibim.controller.dialogs.JuntarBienesDialog.show(bienes, elegido, this::alCorregirDatos));
     }
 
+    /** Bienes › Más › «Unir lo escrito de dos formas»: proveedor, marca, color and tipo. */
     @FXML
     private void onUnirProveedores() {
         conInventario(bienes -> {
-            var repetidos = com.sibim.service.CalidadDatosService.proveedoresRepetidos(bienes);
+            var repetidos = com.sibim.service.CalidadDatosService.escritosDeDosFormas(bienes);
             if (repetidos.isEmpty()) {
-                NotificacionUtil.info(table.getScene(), "Cada proveedor está escrito de una sola forma");
+                NotificacionUtil.info(table.getScene(), "Cada proveedor, marca, color y tipo está escrito de una sola forma");
                 return;
             }
-            com.sibim.controller.dialogs.UnirProveedoresDialog.show(repetidos, this::alCorregirDatos);
+            com.sibim.controller.dialogs.UnirEscritosDialog.show(repetidos, this::alCorregirDatos);
+        });
+    }
+
+    /** Inicio › Por hacer › «Poner MUEBLE»: the tipo de bien their CONAC account gives, to every
+     *  bien in force without one, after saying how many of what; undone from the notice. */
+    private void onPonerMueble() {
+        conInventario(bienes -> {
+            List<Producto> estos = com.sibim.service.CalidadDatosService.sinTipoConSugerencia(bienes);
+            if (estos.isEmpty()) {
+                NotificacionUtil.info(table.getScene(), "Todos los bienes que no son vehículo ya tienen tipo de bien");
+                return;
+            }
+            java.util.Map<String, Long> porArea = estos.stream().collect(java.util.stream.Collectors.groupingBy(
+                p -> java.util.Objects.requireNonNullElse(p.getArea(), "Sin área"), java.util.stream.Collectors.counting()));
+            String areas = porArea.entrySet().stream().sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(6).map(e -> "• " + e.getKey() + ": " + e.getValue())
+                .collect(java.util.stream.Collectors.joining("\n")) + (porArea.size() > 6 ? "\n• y " + (porArea.size() - 6) + " áreas más" : "");
+            if (!com.sibim.util.ConfirmacionUtil.confirmar("Tipo de bien: MUEBLE",
+                    FormatUtils.plural(estos.size(), "bien no tiene", "bienes no tienen") + " tipo de bien y, por su clave CONAC, "
+                        + "no son vehículo:\n\n" + areas
+                        + "\n\nLlevan «MUEBLE», como los que ya lo tienen. Los vehículos no se tocan. ¿Ponerlo?", "Poner MUEBLE")) return;
+            com.sibim.service.CalidadDatosService calidad = new com.sibim.service.CalidadDatosService();
+            var dato = com.sibim.service.CalidadDatosService.Dato.TIPO;
+            javafx.scene.Scene scene = table.getScene();
+            DialogUtil.runAsyncWithProgress(scene, "Poniendo el tipo de bien…",
+                () -> calidad.asignarTextoIds(dato, "MUEBLE", estos),
+                ids -> {
+                    alCorregirDatos();
+                    NotificacionUtil.exitoConAccion(scene, "«MUEBLE» en " + FormatUtils.plural(ids.size(), "bien", "bienes"),
+                        "Deshacer", () -> DialogUtil.runAsync(() -> calidad.quitarTexto(dato, "MUEBLE", ids),
+                            m -> { alCorregirDatos(); NotificacionUtil.info(scene, FormatUtils.plural(m, "bien quedó", "bienes quedaron") + " sin tipo otra vez"); },
+                            ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                },
+                ex -> NotificacionUtil.error(scene, "No se puso el tipo de bien: " + com.sibim.util.MensajeError.de(ex)));
         });
     }
 

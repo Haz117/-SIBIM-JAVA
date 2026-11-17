@@ -582,7 +582,11 @@ public class CalidadDatosService {
      *  on 11-nov-2026, from furniture to computers and tools); a vehicle has its own kind
      *  (CAMIONETA, MOTOCICLETA…), so it gets no suggestion. Null without a CONAC account. */
     public static String tipoSugerido(Producto p) {
-        String clave = p.getClaveArmonizada();
+        return tipoSugerido(p.getClaveArmonizada());
+    }
+
+    /** {@link #tipoSugerido(Producto)} for a CONAC account (the bien's form, as it is typed). */
+    public static String tipoSugerido(String clave) {
         if (clave == null || clave.isBlank()) return null;
         String c = clave.trim();
         if (c.startsWith("1.2.4.4.1") || c.startsWith("1.2.4.4.2")) return null;
@@ -675,6 +679,165 @@ public class CalidadDatosService {
             "Se deshizo unir proveedores: " + com.sibim.util.FormatUtils.plural(n, "bien regresó", "bienes regresaron") + " a como estaban escritos");
         ProductosEnMemoria.invalidar();
         return n;
+    }
+
+    // ── Lo escrito de dos formas (proveedor, marca, color, tipo) ──────────────
+
+    /** A dato «Unir lo escrito de dos formas» looks at. */
+    public enum Campo {
+        PROVEEDOR("Proveedor", CalidadDatosRepository.CampoTexto.PROVEEDOR, Producto::getProveedor),
+        MARCA("Marca", CalidadDatosRepository.CampoTexto.MARCA, Producto::getMarca),
+        COLOR("Color", CalidadDatosRepository.CampoTexto.COLOR, Producto::getColor),
+        TIPO("Tipo de bien", CalidadDatosRepository.CampoTexto.TIPO_BIEN, Producto::getTipoBien);
+
+        public final String etiqueta;
+        final CalidadDatosRepository.CampoTexto campo;
+        final java.util.function.Function<Producto, String> leer;
+
+        Campo(String etiqueta, CalidadDatosRepository.CampoTexto campo, java.util.function.Function<Producto, String> leer) {
+            this.etiqueta = etiqueta;
+            this.campo = campo;
+            this.leer = leer;
+        }
+    }
+
+    /** One way {@code campo} is written that becomes {@code queda}, on {@code bienes} bienes. */
+    public record Repetido(Campo campo, String variante, int bienes, String queda) {}
+
+    /** What was changed, to undo it. */
+    public record Unido(Repetido cambio, List<String> ids) {}
+
+    /** Every dato written in two ways: the proveedores by their own rules ({@link #proveedoresRepetidos}),
+     *  the marca, color and tipo by {@link #parecidos}. */
+    public static List<Repetido> escritosDeDosFormas(List<Producto> bienes) {
+        List<Repetido> out = new ArrayList<>();
+        for (ProveedorRepetido r : proveedoresRepetidos(bienes))
+            out.add(new Repetido(Campo.PROVEEDOR, r.variante(), r.bienes(), r.queda()));
+        for (Campo c : List.of(Campo.MARCA, Campo.COLOR, Campo.TIPO)) out.addAll(parecidos(c, bienes));
+        return out;
+    }
+
+    /** One way of writing for each marca, color or tipo (13-nov-2026: «SMITH WESSON» 25 times
+     *  and «SMITH & WESSON» 79, «HECHO EN MEXICO» and «MÉXICO», «mueble», «TRUPPER», «NEBRO»,
+     *  «MUELE»…): the same letters without accents, capitals or signs; or a letter more, less,
+     *  changed or two swapped («STHIL» → «STIHL») when one way is used at least twice as much
+     *  — two letters apart are other brands (LENOVO and GENOVA, EPSON and EPCOM). What stays
+     *  is the way the most bienes write, with its accents. */
+    static List<Repetido> parecidos(Campo campo, List<Producto> bienes) {
+        Map<String, Integer> cuenta = new LinkedHashMap<>();
+        for (Producto p : bienes) {
+            String v = campo.leer.apply(p);
+            if (v != null && !v.isBlank() && !com.sibim.util.ProductoUtils.esSinDato(v)) cuenta.merge(v, 1, Integer::sum);
+        }
+        List<String> formas = new ArrayList<>(cuenta.keySet());
+        List<String> claves = formas.stream().map(CalidadDatosService::claveTexto).toList();
+        Map<String, Integer> porClave = new HashMap<>();
+        for (int i = 0; i < formas.size(); i++) porClave.merge(claves.get(i), cuenta.get(formas.get(i)), Integer::sum);
+        int[] grupo = new int[formas.size()];
+        for (int i = 0; i < grupo.length; i++) grupo[i] = i;
+        for (int i = 0; i < formas.size(); i++)
+            for (int j = i + 1; j < formas.size(); j++) {
+                String a = claves.get(i), b = claves.get(j);
+                if (a.isEmpty() || b.isEmpty()) continue;
+                boolean mismo = a.equals(b);
+                if (!mismo && Math.min(a.length(), b.length()) >= 4 && unaLetra(a, b)) {
+                    int ca = porClave.get(a), cb = porClave.get(b);
+                    mismo = Math.max(ca, cb) >= 2 * Math.min(ca, cb);
+                }
+                if (mismo) {
+                    int de = grupo[j], en = grupo[i];
+                    for (int k = 0; k < grupo.length; k++) if (grupo[k] == de) grupo[k] = en;
+                }
+            }
+        Map<Integer, List<String>> grupos = new LinkedHashMap<>();
+        for (int i = 0; i < formas.size(); i++) grupos.computeIfAbsent(grupo[i], k -> new ArrayList<>()).add(formas.get(i));
+        List<Repetido> out = new ArrayList<>();
+        for (List<String> g : grupos.values()) {
+            if (g.size() < 2) continue;
+            String queda = g.stream().max(Comparator.comparingInt((String s) -> porClave.get(claveTexto(s)))
+                .thenComparing(s -> !s.equals(java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")))
+                .thenComparingInt(cuenta::get)
+                .thenComparing(s -> s.equals(s.toUpperCase(Locale.ROOT)))
+                .thenComparing(Comparator.comparingInt((String s) -> s.length()).reversed())
+                .thenComparing(Comparator.<String>reverseOrder())).orElseThrow();
+            for (String v : g) if (!v.equals(queda)) out.add(new Repetido(campo, v, cuenta.get(v), queda));
+        }
+        out.sort(Comparator.comparing(Repetido::queda).thenComparing(Repetido::variante));
+        return out;
+    }
+
+    /** As two ways of writing are compared: capitals, no accents, signs as spaces. */
+    static String claveTexto(String s) {
+        if (s == null) return "";
+        return java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+            .toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", " ").trim();
+    }
+
+    /** One letter more, less or changed, or two next to each other swapped. */
+    static boolean unaLetra(String a, String b) {
+        if (Math.abs(a.length() - b.length()) > 1) return false;
+        int n = a.length(), m = b.length();
+        int[][] d = new int[n + 1][m + 1];
+        for (int i = 0; i <= n; i++) d[i][0] = i;
+        for (int j = 0; j <= m; j++) d[0][j] = j;
+        for (int i = 1; i <= n; i++)
+            for (int j = 1; j <= m; j++) {
+                int c = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                d[i][j] = Math.min(Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1), d[i - 1][j - 1] + c);
+                if (i > 1 && j > 1 && a.charAt(i - 1) == b.charAt(j - 2) && a.charAt(i - 2) == b.charAt(j - 1))
+                    d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+            }
+        return d[n][m] <= 1;
+    }
+
+    /** Writes each way as it {@code queda}, on every bien that had it.
+     *  @return what changed, for {@link #separarEscritos} */
+    public List<Unido> unirEscritos(List<Repetido> cambios) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<Unido> hecho = new ArrayList<>();
+        for (Repetido c : cambios) {
+            List<String> ids = repo.cambiarTexto(c.campo().campo, c.variante(), c.queda());
+            if (ids.isEmpty()) continue;
+            hecho.add(new Unido(c, ids));
+            audit.log("producto", ids.get(0), "Varios bienes: " + c.campo().etiqueta.toLowerCase(Locale.ROOT), "actualizar",
+                c.campo().etiqueta + " unido: «" + c.variante() + "» se escribe «" + c.queda() + "» en "
+                    + com.sibim.util.FormatUtils.plural(ids.size(), "bien", "bienes"));
+        }
+        ProductosEnMemoria.invalidar();
+        return hecho;
+    }
+
+    /** Undo of {@link #unirEscritos}, on the bienes that still say what it wrote. */
+    public int separarEscritos(List<Unido> hecho) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        int n = 0;
+        for (Unido u : hecho) n += repo.regresarTexto(u.cambio().campo().campo, u.ids(), u.cambio().variante(), u.cambio().queda());
+        if (n > 0 && !hecho.isEmpty()) audit.log("producto", hecho.get(0).ids().get(0), "Varios bienes: datos escritos de dos formas", "actualizar",
+            "Se deshizo unir lo escrito de dos formas: " + com.sibim.util.FormatUtils.plural(n, "bien regresó", "bienes regresaron") + " a como estaba escrito");
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
+    // ── Tipo de bien y color que ya se saben ──────────────────────────────────
+
+    /** The bienes in force without tipo de bien that their CONAC account says are «MUEBLE»
+     *  (13-nov-2026: 2,447 without tipo; «MUEBLE» typed by hand 351 times since 28-oct). */
+    public static List<Producto> sinTipoConSugerencia(List<Producto> bienes) {
+        return bienes.stream().filter(p -> p.getFechaBaja() == null && falta(p, Dato.TIPO) && tipoSugerido(p) != null).toList();
+    }
+
+    /** The bienes in force without color whose name or description says it, with that color
+     *  (13-nov-2026: 820 of 2,493; it agreed with 125 of the 139 colors typed by hand). */
+    public static Map<Producto, String> coloresDelNombre(List<Producto> bienes) {
+        Map<Producto, String> out = new LinkedHashMap<>();
+        for (Producto p : bienes) {
+            if (p.getFechaBaja() != null || !falta(p, Dato.COLOR)) continue;
+            String c = com.sibim.util.ColorEnNombre.de(p.getNombre(), p.getDescripcion());
+            if (c != null) out.put(p, c);
+        }
+        return out;
     }
 
     // ── Número de factura escrito en «Folio fiscal» ───────────────────────────
@@ -776,21 +939,65 @@ public class CalidadDatosService {
     /** One text dato for several bienes at once; a bien that has its own keeps it.
      *  @return how many took it */
     public int asignarTexto(Dato dato, String valor, List<Producto> bienes) throws SQLException {
+        return asignarTextoIds(dato, valor, bienes).size();
+    }
+
+    /** {@link #asignarTexto}, saying which bienes took it, for {@link #quitarTexto}. */
+    public List<String> asignarTextoIds(Dato dato, String valor, List<Producto> bienes) throws SQLException {
         soloPatrimonio();
         conConexion();
         // Each wrong folio is its own: never one value for all of them.
-        if (!dato.esTexto() || dato == Dato.FOLIO_REVISAR || valor == null || valor.isBlank()) return 0;
+        if (!dato.esTexto() || dato == Dato.FOLIO_REVISAR || valor == null || valor.isBlank()) return List.of();
         List<Producto> sin = bienes.stream().filter(p -> falta(p, dato)).toList();
-        if (sin.isEmpty()) return 0;
-        int n = repo.asignarTexto(dato.campo, valor, sin.stream().map(Producto::getId).toList());
-        if (n > 0) {
+        if (sin.isEmpty()) return List.of();
+        List<String> ids = repo.asignarTextoIds(dato.campo, valor, sin.stream().map(Producto::getId).toList());
+        if (!ids.isEmpty()) {
             String codigos = sin.stream().limit(60).map(p -> Objects.requireNonNullElse(p.getCodigo(), p.getId()))
                 .collect(Collectors.joining(", ")) + (sin.size() > 60 ? " y " + (sin.size() - 60) + " más" : "");
             String que = dato.etiqueta.replaceFirst("^Sin ", "");
             audit.log("producto", sin.get(0).getId(), "Varios bienes: " + que, "actualizar",
-                que.substring(0, 1).toUpperCase() + que.substring(1) + " «" + valor + "», capturado a la vez para " + n + " bienes: " + codigos);
+                que.substring(0, 1).toUpperCase() + que.substring(1) + " «" + valor + "», capturado a la vez para " + ids.size() + " bienes: " + codigos);
         }
         ProductosEnMemoria.invalidar();
+        return ids;
+    }
+
+    /** Undo of {@link #asignarTextoIds}: those bienes empty again, if they still say {@code valor}.
+     *  @return how many went back */
+    public int quitarTexto(Dato dato, String valor, List<String> ids) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        if (!dato.esTexto() || ids.isEmpty()) return 0;
+        int n = repo.quitarTexto(dato.campo, valor, ids);
+        if (n > 0) {
+            String que = dato.etiqueta.replaceFirst("^Sin ", "");
+            audit.log("producto", ids.get(0), "Varios bienes: " + que, "actualizar",
+                "Se deshizo " + que + " «" + valor + "»: " + com.sibim.util.FormatUtils.plural(n, "bien quedó", "bienes quedaron") + " sin ese dato otra vez");
+        }
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
+    /** Several bienes, each with its own value of {@code dato} (the colors taken from the
+     *  names): one call per value. @return what each value was written on, for {@link #quitarTextos} */
+    public Map<String, List<String>> asignarTextos(Dato dato, Map<Producto, String> valores) throws SQLException {
+        Map<String, List<Producto>> porValor = new LinkedHashMap<>();
+        valores.forEach((p, v) -> {
+            String limpio = normalizarTexto(dato, v);
+            if (limpio != null) porValor.computeIfAbsent(limpio, k -> new ArrayList<>()).add(p);
+        });
+        Map<String, List<String>> hecho = new LinkedHashMap<>();
+        for (var e : porValor.entrySet()) {
+            List<String> ids = asignarTextoIds(dato, e.getKey(), e.getValue());
+            if (!ids.isEmpty()) hecho.put(e.getKey(), ids);
+        }
+        return hecho;
+    }
+
+    /** Undo of {@link #asignarTextos}. @return how many went back */
+    public int quitarTextos(Dato dato, Map<String, List<String>> hecho) throws SQLException {
+        int n = 0;
+        for (var e : hecho.entrySet()) n += quitarTexto(dato, e.getKey(), e.getValue());
         return n;
     }
 
@@ -810,8 +1017,10 @@ public class CalidadDatosService {
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
         agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
             "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
-        agregar(out, proveedoresRepetidos(bienes).size(), "proveedores escritos de dos formas",
-            "Unir proveedores", "productos", "proveedores");
+        agregar(out, escritosDeDosFormas(bienes).size(), "proveedores, marcas, colores o tipos escritos de dos formas",
+            "Unirlos", "productos", "proveedores");
+        agregar(out, sinTipoConSugerencia(bienes).size(), "bienes sin tipo de bien que por su clave CONAC son «MUEBLE»",
+            "Poner MUEBLE", "productos", "tipo");
         agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
             "Pasarlo a su lugar", "productos", "folio");
         agregar(out, cuantos(bienes, Dato.FOLIO_REVISAR), "folios fiscales mal escritos", "Revisarlos",

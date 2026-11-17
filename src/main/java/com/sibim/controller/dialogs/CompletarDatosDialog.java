@@ -438,19 +438,82 @@ public final class CompletarDatosDialog {
                 "«" + valor + "» como " + que + " a " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " de " + area
                     + (buscar.getText().isBlank() ? "" : " que coinciden con «" + buscar.getText().trim() + "»") + ":\n\n" + muestra
                     + "\n\nSolo a los que no lo tienen. ¿Aplicar?", boton)) return;
-        DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Guardando…",
-            () -> calidad.asignarTexto(dato, valor, bienes),
-            n -> {
-                for (Fila f : sin) { CalidadDatosService.poner(f.producto, dato, valor); f.guardado = true; }
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Guardando…",
+            () -> calidad.asignarTextoIds(dato, valor, bienes),
+            ids -> {
+                Set<String> tomaron = new HashSet<>(ids);
+                List<Fila> hechas = sin.stream().filter(f -> tomaron.contains(f.producto.getId())).toList();
+                for (Fila f : hechas) { CalidadDatosService.poner(f.producto, dato, valor); f.guardado = true; }
                 cambio = true;
                 aniosTodos.clear();
-                NotificacionUtil.exito(dialog.getDialogPane().getScene(), FormatUtils.plural(n, "bien actualizado", "bienes actualizados"));
                 cargarAreas();
                 refiltrar();
                 actualizarConteos();
                 lista.refresh();
+                // Many bienes at once: one click puts them back (13-nov-2026, «MUEBLE» to 2,000 at a time).
+                NotificacionUtil.exitoConAccion(scene, FormatUtils.plural(ids.size(), "bien actualizado", "bienes actualizados"),
+                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.quitarTexto(dato, valor, ids),
+                        n -> {
+                            for (Fila f : hechas) { CalidadDatosService.poner(f.producto, dato, null); f.guardado = false; }
+                            cargarAreas();
+                            refiltrar();
+                            actualizarConteos();
+                            lista.refresh();
+                            NotificacionUtil.info(scene, FormatUtils.plural(n, "bien quedó", "bienes quedaron") + " como estaba");
+                        },
+                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
             },
-            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
+            e -> NotificacionUtil.error(scene, "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
+    }
+
+    /** The rows of what is chosen without color whose name or description says it, with that color. */
+    private Map<Fila, String> conColorEnNombre() {
+        Map<Fila, String> out = new LinkedHashMap<>();
+        for (Fila f : delArea()) {
+            if (f.guardado || f.guardando || !CalidadDatosService.falta(f.producto, Dato.COLOR)) continue;
+            String c = com.sibim.util.ColorEnNombre.de(f.producto.getNombre(), f.producto.getDescripcion());
+            if (c != null) out.put(f, c);
+        }
+        return out;
+    }
+
+    /** «Tomar el color del nombre»: each one with its color, reviewed before saving; undone from the notice. */
+    private void tomarColores() {
+        Map<Fila, String> propuestos = conColorEnNombre();
+        if (propuestos.isEmpty()) return;
+        Map<Producto, String> porBien = new LinkedHashMap<>();
+        propuestos.forEach((f, c) -> porBien.put(f.producto, c));
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        ColoresDelNombreDialog.show(porBien).ifPresent(elegidos -> DialogUtil.runAsyncWithProgress(scene, "Guardando los colores…",
+            () -> calidad.asignarTextos(Dato.COLOR, elegidos),
+            hecho -> {
+                Set<String> ids = new HashSet<>();
+                hecho.forEach((color, deEse) -> ids.addAll(deEse));
+                for (Fila f : propuestos.keySet())
+                    if (ids.contains(f.producto.getId())) {
+                        f.producto.setColor(CalidadDatosService.normalizarTexto(Dato.COLOR, elegidos.get(f.producto)));
+                        f.guardado = true;
+                    }
+                cambio = true;
+                cargarAreas();
+                refiltrar();
+                actualizarConteos();
+                lista.refresh();
+                NotificacionUtil.exitoConAccion(scene, "Color tomado del nombre en " + FormatUtils.plural(ids.size(), "bien", "bienes"),
+                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.quitarTextos(Dato.COLOR, hecho),
+                        n -> {
+                            for (Fila f : propuestos.keySet())
+                                if (ids.contains(f.producto.getId())) { f.producto.setColor(null); f.guardado = false; }
+                            cargarAreas();
+                            refiltrar();
+                            actualizarConteos();
+                            lista.refresh();
+                            NotificacionUtil.info(scene, FormatUtils.plural(n, "bien quedó", "bienes quedaron") + " sin color otra vez");
+                        },
+                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+            },
+            ex -> NotificacionUtil.error(scene, "No se guardaron los colores: " + com.sibim.util.MensajeError.de(ex))));
     }
 
     /** The rows of what is chosen that can take «MUEBLE» (all but vehicles), by their CONAC account. */
@@ -491,6 +554,19 @@ public final class CompletarDatosDialog {
             ver(barraConac, n > 0);
             if (n > 0) textoConac.setText(FormatUtils.plural(n, "bien de lo elegido no es", "bienes de lo elegido no son")
                 + " vehículo según su clave CONAC: llevan «MUEBLE», como los demás.");
+            actualizarTodos();
+            return;
+        }
+        if (datoElegido() == Dato.COLOR) {
+            // 13-nov-2026: 820 bienes without color had it in their name («… COLOR NEGRO»).
+            int n = conColorEnNombre().size();
+            ver(barraConac, n > 0);
+            if (n > 0) {
+                textoConac.setText(FormatUtils.plural(n, "bien de lo elegido trae", "bienes de lo elegido traen")
+                    + " el color escrito en su nombre o descripción.");
+                revisarConac.setText("Tomar el color del nombre");
+                revisarConac.setGraphic(new FontIcon("mdi2p-palette-outline"));
+            }
             actualizarTodos();
             return;
         }
@@ -559,6 +635,7 @@ public final class CompletarDatosDialog {
 
     private void aplicarConac() {
         if (datoElegido() == Dato.FOLIO_REVISAR) { pasarNumerosAFactura(); return; }
+        if (datoElegido() == Dato.COLOR) { tomarColores(); return; }
         if (datoElegido() == Dato.TIPO) {
             List<Fila> sugeridos = conTipoSugerido();
             if (!sugeridos.isEmpty()) aplicarTexto(Dato.TIPO, "MUEBLE", sugeridos, "Tipo de bien según CONAC", "Aplicar");

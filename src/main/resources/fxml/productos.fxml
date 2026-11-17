@@ -65,8 +65,8 @@
                 <MenuItem fx:id="btnFolioFiscal" text="Folio fiscal a su lugar" onAction="#onFolioFiscal">
                     <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline"/></graphic>
                 </MenuItem>
-                <MenuItem fx:id="btnUnirProveedores" text="Unir proveedores" onAction="#onUnirProveedores">
-                    <graphic><FontIcon iconLiteral="mdi2s-store-outline"/></graphic>
+                <MenuItem fx:id="btnUnirProveedores" text="Unir lo escrito de dos formas" onAction="#onUnirProveedores">
+                    <graphic><FontIcon iconLiteral="mdi2s-spellcheck"/></graphic>
                 </MenuItem>
                 <MenuItem fx:id="btnJuntarBienes" text="Son el mismo bien (juntar dos registros)…" onAction="#onJuntarBienes">
                     <graphic><FontIcon iconLiteral="mdi2c-call-merge"/></graphic>

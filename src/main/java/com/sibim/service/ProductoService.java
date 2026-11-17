@@ -262,6 +262,8 @@ public class ProductoService {
     public List<String> getModelos()      { return productoRepo.findDistinctModelos(); }
     public List<String> getProveedores()  { return productoRepo.findDistinctProveedores(); }
     public List<String> getUbicaciones()  { return productoRepo.findDistinctUbicaciones(); }
+    public List<String> getColores()      { return productoRepo.findDistinctColores(); }
+    public List<String> getTiposBien()    { return productoRepo.findDistinctTiposBien(); }
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         return productoRepo.existsByCodigo(codigo, excludeId);

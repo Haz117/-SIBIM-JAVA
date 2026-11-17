@@ -199,6 +199,14 @@ class ProductoTabPatrimonioFields {
                 ? existing.getTipoBien() : "");
         fTipoBien.setPromptText("Ej. 3/2 ton, Camioneta, Oficina");
         fTipoBien.getStyleClass().add("form-input");
+        // «MUEBLE» was typed by hand 351 times from 28-oct to 13-nov-2026 (and «MUELE», «mueble»,
+        // a color): the CONAC account already says it, so an empty tipo comes written, and it
+        // follows the account while nobody writes another.
+        lblTipoPropuesto.getStyleClass().addAll("field-hint", "muted-sm");
+        lblTipoPropuesto.setWrapText(true);
+        fClaveArm.textProperty().addListener((o, a, b) -> proponerTipo());
+        fTipoBien.textProperty().addListener((o, a, b) -> verTipoPropuesto());
+        proponerTipo();
 
         fNoMotor = new TextField(existing != null && existing.getNoMotor() != null
                 ? existing.getNoMotor() : "");
@@ -262,7 +270,7 @@ class ProductoTabPatrimonioFields {
 
         rp = seccion("El bien", rp, true);
         grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
-        grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(fTipoBien, 1, rp++);
+        grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(new javafx.scene.layout.VBox(2, fTipoBien, lblTipoPropuesto), 1, rp++);
         grid.add(DialogUtil.fieldLabel("Marca"),         0, rp); grid.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
         grid.add(DialogUtil.fieldLabel("Modelo"),        0, rp); grid.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
         grid.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); grid.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
@@ -295,6 +303,40 @@ class ProductoTabPatrimonioFields {
 
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
     final Label avisoFolio = new Label();
+
+    /** Under the tipo de bien, while it says what the CONAC account proposed. */
+    final Label lblTipoPropuesto = new Label("Propuesto por su clave CONAC; escribe otro si no es");
+
+    /** What the form wrote as tipo by itself (null when nothing): replaced if the account
+     *  changes, never once someone wrote another. */
+    private String tipoPropuesto;
+
+    /** An empty tipo — or the one this form proposed — takes what the CONAC account says
+     *  («MUEBLE», nothing for a vehicle). */
+    private void proponerTipo() {
+        String sugerido = com.sibim.service.CalidadDatosService.tipoSugerido(fClaveArm.getText());
+        String actual = fTipoBien.getText() == null ? "" : fTipoBien.getText().trim();
+        if (actual.isEmpty() || actual.equals(tipoPropuesto)) {
+            String nuevo = sugerido == null ? "" : sugerido;
+            tipoPropuesto = sugerido;
+            if (!nuevo.equals(actual)) fTipoBien.setText(nuevo);
+        }
+        verTipoPropuesto();
+    }
+
+    private void verTipoPropuesto() {
+        String t = fTipoBien.getText() == null ? "" : fTipoBien.getText().trim();
+        boolean ver = tipoPropuesto != null && t.equals(tipoPropuesto);
+        lblTipoPropuesto.setVisible(ver);
+        lblTipoPropuesto.setManaged(ver);
+    }
+
+    /** The colors and tipos already written, offered while typing, as the marca and the
+     *  proveedor are (13-nov-2026: «NEBRO», «MELEMINA CAFE», «MUELE» were typed by hand). */
+    void sugerirColorYTipo(List<String> colores, List<String> tipos) {
+        AutocompleteUtil.attach(fColor, colores);
+        AutocompleteUtil.attach(fTipoBien, tipos);
+    }
 
     /** Under the valor residual: «Poner el 15 % del costo: $X» (see {@link #ofrecerResidual}). */
     final javafx.scene.control.Hyperlink lnkResidual = new javafx.scene.control.Hyperlink();

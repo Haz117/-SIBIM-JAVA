@@ -236,6 +236,8 @@ public class ProductoRepository {
     public List<String> findDistinctModelos()     { return findDistinctField("modelo", Producto::getModelo); }
     public List<String> findDistinctProveedores() { return findDistinctField("proveedor", Producto::getProveedor); }
     public List<String> findDistinctUbicaciones() { return findDistinctField("ubicacion", Producto::getUbicacion); }
+    public List<String> findDistinctColores()     { return findDistinctField("color", Producto::getColor); }
+    public List<String> findDistinctTiposBien()   { return findDistinctField("tipo_bien", Producto::getTipoBien); }
 
     /** Suggestions for an autocomplete field: the values used in the caller's
      *  áreas, most used first. (The first 120 in alphabetical order, from every

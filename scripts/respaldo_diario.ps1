@@ -50,13 +50,14 @@
 
 .PARAMETER Registrar
     Registra una tarea programada de Windows que ejecuta este script todos los
-    días a la -Hora indicada (por defecto 11:00) y también 10 minutos después
-    de iniciar sesión, con -UnoPorDia, la cuenta actual y los mismos -Destino,
-    -DiasRetencion, -SinFotos y -CopiaEn, y hace un primer respaldo en ese
-    momento para comprobar que funciona. Corre con la ventana oculta, para que
-    nadie la cierre a medio respaldo. El disparo al iniciar sesión es el que
-    cuenta en una PC que se apaga antes de la hora: Windows no siempre recupera
-    la ejecución perdida al volver a encenderla (con 14:00 nunca corrió).
+    días a la -Hora indicada (por defecto 11:00), 10 minutos después de iniciar
+    sesión y 15 minutos después de salir de suspensión, con -UnoPorDia, la
+    cuenta actual y los mismos -Destino, -DiasRetencion, -SinFotos y -CopiaEn,
+    y hace un primer respaldo en ese momento para comprobar que funciona. Corre
+    sin ventana (conhost --headless), para que nadie la cierre a medio
+    respaldo. Los disparos al iniciar sesión y al salir de suspensión son los
+    que cuentan en una PC que se apaga o suspende antes de la hora: Windows no
+    siempre recupera la ejecución perdida (con 14:00 nunca corrió).
 
 .EXAMPLE
     .\scripts\respaldo_diario.ps1
@@ -97,14 +98,25 @@ if ($Registrar) {
     $argumentos = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Destino `"$Destino`" -DiasRetencion $DiasRetencion -UnoPorDia"
     if ($SinFotos) { $argumentos += " -SinFotos" }
     if ($CopiaEn)  { $argumentos += " -CopiaEn `"$CopiaEn`"" }
-    $accion = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argumentos
+    # Sin ninguna ventana: en Windows 11 la terminal es Windows Terminal, que no respeta
+    # -WindowStyle Hidden; la ventana salía al iniciar sesión, se cerraba y el respaldo moría
+    # con 0xC000013A sin dejar registro (9, 12 y 17-nov-2026). conhost --headless no abre
+    # ventana. El código de salida ya no llega a la tarea (siempre 0): el resultado queda en
+    # logs\respaldo.log y, si se atrasa, lo avisa Inicio › Por hacer.
+    $accion = New-ScheduledTaskAction -Execute (Join-Path $env:WINDIR "System32\conhost.exe") -Argument "--headless powershell.exe $argumentos"
     $alIniciarSesion = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
     $alIniciarSesion.Delay = "PT10M"
-    $disparadores = @((New-ScheduledTaskTrigger -Daily -At $Hora), $alIniciarSesion)
+    # Y 15 minutos después de que la PC sale de suspensión: la de Patrimonio se suspende cada
+    # tarde y se despierta en la mañana sin que siempre haya un inicio de sesión.
+    $alReanudar = New-CimInstance -ClientOnly -CimClass (Get-CimClass -Namespace "Root/Microsoft/Windows/TaskScheduler" -ClassName "MSFT_TaskEventTrigger")
+    $alReanudar.Enabled = $true
+    $alReanudar.Delay = "PT15M"
+    $alReanudar.Subscription = '<QueryList><Query Id="0" Path="System"><Select Path="System">*[System[Provider[@Name=''Microsoft-Windows-Power-Troubleshooter''] and (EventID=1)]]</Select></Query></QueryList>'
+    $disparadores = @((New-ScheduledTaskTrigger -Daily -At $Hora), $alIniciarSesion, $alReanudar)
     $ajustes = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
     Register-ScheduledTask -TaskName "SIBIM - respaldo diario" -Action $accion -Trigger $disparadores `
         -Settings $ajustes -Description "pg_dump de la base de SIBIM y sus fotos (scripts\respaldo_diario.ps1)" -Force | Out-Null
-    Write-Host "Tarea 'SIBIM - respaldo diario' registrada: todos los días a las $Hora y al iniciar sesión (una vez al día)."
+    Write-Host "Tarea 'SIBIM - respaldo diario' registrada: todos los días a las $Hora, al iniciar sesión y al salir de suspensión (una vez al día)."
     Write-Host "Primer respaldo, para comprobar que funciona..."
 } elseif ($UnoPorDia -and (Test-Path $Destino) -and
           (Get-ChildItem $Destino -Filter ("sibim-{0}-*.dump" -f (Get-Date -Format "yyyyMMdd")))) {

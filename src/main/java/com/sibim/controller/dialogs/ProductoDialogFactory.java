@@ -51,10 +51,16 @@ public final class ProductoDialogFactory {
      *  Read with {@link #cargarExtras} off the FX thread — five round-trips to
      *  the server froze the window for a second or two on every open. */
     public record Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
-                         List<String> ubicaciones, String folioResguardo, List<String> resguardantes) {
+                         List<String> ubicaciones, String folioResguardo, List<String> resguardantes,
+                         List<String> colores, List<String> tipos) {
         public Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
                       List<String> ubicaciones, String folioResguardo) {
             this(marcas, modelos, proveedores, ubicaciones, folioResguardo, List.of());
+        }
+
+        public Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
+                      List<String> ubicaciones, String folioResguardo, List<String> resguardantes) {
+            this(marcas, modelos, proveedores, ubicaciones, folioResguardo, resguardantes, List.of(), List.of());
         }
     }
 
@@ -79,7 +85,8 @@ public final class ProductoDialogFactory {
             log.debug("No se pudieron leer los resguardantes para sugerirlos", e);
         }
         return new Extras(productoService.getMarcas(), productoService.getModelos(),
-            productoService.getProveedores(), productoService.getUbicaciones(), folio, resguardantes);
+            productoService.getProveedores(), productoService.getUbicaciones(), folio, resguardantes,
+            productoService.getColores(), productoService.getTiposBien());
     }
 
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
@@ -163,6 +170,7 @@ public final class ProductoDialogFactory {
         // The costo is captured with the factura, in «Datos Patrimoniales › Compra».
         patrimonioTab.ponerCosto(stockTab.etiquetaCosto, stockTab.cajaCosto);
         patrimonioTab.ofrecerResidual(stockTab.fPrecioC);
+        patrimonioTab.sugerirColorYTipo(extras.colores(), extras.tipos());
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();

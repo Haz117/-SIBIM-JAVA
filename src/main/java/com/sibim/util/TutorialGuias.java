@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.28";
+    public static final String VERSION_NOVEDADES = "1.0.29";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,10 +119,22 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: cambiar los datos de varios bienes a la vez, separar un área en una nueva y el tamaño del texto; luego lo de la versión anterior",
+                "Primero lo más nuevo: el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
+            p.add(probar(paso("mdi2p-palette-outline", GUINDA, GUINDA_D, "El tipo y el color que ya se saben", "productos", "#btnMasBienes",
+                "Inicio › Por hacer › «Poner MUEBLE»: el tipo de bien a todos los que no lo tienen y, por su clave CONAC, no son vehículo; se deshace desde el aviso",
+                "Al abrir un bien sin tipo, ya viene escrito «MUEBLE» con la nota «Propuesto por su clave CONAC»; si es otro, escribe encima",
+                "Completar datos › Sin color › «Tomar el color del nombre»: el color que ya dice su nombre o descripción («… COLOR NEGRO»); revisas la lista, quitas o cambias el que no sea, y se deshace desde el aviso",
+                "En el formulario, el color y el tipo te sugieren lo ya escrito mientras tecleas, como la marca y el proveedor"),
+                "Abrir Completar datos", abrir("productos", "completar:COLOR")));
+            p.add(probar(paso("mdi2s-spellcheck", DORADO, DORADO_D, "Lo escrito de dos formas", "productos", "#btnMasBienes",
+                "Bienes › Más › «Unir lo escrito de dos formas» (antes «Unir proveedores»): ahora también marcas, colores y tipos",
+                "Por ejemplo «SMITH WESSON» y «SMITH & WESSON», «STHIL» y «STIHL», «AMARRILLO», «NEBRO», «MUELE» o «mueble»",
+                "Quita la marca a lo que no sea lo mismo (dos marcas que se parecen); todo se deshace desde el aviso",
+                "«Poner a todos» de Completar datos también se deshace ahora desde el aviso"),
+                "Revisar", abrir("productos", "proveedores")));
             p.add(paso("mdi2p-pencil-box-multiple-outline", GUINDA, GUINDA_D, "Cambiar datos de varios bienes a la vez", "productos", "#table",
                 "Marca varios bienes en la tabla (Ctrl o Shift + clic) y en la barra de abajo pulsa «Cambiar datos»",
                 "Llena solo lo que cambia: proveedor, factura, folio fiscal, fecha, costo, vida útil, valor residual, color, tipo, marca, modelo o ubicación; lo vacío no se toca",
@@ -195,14 +207,14 @@ final class TutorialGuias {
                 "Completar datos › «Folio fiscal por revisar»: cada folio con una O por un cero o un carácter de menos dice qué tiene mal; lo corriges con la factura a la vista y Enter pasa al siguiente",
                 "Si lo que quedó en «Folio fiscal» es el número de la factura («01329», «AAA4B»), «Pasarlos a N° Factura» lo pone en su lugar, y así «misma factura» reconoce esas compras",
                 "En el formulario del bien, un folio fiscal con otra forma se avisa al escribirlo",
-                "Bienes › Más › «Unir proveedores»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una; todo se deshace desde el aviso"),
+                "Bienes › Más › «Unir lo escrito de dos formas»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una; todo se deshace desde el aviso"),
                 "Revisar los folios", abrir("productos", "completar:FOLIO_REVISAR")));
             p.add(paso("mdi2c-cash-plus", VERDE, VERDE_D, "Menos tecleo", "productos", "#btnEditar",
                 "Debajo del costo de un bien, «Sumarle el IVA (16 %)» hace la cuenta y la escribe; se usa una sola vez por costo",
                 "Al abrir SIBIM, tu usuario ya está escrito: solo pones la contraseña"));
-            // After the intro: 1.0.28, then 1.0.26–1.0.27. What came before is in the guides
+            // After the intro: 1.0.29, then 1.0.26–1.0.28. What came before is in the guides
             // (13-nov-2026: Novedades had 53 steps; «lo más viejo, en ayudas normales»).
-            int anterior = indice(p, "Completar datos, con más datos");
+            int anterior = indice(p, "Cambiar datos de varios bienes a la vez");
             enGrupo(p, 1, anterior, NUEVO);
             enGrupo(p, anterior, p.size(), ANTERIOR);
         } else {

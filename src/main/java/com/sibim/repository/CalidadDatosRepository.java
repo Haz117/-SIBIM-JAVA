@@ -138,7 +138,9 @@ public class CalidadDatosRepository {
         FOLIO_FISCAL("folio_fiscal", Producto::getFolioFiscal, Producto::setFolioFiscal),
         FACTURA("numero_factura", Producto::getNumeroFactura, Producto::setNumeroFactura),
         COLOR("color", Producto::getColor, Producto::setColor),
-        TIPO_BIEN("tipo_bien", Producto::getTipoBien, Producto::setTipoBien);
+        TIPO_BIEN("tipo_bien", Producto::getTipoBien, Producto::setTipoBien),
+        /** Not in Completar datos: only for «Unir lo escrito de dos formas». */
+        MARCA("marca", Producto::getMarca, Producto::setMarca);
 
         final String columna;
         final java.util.function.Function<Producto, String> leer;
@@ -228,20 +230,32 @@ public class CalidadDatosRepository {
     /** Every bien whose proveedor is written exactly {@code de} takes {@code a}.
      *  @return the ids that changed, to undo it */
     public List<String> cambiarProveedor(String de, String a) throws SQLException {
+        return cambiarTexto(CampoTexto.PROVEEDOR, de, a);
+    }
+
+    /** Undo of {@link #cambiarProveedor}: {@code de} back on those bienes that still say {@code a}. */
+    public int regresarProveedor(List<String> ids, String de, String a) throws SQLException {
+        return regresarTexto(CampoTexto.PROVEEDOR, ids, de, a);
+    }
+
+    /** Every bien whose {@code campo} is written exactly {@code de} takes {@code a}
+     *  («Unir lo escrito de dos formas»). @return the ids that changed, to undo it */
+    public List<String> cambiarTexto(CampoTexto campo, String de, String a) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         List<String> ids = new java.util.ArrayList<>();
         if (local != null) {
             for (Producto p : local.findAllProductos(null)) {
-                if (!de.equals(p.getProveedor())) continue;
-                p.setProveedor(a);
+                if (!de.equals(campo.leer.apply(p))) continue;
+                campo.poner.accept(p, a);
                 local.saveProducto(p);
                 ids.add(p.getId());
             }
             return ids;
         }
+        // The column comes from the enum, never from what was typed.
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                 "UPDATE products SET proveedor = ?, updated_at = NOW() WHERE proveedor = ? RETURNING id")) {
+                 "UPDATE products SET " + campo.columna + " = ?, updated_at = NOW() WHERE " + campo.columna + " = ? RETURNING id")) {
             ps.setString(1, a);
             ps.setString(2, de);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
@@ -251,15 +265,15 @@ public class CalidadDatosRepository {
         return ids;
     }
 
-    /** Undo of {@link #cambiarProveedor}: {@code de} back on those bienes that still say {@code a}. */
-    public int regresarProveedor(List<String> ids, String de, String a) throws SQLException {
+    /** Undo of {@link #cambiarTexto}: {@code de} back on those bienes that still say {@code a}. */
+    public int regresarTexto(CampoTexto campo, List<String> ids, String de, String a) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             int n = 0;
             for (String id : ids) {
                 var o = local.findProductoById(id);
-                if (o.isEmpty() || !a.equals(o.get().getProveedor())) continue;
-                o.get().setProveedor(de);
+                if (o.isEmpty() || !a.equals(campo.leer.apply(o.get()))) continue;
+                campo.poner.accept(o.get(), de);
                 local.saveProducto(o.get());
                 n++;
             }
@@ -267,10 +281,33 @@ public class CalidadDatosRepository {
         }
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                 "UPDATE products SET proveedor = ?, updated_at = NOW() WHERE id = ANY(?) AND proveedor = ?")) {
+                 "UPDATE products SET " + campo.columna + " = ?, updated_at = NOW() WHERE id = ANY(?) AND " + campo.columna + " = ?")) {
             ps.setString(1, de);
             ps.setArray(2, conn.createArrayOf("text", ids.toArray(new String[0])));
             ps.setString(3, a);
+            return ps.executeUpdate();
+        }
+    }
+
+    /** Undo of {@link #asignarTextoIds}: empty again on those bienes that still say {@code valor}. */
+    public int quitarTexto(CampoTexto campo, String valor, List<String> ids) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : ids) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty() || !valor.equals(campo.leer.apply(o.get()))) continue;
+                campo.poner.accept(o.get(), null);
+                local.saveProducto(o.get());
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET " + campo.columna + " = NULL, updated_at = NOW() WHERE id = ANY(?) AND " + campo.columna + " = ?")) {
+            ps.setArray(1, conn.createArrayOf("text", ids.toArray(new String[0])));
+            ps.setString(2, valor);
             return ps.executeUpdate();
         }
     }
@@ -346,9 +383,14 @@ public class CalidadDatosRepository {
     /** Writes {@code valor} on these bienes, except one that got its own meanwhile.
      *  @return how many took it */
     public int asignarTexto(CampoTexto campo, String valor, List<String> bienes) throws SQLException {
+        return asignarTextoIds(campo, valor, bienes).size();
+    }
+
+    /** {@link #asignarTexto}, saying which took it (to undo it with {@link #quitarTexto}). */
+    public List<String> asignarTextoIds(CampoTexto campo, String valor, List<String> bienes) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        List<String> ids = new java.util.ArrayList<>();
         if (local != null) {
-            int n = 0;
             for (String id : bienes) {
                 var o = local.findProductoById(id);
                 if (o.isEmpty()) continue;
@@ -357,18 +399,21 @@ public class CalidadDatosRepository {
                 Producto p = o.get();
                 campo.poner.accept(p, valor);
                 local.saveProducto(p);
-                n++;
+                ids.add(id);
             }
-            return n;
+            return ids;
         }
         // The column comes from the enum, never from what was typed.
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "UPDATE products SET " + campo.columna + " = ?, updated_at = NOW() WHERE id = ANY(?) AND ("
-                     + campo.columna + " IS NULL OR btrim(" + campo.columna + ") = '')")) {
+                     + campo.columna + " IS NULL OR btrim(" + campo.columna + ") = '') RETURNING id")) {
             ps.setString(1, valor);
             ps.setArray(2, conn.createArrayOf("text", bienes.toArray(new String[0])));
-            return ps.executeUpdate();
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) ids.add(rs.getString(1));
+            }
         }
+        return ids;
     }
 }
