@@ -32,7 +32,9 @@ class DashboardControllerSmokeTest extends ControllerSmokeTestBase {
         javafx.scene.Node seccion = lookup("#porHacerSection").query();
         org.testfx.util.WaitForAsyncUtils.waitFor(20, java.util.concurrent.TimeUnit.SECONDS, seccion::isVisible);
         org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
-        org.junit.jupiter.api.Assertions.assertFalse(lookup(".por-hacer-tarjeta").queryAll().isEmpty());
+        // Cards in rows on a narrow screen; on a wide one, one row per task in three columns (17-nov-2026).
+        org.junit.jupiter.api.Assertions.assertFalse(lookup(".por-hacer-tarjeta").queryAll().isEmpty()
+            && lookup(".por-hacer-fila").queryAll().isEmpty());
     }
 
     @Test

@@ -342,3 +342,6 @@
 .por-hacer-titulo { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 .por-hacer-accion { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }
 .por-hacer-grupo { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-700; }
+/* Por hacer en columnas (pantallas anchas): cada tarea es un renglón con su número a la izquierda. */
+.por-hacer-fila { -fx-padding: 10 14; }
+.por-hacer-fila-numero { -fx-min-width: 64; -fx-pref-width: 64; -fx-alignment: center-left; }

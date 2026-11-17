@@ -17,6 +17,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -107,7 +108,13 @@ final class PorHacerPanel {
         // By kind of work and in the order it is best done, the first one marked
         // (12-nov-2026: fifteen cards of the same weight and no order; «2 proveedores»,
         // a minute's work, looked like «2,960 sin etiquetar», weeks of it).
-        VBox cuerpo = new VBox(6);
+        VBox cuerpo = enColumnas() ? columnas(lista) : null;
+        if (cuerpo != null) {
+            DialogUtil.makeCollapsible("inicio.porhacer.colapsado", plegar, cuerpo, "Mostrar", "Ocultar");
+            seccion.getChildren().setAll(encabezado, cuerpo);
+            return;
+        }
+        cuerpo = new VBox(6);
         boolean primera = true;
         for (Grupo g : Grupo.values()) {
             List<PorHacer> deEste = lista.stream().filter(p -> grupo(p) == g)
@@ -138,6 +145,89 @@ final class PorHacerPanel {
         }
         DialogUtil.makeCollapsible("inicio.porhacer.colapsado", plegar, cuerpo, "Mostrar", "Ocultar");
         seccion.getChildren().setAll(encabezado, cuerpo);
+    }
+
+    /** On a wide screen the kinds go side by side, each a column of rows (17-nov-2026: the cards of
+     *  205 px left most of each row empty, «Se arreglan en un momento» was one card on a whole row
+     *  and the inventory's numbers fell below the first screen). */
+    static boolean enColumnas() {
+        return javafx.stage.Screen.getPrimary().getVisualBounds().getWidth()
+            >= 1280 + 220 * com.sibim.util.AccessibilityUtils.getTextScaleIndex();
+    }
+
+    /** «Atiende primero» across the top, then one column per kind, «Empieza aquí» on the first. */
+    private static VBox columnas(List<PorHacer> lista) {
+        VBox cuerpo = new VBox(10);
+        boolean[] primera = { true };
+        List<PorHacer> urgentes = lista.stream().filter(p -> grupo(p) == Grupo.PRIMERO)
+            .sorted(java.util.Comparator.comparingInt(PorHacerPanel::orden)).toList();
+        if (!urgentes.isEmpty()) {
+            Label nombre = new Label(Grupo.PRIMERO.titulo);
+            nombre.getStyleClass().add("por-hacer-grupo");
+            FlowPane filas = new FlowPane(10, 10);
+            for (PorHacer p : urgentes) filas.getChildren().add(fila(p, primera, 330));
+            cuerpo.getChildren().addAll(nombre, filas);
+        }
+        javafx.scene.layout.GridPane cols = new javafx.scene.layout.GridPane();
+        cols.setHgap(14);
+        int c = 0;
+        for (Grupo g : Grupo.values()) {
+            if (g == Grupo.PRIMERO) continue;
+            List<PorHacer> deEste = lista.stream().filter(p -> grupo(p) == g)
+                .sorted(java.util.Comparator.comparingInt(PorHacerPanel::orden)).toList();
+            if (deEste.isEmpty()) continue;
+            Label nombre = new Label(g.titulo);
+            nombre.getStyleClass().add("por-hacer-grupo");
+            VBox col = new VBox(6, nombre);
+            if (g.pista != null) {
+                Label pistaGrupo = new Label(g.pista);
+                pistaGrupo.getStyleClass().add("muted-sm");
+                pistaGrupo.setWrapText(true);
+                pistaGrupo.setMinHeight(Region.USE_PREF_SIZE);
+                col.getChildren().add(pistaGrupo);
+            }
+            for (PorHacer p : deEste) col.getChildren().add(fila(p, primera, -1));
+            cols.add(col, c++, 0);
+            javafx.scene.layout.GridPane.setValignment(col, javafx.geometry.VPos.TOP);
+        }
+        for (int i = 0; i < c; i++) {
+            javafx.scene.layout.ColumnConstraints cc = new javafx.scene.layout.ColumnConstraints();
+            cc.setPercentWidth(100.0 / c);
+            cc.setHgrow(Priority.ALWAYS);
+            cols.getColumnConstraints().add(cc);
+        }
+        if (c > 0) cuerpo.getChildren().add(cols);
+        return cuerpo;
+    }
+
+    /** One task as a row: its number on the left, what it is and what to do on the right. */
+    private static HBox fila(PorHacer p, boolean[] primera, double ancho) {
+        Label numero = new Label(String.format("%,d", p.cantidad()));
+        numero.getStyleClass().add("por-hacer-numero");
+        numero.setMinWidth(Region.USE_PREF_SIZE);
+        StackPane caja = new StackPane(numero);
+        caja.getStyleClass().add("por-hacer-fila-numero");
+        Label que = new Label(p.titulo());
+        que.getStyleClass().add("por-hacer-titulo");
+        que.setWrapText(true);
+        que.setMinHeight(Region.USE_PREF_SIZE);
+        Label ir = new Label(p.accion() + " →");
+        ir.getStyleClass().add("por-hacer-accion");
+        VBox texto = new VBox(2, que, ir);
+        if (primera[0]) {
+            Label empieza = new Label("Empieza aquí");
+            empieza.getStyleClass().add("dash-section-badge");
+            texto.getChildren().add(0, empieza);
+            primera[0] = false;
+        }
+        HBox.setHgrow(texto, Priority.ALWAYS);
+        HBox t = new HBox(12, caja, texto);
+        t.setAlignment(Pos.CENTER_LEFT);
+        t.getStyleClass().addAll("quick-action-card", "por-hacer-fila");
+        if (ancho > 0) { t.setPrefWidth(ancho); t.setMaxWidth(ancho); } else t.setMaxWidth(Double.MAX_VALUE);
+        t.setOnMouseClicked(e -> abrir(p));
+        AccessibilityUtils.asButton(t, p.cantidad() + " " + p.titulo() + ": " + p.accion());
+        return t;
     }
 
     /** The kinds of «Por hacer», in the order they are best done. */

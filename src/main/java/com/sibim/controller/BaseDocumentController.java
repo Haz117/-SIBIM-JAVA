@@ -373,7 +373,8 @@ public abstract class BaseDocumentController<T> {
             .filter(c -> c.getText() != null && !c.getText().isBlank())
             .toList();
         if (nameable.isEmpty()) return;
-        MenuButton btnCols = new MenuButton();
+        // With its name, as «Exportar» beside it: an icon alone said nothing (17-nov-2026).
+        MenuButton btnCols = new MenuButton("Columnas");
         btnCols.setGraphic(new FontIcon("mdi2t-table-column"));
         btnCols.getStyleClass().add("btn-ghost");
         btnCols.setTooltip(new Tooltip("Mostrar / ocultar columnas"));
@@ -430,7 +431,7 @@ public abstract class BaseDocumentController<T> {
             if (excelFn != null || csvFn != null) {
                 Separator vs2 = new Separator();
                 vs2.setOrientation(javafx.geometry.Orientation.VERTICAL);
-                MenuButton btnExp = new MenuButton("Exportar lista");
+                MenuButton btnExp = new MenuButton("Exportar");
                 btnExp.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                 btnExp.setGraphic(new FontIcon("mdi2d-download"));
                 btnExp.getStyleClass().add("btn-secondary");
