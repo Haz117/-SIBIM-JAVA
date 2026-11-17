@@ -79,6 +79,9 @@ public final class CompletarDatosDialog {
     /** The bar's button: «Revisar y aplicar» (CONAC), «Pasarlos a N° Factura» (folios). */
     private final Button revisarConac = new Button("Revisar y aplicar");
     private final Label textoConac = new Label();
+    /** «Tomar de los del mismo nombre» (factura, proveedor, costo, fecha, vida útil). */
+    private final HBox barraNombre = new HBox(10);
+    private final Label textoNombre = new Label();
     private final HBox barraTodos = new HBox(10);
     private final Label textoTodos = new Label();
     private final TextField aniosTodos = new TextField();
@@ -242,6 +245,21 @@ public final class CompletarDatosDialog {
         barraConac.setAlignment(Pos.CENTER_LEFT);
         barraConac.getStyleClass().add("cnt-aviso");
 
+        // What the other bienes of the same name all say (17-nov-2026: some 540 datos).
+        textoNombre.getStyleClass().add("muted-sm");
+        textoNombre.setWrapText(true);
+        textoNombre.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(textoNombre, Priority.ALWAYS);
+        Button tomar = new Button("Tomar de los del mismo nombre");
+        tomar.setGraphic(new FontIcon("mdi2c-content-duplicate"));
+        tomar.getStyleClass().add("btn-secondary");
+        tomar.setMinWidth(Region.USE_PREF_SIZE);
+        tomar.setOnAction(e -> tomarDelMismoNombre());
+        barraNombre.getChildren().setAll(textoNombre, tomar);
+        barraNombre.setAlignment(Pos.CENTER_LEFT);
+        barraNombre.getStyleClass().add("cnt-aviso");
+        ver(barraNombre, false);
+
         // What the CONAC leaves to the municipio (esposas, chalecos, cascos…) is the same
         // for many bienes: typed once for the list as it is filtered.
         textoTodos.getStyleClass().add("muted-sm");
@@ -273,7 +291,7 @@ public final class CompletarDatosDialog {
         ayuda.setGraphic(new FontIcon("mdi2k-keyboard-return"));
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
 
-        panel.getChildren().setAll(tituloArea, chips, barraConac, buscar, barraTodos, ayuda, lista);
+        panel.getChildren().setAll(tituloArea, chips, barraConac, barraNombre, buscar, barraTodos, ayuda, lista);
         VBox.setVgrow(panel, Priority.ALWAYS);
 
         HBox paso2 = TransferenciaArrastreDialog.paso(2, "Captura lo que falta");
@@ -467,6 +485,76 @@ public final class CompletarDatosDialog {
             e -> NotificacionUtil.error(scene, "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
     }
 
+    /** What the other bienes of the same name say, for the rows of what is chosen. The names are
+     *  compared across the whole inventory (a chair of one área takes the costo of its twins in
+     *  another); only the rows shown take it. */
+    private List<com.sibim.service.DelMismoNombre.Propuesta> delMismoNombre() {
+        Dato dato = datoElegido();
+        if (com.sibim.service.DelMismoNombre.comoSeGuarda(dato) == null) return List.of();
+        Set<String> aqui = new HashSet<>();
+        for (Fila f : delArea()) if (!f.guardado && !f.guardando) aqui.add(f.producto.getId());
+        return com.sibim.service.DelMismoNombre.propuestas(filas.stream().map(f -> f.producto).toList(), dato).stream()
+            .filter(p -> aqui.contains(p.bien().getId())).toList();
+    }
+
+    private void actualizarMismoNombre() {
+        int n = delMismoNombre().size();
+        ver(barraNombre, n > 0);
+        if (n > 0) {
+            var ev = com.sibim.service.DelMismoNombre.comoSeGuarda(datoElegido());
+            textoNombre.setText(FormatUtils.plural(n, "bien de lo elegido puede tomar ", "bienes de lo elegido pueden tomar ")
+                + (ev == com.sibim.service.EditarVarios.Dato.FACTURA || ev == com.sibim.service.EditarVarios.Dato.FECHA ? "la " : "el ")
+                + ev.etiqueta.toLowerCase(Locale.forLanguageTag("es-MX")) + " que dicen, todos igual, los demás bienes con su mismo nombre.");
+        }
+    }
+
+    /** «Tomar de los del mismo nombre»: reviewed bien by bien, saved as «Cambiar datos» saves (each
+     *  bien through ProductoService), undone from the notice. */
+    private void tomarDelMismoNombre() {
+        Dato dato = datoElegido();
+        List<com.sibim.service.DelMismoNombre.Propuesta> propuestas = delMismoNombre();
+        if (propuestas.isEmpty()) return;
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        DelMismoNombreDialog.show(dato, propuestas).ifPresent(elegidas -> {
+            var renglones = com.sibim.service.DelMismoNombre.renglones(dato, elegidas);
+            DialogUtil.runAsyncWithProgress(scene, "Guardando…",
+                () -> com.sibim.service.EditarVarios.aplicar(service, renglones),
+                r -> {
+                    Map<String, Producto> guardados = new HashMap<>();
+                    r.guardados().forEach(p -> guardados.put(p.getId(), p));
+                    for (Fila f : filas) {
+                        Producto g = guardados.get(f.producto.getId());
+                        if (g != null) { f.producto = g; f.guardado = true; }
+                    }
+                    cambio = true;
+                    cargarAreas();
+                    refiltrar();
+                    actualizarConteos();
+                    lista.refresh();
+                    String msg = FormatUtils.plural(r.guardados().size(), "bien tomó", "bienes tomaron") + " el dato de los del mismo nombre"
+                        + (r.fallas().isEmpty() ? "" : "; " + FormatUtils.plural(r.fallas().size(), "no se pudo", "no se pudieron") + ": "
+                            + String.join("; ", r.fallas().subList(0, Math.min(3, r.fallas().size()))));
+                    NotificacionUtil.exitoConAccion(scene, msg, "Deshacer", () -> DialogUtil.runAsync(
+                        () -> com.sibim.service.EditarVarios.deshacer(service, r),
+                        n -> {
+                            Map<String, Producto> antes = new HashMap<>();
+                            r.antes().forEach(p -> antes.put(p.getId(), p));
+                            for (Fila f : filas) {
+                                Producto a = antes.get(f.producto.getId());
+                                if (a != null) { f.producto = a; f.guardado = false; }
+                            }
+                            cargarAreas();
+                            refiltrar();
+                            actualizarConteos();
+                            lista.refresh();
+                            NotificacionUtil.info(scene, FormatUtils.plural(n, "bien quedó", "bienes quedaron") + " como estaba");
+                        },
+                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                },
+                ex -> NotificacionUtil.error(scene, "No se guardaron: " + com.sibim.util.MensajeError.de(ex)));
+        });
+    }
+
     /** The rows of what is chosen without color whose name or description says it, with that color. */
     private Map<Fila, String> conColorEnNombre() {
         Map<Fila, String> out = new LinkedHashMap<>();
@@ -534,6 +622,7 @@ public final class CompletarDatosDialog {
         for (var g : GRUPOS_DE_DATOS.entrySet())
             ver(filasDeDatos.get(g.getKey()), g.getValue().stream().anyMatch(d -> pestanas.get(d).isVisible()));
         List<Producto> sinVida = base.stream().map(f -> f.producto).toList();
+        actualizarMismoNombre();
         revisarConac.setText("Revisar y aplicar");
         revisarConac.setGraphic(new FontIcon("mdi2c-calendar-check-outline"));
         if (datoElegido() == Dato.FOLIO_REVISAR) {

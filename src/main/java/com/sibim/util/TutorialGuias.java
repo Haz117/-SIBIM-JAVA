@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.30";
+    public static final String VERSION_NOVEDADES = "1.0.31";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,7 +119,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: copiar lo del bien anterior, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
+                "Primero lo más nuevo: copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
@@ -129,6 +129,12 @@ final class TutorialGuias {
                 "Solo llena lo que está vacío; lo que ya tiene el bien no se toca",
                 "Si no era de la misma compra, «Quitar lo copiado» lo deja como estaba",
                 "Va muy bien con Ctrl+Shift+S, que guarda y abre el siguiente"));
+            p.add(probar(paso("mdi2c-content-duplicate", DORADO, DORADO_D, "Tomar de los del mismo nombre", "productos", "#btnMasBienes",
+                "En Completar datos, en Sin factura, Sin proveedor, Sin precio, Sin fecha o Sin vida útil, una barra dice cuántos bienes pueden tomar ese dato de los demás bienes con su mismo nombre, cuando todos dicen lo mismo",
+                "«Tomar de los del mismo nombre» enseña cada bien, lo que tomaría y de qué bienes sale; quita la marca a los que no sean de la misma compra",
+                "Se guarda bien por bien, como en el formulario (con su historial de precios), y se deshace desde el aviso",
+                "También sale en Inicio › Por hacer; con la factura puesta, «Copiar datos de la misma factura» llena lo demás de esa compra"),
+                "Abrir Completar datos", abrir("productos", "mismonombre")));
             p.add(probar(paso("mdi2p-palette-outline", GUINDA, GUINDA_D, "El tipo y el color que ya se saben", "productos", "#btnMasBienes",
                 "Inicio › Por hacer › «Poner MUEBLE»: el tipo de bien a todos los que no lo tienen y, por su clave CONAC, no son vehículo; se deshace desde el aviso",
                 "Al abrir un bien sin tipo, ya viene escrito «MUEBLE» con la nota «Propuesto por su clave CONAC»; si es otro, escribe encima",

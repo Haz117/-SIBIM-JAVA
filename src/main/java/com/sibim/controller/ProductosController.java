@@ -424,6 +424,10 @@ public class ProductosController {
             case "folio"     -> Platform.runLater(this::onFolioFiscal);
             case "proveedores" -> Platform.runLater(this::onUnirProveedores);
             case "tipo"      -> Platform.runLater(this::onPonerMueble);
+            // Completar datos on the dato the most bienes can take from their name's twins.
+            case "mismonombre" -> Platform.runLater(() -> conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.show(bienes,
+                java.util.Objects.requireNonNullElse(com.sibim.service.DelMismoNombre.conMas(bienes),
+                    com.sibim.service.CalidadDatosService.Dato.PRECIO), this::alCorregirDatos)));
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
                 // Inicio › Por hacer: "completar:PRECIO" opens on that dato.

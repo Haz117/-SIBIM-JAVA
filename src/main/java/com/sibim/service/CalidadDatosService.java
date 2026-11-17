@@ -1017,6 +1017,8 @@ public class CalidadDatosService {
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
         agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
             "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
+        agregar(out, DelMismoNombre.MISMO_NOMBRE.stream().mapToLong(d -> DelMismoNombre.propuestas(bienes, d).size()).sum(),
+            "datos que ya dicen, todos igual, los demás bienes con el mismo nombre", "Revisarlos", "productos", "mismonombre");
         agregar(out, escritosDeDosFormas(bienes).size(), "proveedores, marcas, colores o tipos escritos de dos formas",
             "Unirlos", "productos", "proveedores");
         agregar(out, sinTipoConSugerencia(bienes).size(), "bienes sin tipo de bien que por su clave CONAC son «MUEBLE»",

@@ -161,7 +161,7 @@ final class PorHacerPanel {
     }
 
     /** Inside a kind: the folio fiscal first, because then «misma factura» copies more. */
-    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "proveedores", "factura",
+    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "proveedores", "mismonombre", "factura",
         "tipo", "unir", "titulos", "series", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "equipos");
 
     static int orden(PorHacer p) {
