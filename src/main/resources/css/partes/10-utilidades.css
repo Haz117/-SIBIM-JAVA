@@ -7,8 +7,8 @@
     -fx-max-width: 44; -fx-max-height: 44;
 }
 .page-header-icon-indigo {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.40), 8, 0, 0, 2);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9F2241, #691C32);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.40), 8, 0, 0, 2);
 }
 /* Icon label inside the badge */
 .page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
@@ -110,7 +110,7 @@
 .dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; -fx-border-width: 1; }
 .dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: sibim-slate-200; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
 .dlg-qr-thumb-clickable { -fx-cursor: hand; }
-.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.25), 8, 0, 0, 0); }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.25), 8, 0, 0, 0); }
 .dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
@@ -129,7 +129,7 @@
 /* Depreciation progress bar in product detail dialog */
 .dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
 .dep-progress-bar .track { -fx-background-color: sibim-slate-200; -fx-background-radius: 4px; }
-.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #A2232D, #D0606A); -fx-background-radius: 4px; -fx-background-insets: 0; }
+.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #9F2241, #D0606A); -fx-background-radius: 4px; -fx-background-insets: 0; }
 .dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
 .dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
 .dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: linear-gradient(to right, #DC2626, #FCA5A5); }
@@ -257,7 +257,7 @@
 .btn-preset-active {
     -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.28), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.28), 6, 0, 0, 2);
 }
 .btn-preset-clear {
     -fx-background-color: transparent;

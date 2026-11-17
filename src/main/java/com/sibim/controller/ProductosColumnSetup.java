@@ -140,8 +140,8 @@ class ProductosColumnSetup {
                 if (empty || value == null || value.isBlank()) return;
                 Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
                 String catColor = (p != null && p.getCategoriaColor() != null)
-                    ? p.getCategoriaColor() : "#A2232D";
-                String bgColor  = catColor + "22";
+                    ? p.getCategoriaColor() : "#9F2241";
+                String bgColor  = catColor + "14";
                 Label lbl = new Label(value);
                 FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(value);
                 ico.setIconSize(16);
@@ -150,7 +150,7 @@ class ProductosColumnSetup {
                 box.setAlignment(Pos.CENTER_LEFT);
                 box.getStyleClass().add("cat-badge");
                 box.setStyle("-fx-background-color: " + bgColor + ";");
-                lbl.setStyle("-fx-text-fill: " + catColor + ";");
+                lbl.setStyle("-fx-text-fill: #334155;");
                 setGraphic(box);
             }
         });

@@ -60,7 +60,7 @@
 .qa-card-icon-indigo { -fx-icon-color: sibim-indigo-darker; -fx-icon-size: 22; }
 .qa-card-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 22; }
 .qa-card-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 22; }
-.qa-card-icon-blue   { -fx-icon-color: #A2232D; -fx-icon-size: 22; }
+.qa-card-icon-blue   { -fx-icon-color: #9F2241; -fx-icon-size: 22; }
 .qa-card-icon-violet { -fx-icon-color: sibim-violet; -fx-icon-size: 22; }
 
 /* Section divider labels ("RESUMEN DEL INVENTARIO", etc.) */
@@ -186,7 +186,7 @@
 }
 .sidebar-toggle-btn:hover,
 .sidebar-icon-btn:hover {
-    -fx-background-color: rgba(162,35,45,0.08);
+    -fx-background-color: rgba(159,34,65,0.08);
 }
 .sidebar-toggle-btn .ikonli-font-icon,
 .sidebar-icon-btn .ikonli-font-icon {
@@ -228,7 +228,7 @@
 }
 .status-db-help-badge:hover {
     -fx-background-color: sibim-indigo-300;
-    -fx-text-fill: #4A1016;
+    -fx-text-fill: #41111F;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

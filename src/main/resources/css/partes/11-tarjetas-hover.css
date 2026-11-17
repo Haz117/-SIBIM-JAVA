@@ -64,7 +64,7 @@
     -fx-border-color: transparent transparent sibim-indigo-dark transparent;
     -fx-border-width: 0 0 3 0;
     -fx-border-radius: 18;
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.30), 22, 0.05, 0, 7);
+    -fx-effect: dropshadow(gaussian, rgba(134,28,56,0.30), 22, 0.05, 0, 7);
 }
 
 /* Urgency tint for the "Préstamos Vencidos" card when count > 0 */
@@ -129,7 +129,7 @@
     -fx-background-color: sibim-slate-100;
     -fx-text-fill: sibim-slate-900;
     -fx-background-radius: 12;
-    -fx-border-color: transparent transparent transparent rgba(162,35,45,0.55);
+    -fx-border-color: transparent transparent transparent rgba(159,34,65,0.55);
     -fx-border-width: 0 0 0 3;
 }
 .nav-btn:pressed {

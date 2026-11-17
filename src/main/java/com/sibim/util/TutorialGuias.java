@@ -16,7 +16,7 @@ final class TutorialGuias {
 
     private TutorialGuias() {}
 
-    private static final String GUINDA = "#A2232D", GUINDA_D = "#5A141A",
+    private static final String GUINDA = "#9F2241", GUINDA_D = "#521628",
                                 VERDE = "#235B4E", VERDE_D = "#1B4A3F",
                                 DORADO = "#9C7A3C", DORADO_D = "#6E5118",
                                 GRIS = "#64748B", GRIS_D = "#334155";

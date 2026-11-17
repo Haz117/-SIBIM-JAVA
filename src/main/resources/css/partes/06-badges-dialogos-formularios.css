@@ -33,7 +33,7 @@
 .cell-badge-icon-warning { -fx-icon-color: sibim-amber; }
 .cell-badge-icon-danger  { -fx-icon-color: sibim-red; }
 .cell-badge-icon-purple  { -fx-icon-color: #7D6230; }
-.cell-badge-icon-blue    { -fx-icon-color: #475569; }
+.cell-badge-icon-blue    { -fx-icon-color: #3F4C5E; }
 .cell-badge-icon-teal    { -fx-icon-color: #1B4A3F; }
 
 .cell-badge-success .cell-badge-text { -fx-text-fill: #064E3B; }
@@ -57,7 +57,7 @@
 .data-table .table-row-cell.row-salida:hover       { -fx-background-color: #FFE4E6; }
 .data-table .table-row-cell.row-ajuste             { -fx-background-color: #FFFDF0; }
 .data-table .table-row-cell.row-ajuste:hover       { -fx-background-color: #FEF9C3; }
-.data-table .table-row-cell.row-transferencia      { -fx-background-color: #F8FAFC; }
+.data-table .table-row-cell.row-transferencia      { -fx-background-color: #FBF9F8; }
 .data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #F1F5F9; }
 
 /* ─── Row tints (productos por estado) ─── */
@@ -101,7 +101,7 @@
 /* Photo thumbnail cell */
 .foto-cell-box    { -fx-background-color: sibim-slate-100; -fx-background-radius: 7; }
 .foto-cell-box-clickable { -fx-cursor: hand; }
-.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.45), 6, 0.3, 0, 0); }
+.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.45), 6, 0.3, 0, 0); }
 .foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #64748B; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
@@ -189,7 +189,7 @@
    the 0 above it touched the border. Same side margin as the header. */
 .dialog-pane > .content.label { -fx-padding: 14 20 10 20; }
 .dialog-pane .header-panel {
-    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #F8FAFC, #F1F5F9);
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #FBF9F8, #F1F5F9);
     -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 16 20;
@@ -214,13 +214,13 @@
     -fx-font-weight: bold;
 }
 .dialog-pane .button-bar .button:default {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #A2232D, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #9F2241, #691C32);
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.35), 8, 0, 0, 2);
 }
 .dialog-pane .button-bar .button:default:hover {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A);
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 12, 0, 0, 4);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #861C38, #521628);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.55), 12, 0, 0, 4);
 }
 /* Waiting for a required field: it looked as pressable as ever and did nothing.
    Same grey as .dialog-ok-btn:disabled. */
@@ -274,7 +274,7 @@
 .dialog-pane .spinner:focused {
     -fx-border-color: sibim-indigo;
     -fx-background-color: white;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.18), 8, 0, 0, 0);
 }
 .dialog-pane .text-area { -fx-min-height: 58px; }
 /* The editor inside an editable combo / spinner / date picker is a TextField too,
@@ -305,7 +305,7 @@
    CONFIGURACIÓN — PERFIL
    ═══════════════════════════════════════════════════════════════════ */
 .profile-card-header {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #5A141A, #5A141A);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #521628, #521628);
     -fx-background-radius: 12 12 0 0;
     -fx-background-insets: 0;
 }
@@ -361,7 +361,7 @@
    DASHBOARD WELCOME BANNER
    ═══════════════════════════════════════════════════════════════════ */
 .dashboard-banner {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4A1016, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #41111F, #691C32);
     -fx-background-radius: 14;
     -fx-background-insets: 0;
     -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.45), 16, 0, 0, 4);
@@ -440,7 +440,7 @@
 }
 .search-field:focused {
     -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.18), 8, 0, 0, 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════════

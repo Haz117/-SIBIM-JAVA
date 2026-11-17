@@ -158,7 +158,7 @@
 .notif-item-text { -fx-font-size: 13px; -fx-text-fill: sibim-slate-900; }
 .notif-item-icon-danger  { -fx-icon-color: sibim-red; -fx-icon-size: 16; }
 .notif-item-icon-warning { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }
-.notif-item-icon-info    { -fx-icon-color: #A2232D; -fx-icon-size: 16; }
+.notif-item-icon-info    { -fx-icon-color: #9F2241; -fx-icon-size: 16; }
 
 /* ═══════════════════════════════════════════════════════════════════
    OFFLINE / DEMO BANNER  — barra superior cuando no hay BD real
@@ -314,15 +314,15 @@
     -fx-padding: 4 12;
 }
 .login-btn:focus-visible {
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.7), 0, 0, 0, 0),
-                innershadow(gaussian, rgba(162,35,45,0.35), 6, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.7), 0, 0, 0, 0),
+                innershadow(gaussian, rgba(159,34,65,0.35), 6, 0, 0, 0);
 }
 
 /* Java-built click targets opted in via AccessibilityUtils.asButton() — a
    solid spread shadow traces the node's own shape/radius, so one rule fits
    cards, badges, thumbnails and chart bars alike. */
 .a11y-focusable:focused {
-    -fx-effect: dropshadow(three-pass-box, #A2232D, 5, 0.85, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, #9F2241, 5, 0.85, 0, 0);
 }
 
 /* Click-only surfaces made keyboard-reachable by AccessibilityUtils
@@ -376,7 +376,7 @@
     -fx-border-color: sibim-indigo;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.30), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.30), 6, 0, 0, 2);
 }
 .filter-chip:focused { -fx-border-color: sibim-indigo-dark; -fx-border-width: 2; }
 

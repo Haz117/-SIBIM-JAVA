@@ -13,8 +13,8 @@ public final class AppColors {
     // INFO and CYAN were the neutral dialog accents (blue, teal): guinda shades
     // now, like the rest of the interface. Green, amber and red keep their
     // meaning (done, careful, danger).
-    public static final String INFO         = "#A2232D";
-    public static final String INFO_D       = "#891D26";
+    public static final String INFO         = "#9F2241";
+    public static final String INFO_D       = "#861C38";
     public static final String WARNING      = "#D97706";
     public static final String WARNING_D    = "#B45309";
     public static final String WARNING_DD   = "#92400E";
@@ -22,18 +22,18 @@ public final class AppColors {
     public static final String DANGER_D     = "#B91C1C";
     // The brand color (names kept from when it was indigo): the institutional
     // guinda, Pantone 1805 C, as in the PDFs and the CSS tokens sibim-indigo*.
-    public static final String PRIMARY      = "#A2232D";
-    public static final String PRIMARY_D    = "#891D26";
-    public static final String INDIGO       = "#6F1820";
-    public static final String INDIGO_D     = "#5A141A";
+    public static final String PRIMARY      = "#9F2241";
+    public static final String PRIMARY_D    = "#861C38";
+    public static final String INDIGO       = "#691C32";
+    public static final String INDIGO_D     = "#521628";
     // Dialog accents that used to be violet: guinda shades now, so no dialog
     // header or button stays purple next to the guinda interface.
-    public static final String PURPLE       = "#891D26";
-    public static final String PURPLE_D     = "#6F1820";
-    public static final String DEEP_PURPLE  = "#4A1016";
-    public static final String CYAN         = "#891D26";
-    public static final String CYAN_D       = "#6F1820";
-    public static final String SLATE        = "#475569";
+    public static final String PURPLE       = "#861C38";
+    public static final String PURPLE_D     = "#691C32";
+    public static final String DEEP_PURPLE  = "#41111F";
+    public static final String CYAN         = "#861C38";
+    public static final String CYAN_D       = "#691C32";
+    public static final String SLATE        = "#3F4C5E";
     public static final String SLATE_D      = "#334155";
     public static final String SCENE_BG     = "#0F172A";
 }

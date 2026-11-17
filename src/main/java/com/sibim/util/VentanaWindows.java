@@ -34,7 +34,7 @@ public final class VentanaWindows {
     private static final int DWMWA_BORDER_COLOR = 34, DWMWA_CAPTION_COLOR = 35, DWMWA_TEXT_COLOR = 36;
 
     /** The bar: guinda oscuro (sibim-indigo-dark), like the dialogs' headers. */
-    static final String BARRA = "#891D26", TEXTO = "#FFFFFF";
+    static final String BARRA = "#861C38", TEXTO = "#FFFFFF";
 
     private static volatile Dwm dwm;
     private static volatile boolean instalado;

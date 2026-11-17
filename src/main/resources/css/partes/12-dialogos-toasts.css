@@ -13,7 +13,7 @@
     -fx-max-width: 52; -fx-max-height: 52;
 }
 /* Default (indigo) and danger (red) badge backgrounds */
-.confirm-icon-badge-default { -fx-background-color: #FCF0F1; -fx-border-color: #6366F133; }
+.confirm-icon-badge-default { -fx-background-color: #FBEFF3; -fx-border-color: #6366F133; }
 .confirm-icon-badge-danger  { -fx-background-color: #FEF2F2; -fx-border-color: #EF444433; }
 .confirm-title {
     -fx-font-size: 15px;
@@ -48,7 +48,7 @@
     -fx-padding: 8 22;
 }
 .confirm-cancel-btn:hover {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: #FBF9F8;
     -fx-border-color: #94A3B8;
 }
 
@@ -98,7 +98,7 @@
 .toast-error   { -fx-background-color: #FEF2F2; -fx-border-color: #EF4444; }
 .toast-warning { -fx-background-color: #FFFBEB; -fx-border-color: #F59E0B; }
 /* Info and "working…" toasts: a light guinda tint with the brand border; errors keep the bright red. */
-.toast-info    { -fx-background-color: #FCF0F1; -fx-border-color: #A2232D; }
+.toast-info    { -fx-background-color: #FBEFF3; -fx-border-color: #9F2241; }
 
 .toast-icon-badge {
     -fx-background-radius: 99;
@@ -107,7 +107,7 @@
 .toast-icon-success { -fx-background-color: #22C55E; -fx-icon-color: white; }
 .toast-icon-error   { -fx-background-color: #EF4444; -fx-icon-color: white; }
 .toast-icon-warning { -fx-background-color: #F59E0B; -fx-icon-color: white; }
-.toast-icon-info    { -fx-background-color: #A2232D; -fx-icon-color: white; }
+.toast-icon-info    { -fx-background-color: #9F2241; -fx-icon-color: white; }
 
 .toast-icon-text {
     -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: white;
@@ -115,7 +115,7 @@
 .toast-success .toast-msg { -fx-text-fill: #14532D; -fx-font-size: 13px; -fx-font-weight: 600; }
 .toast-error .toast-msg   { -fx-text-fill: #7F1D1D; -fx-font-size: 13px; -fx-font-weight: 600; }
 .toast-warning .toast-msg { -fx-text-fill: #78350F; -fx-font-size: 13px; -fx-font-weight: 600; }
-.toast-info .toast-msg    { -fx-text-fill: #5A141A; -fx-font-size: 13px; -fx-font-weight: 600; }
+.toast-info .toast-msg    { -fx-text-fill: #521628; -fx-font-size: 13px; -fx-font-weight: 600; }
 
 .toast-close {
     -fx-font-size: 16px; -fx-font-weight: bold;
@@ -126,7 +126,7 @@
 .toast-success .toast-close { -fx-text-fill: #14532D; }
 .toast-error .toast-close   { -fx-text-fill: #7F1D1D; }
 .toast-warning .toast-close { -fx-text-fill: #78350F; }
-.toast-info .toast-close    { -fx-text-fill: #5A141A; }
+.toast-info .toast-close    { -fx-text-fill: #521628; }
 
 /* ═══════════════════════════════════════════════════════════════════
    DIALOG OK BUTTON — base style; color variants applied via CSS class
@@ -154,11 +154,11 @@
     -fx-background-radius: 10;
     -fx-cursor: hand;
     -fx-padding: 8 20;   /* same height as the Cancelar button next to it */
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.25), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(134,28,56,0.25), 6, 0, 0, 2);
 }
 .form-submit-btn:hover {
     -fx-background-color: sibim-indigo-dark;
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.55), 14, 0, 0, 5);
+    -fx-effect: dropshadow(gaussian, rgba(134,28,56,0.55), 14, 0, 0, 5);
 }
 .form-submit-btn:pressed {
     -fx-background-color: sibim-indigo-darker;
@@ -166,8 +166,8 @@
     -fx-translate-y: 1;
 }
 .form-submit-btn:disabled {
-    -fx-background-color: #E58F96;
-    -fx-text-fill: #FCF0F1;
+    -fx-background-color: #E28FA6;
+    -fx-text-fill: #FBEFF3;
     -fx-effect: none;
     -fx-cursor: default;
     -fx-opacity: 1;

@@ -28,10 +28,10 @@
 }
 .btn-icon-only .btn-icon { -fx-icon-size: 17; -fx-icon-color: sibim-slate-500; }
 .btn-icon-only:hover {
-    -fx-background-color: rgba(162,35,45,0.08);
+    -fx-background-color: rgba(159,34,65,0.08);
 }
 .btn-icon-only:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
-.btn-icon-only:pressed { -fx-background-color: rgba(162,35,45,0.15); }
+.btn-icon-only:pressed { -fx-background-color: rgba(159,34,65,0.15); }
 
 /* Ghost (tertiary) button — transparent default, subtle border on hover.
    Used for utility actions (refresh, less-important options) in page headers
@@ -137,7 +137,7 @@
     -fx-background-radius: 6;
     -fx-font-size: 12px;
     -fx-text-fill: sibim-slate-700;
-    -fx-control-inner-background: #F8FAFC;
+    -fx-control-inner-background: #FBF9F8;
 }
 .audit-detail-area .content { -fx-background-color: sibim-surface; }
 
@@ -146,7 +146,7 @@
 .area-bar-chart .chart-plot-background { -fx-background-color: sibim-surface; }
 .area-bar-chart .chart-horizontal-grid-lines { -fx-stroke: transparent; }
 .area-bar-chart .chart-vertical-grid-lines { -fx-stroke: sibim-slate-200; -fx-stroke-dash-array: 4 4; }
-.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #A2232D; -fx-background-radius: 0 4 4 0; }
+.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #9F2241; -fx-background-radius: 0 4 4 0; }
 .area-bar-chart .axis-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .area-bar-chart .tick-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 

@@ -2,9 +2,9 @@
    SPLASH SCREEN
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Minimal dark-indigo splash. Every text color clears WCAG AA (white 16:1, #E58F96 8:1, #94A3B8 6:1). */
+/* Minimal dark-indigo splash. Every text color clears WCAG AA (white 16:1, #E28FA6 8:1, #94A3B8 6:1). */
 .splash-root {
-    -fx-background-color: radial-gradient(center 50% 42%, radius 72%, #4A1016 0%, #2E0A0E 52%, #170507 100%);
+    -fx-background-color: radial-gradient(center 50% 42%, radius 72%, #41111F 0%, #2E0A0E 52%, #170507 100%);
 }
 
 /* Brand mark — 68 px flat indigo rounded square with a soft glow */
@@ -16,7 +16,7 @@
     -fx-border-width: 1;
     -fx-min-width: 68; -fx-min-height: 68;
     -fx-max-width: 68; -fx-max-height: 68;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 28, 0.25, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.55), 28, 0.25, 0, 0);
 }
 .splash-logo-icon {
     -fx-icon-color: white;
@@ -49,7 +49,7 @@
 
 /* Thin separator between wordmark and progress */
 .splash-sep {
-    -fx-background-color: rgba(162,35,45,0.22);
+    -fx-background-color: rgba(159,34,65,0.22);
     -fx-min-height: 1; -fx-max-height: 1;
     -fx-pref-width: 80; -fx-max-width: 80;
     -fx-padding: 0;
@@ -65,7 +65,7 @@
     -fx-pref-height: 3;
 }
 .splash-progress .bar {
-    -fx-background-color: linear-gradient(to right, #A2232D, #D0606A);
+    -fx-background-color: linear-gradient(to right, #9F2241, #D0606A);
     -fx-background-radius: 999;
     -fx-background-insets: 0;
     -fx-pref-height: 3;
@@ -110,7 +110,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    TABLE ROW FLASH — temporary highlight after save / update
    ═══════════════════════════════════════════════════════════════════ */
-.table-row-flash { -fx-background-color: rgba(162,35,45,0.14); }
+.table-row-flash { -fx-background-color: rgba(159,34,65,0.14); }
 .table-row-flash > .table-cell { -fx-background-color: transparent; }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -238,7 +238,7 @@
 /* ── Dialog image box hover ──────────────────────────────────────────── */
 .dlg-img-box:hover {
     -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.22), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.22), 8, 0, 0, 0);
     -fx-cursor: hand;
 }
 

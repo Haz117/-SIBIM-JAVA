@@ -111,7 +111,7 @@
 .avance-tarjeta:focused { -fx-border-color: sibim-indigo-300; }
 .avance-tarjeta:selected { -fx-border-width: 2; -fx-padding: 11 13 11 13; }
 .avance-tarjeta.avance-todas:selected      { -fx-border-color: sibim-slate-700; -fx-background-color: sibim-surface; }
-.avance-tarjeta.avance-entrar:selected     { -fx-border-color: #A2232D; -fx-background-color: #FCF0F1; }
+.avance-tarjeta.avance-entrar:selected     { -fx-border-color: #9F2241; -fx-background-color: #FBEFF3; }
 .avance-tarjeta.avance-revisar:selected    { -fx-border-color: #C98A1B; -fx-background-color: #FDF6E7; }
 .avance-tarjeta.avance-etiquetar:selected  { -fx-border-color: #9C7A3C; -fx-background-color: #F7F1E6; }
 .avance-tarjeta.avance-terminaron:selected { -fx-border-color: #235B4E; -fx-background-color: #EEF5F2; }
@@ -123,7 +123,7 @@
 .avance-tarjeta .avance-pista,
 .avance-tarjeta .avance-relleno { -fx-min-height: 5; -fx-pref-height: 5; -fx-max-height: 5; }
 .avance-tarjeta .avance-pista { -fx-background-color: sibim-slate-100; }
-.avance-entrar .avance-relleno     { -fx-background-color: #A2232D; }
+.avance-entrar .avance-relleno     { -fx-background-color: #9F2241; }
 .avance-revisar .avance-relleno    { -fx-background-color: #D9A441; }
 .avance-etiquetar .avance-relleno  { -fx-background-color: #9C7A3C; }
 .avance-terminaron .avance-relleno { -fx-background-color: #235B4E; }
@@ -144,7 +144,7 @@
     -fx-min-height: 20; -fx-pref-height: 20; -fx-max-height: 20;
     -fx-font-size: 11px;
 }
-.avance-entrar .avance-insignia     { -fx-background-color: #FCF0F1; -fx-border-color: #F2BCC0; -fx-text-fill: #A2232D; }
+.avance-entrar .avance-insignia     { -fx-background-color: #FBEFF3; -fx-border-color: #F0BCCB; -fx-text-fill: #9F2241; }
 .avance-revisar .avance-insignia    { -fx-background-color: #FDF3DC; -fx-border-color: #E9C77E; -fx-text-fill: #8A5A12; }
 .avance-etiquetar .avance-insignia  { -fx-background-color: #F6EFE2; -fx-border-color: #DCC8A6; -fx-text-fill: #7D6230; }
 .avance-terminaron .avance-insignia { -fx-background-color: #235B4E; -fx-border-color: #235B4E; -fx-text-fill: white; }
@@ -186,8 +186,8 @@
    .a11y-focusable, que en un renglón a todo lo ancho pesa demasiado. */
 .avance-renglon.a11y-focusable:focused {
     -fx-effect: null;
-    -fx-background-color: #FCF0F1;
-    -fx-border-color: #A2232D;
+    -fx-background-color: #FBEFF3;
+    -fx-border-color: #9F2241;
     -fx-border-width: 0 0 0 3;
     -fx-padding: 9 14 9 11;
 }
@@ -195,7 +195,7 @@
 .avance-renglon .avance-pista,
 .avance-renglon .avance-relleno { -fx-min-height: 6; -fx-pref-height: 6; -fx-max-height: 6; }
 .avance-renglon .avance-pista { -fx-background-color: sibim-slate-100; }
-.avance-renglon .avance-segmento-1 .avance-relleno { -fx-background-color: #A2232D; }
+.avance-renglon .avance-segmento-1 .avance-relleno { -fx-background-color: #9F2241; }
 .avance-renglon .avance-segmento-2 .avance-relleno { -fx-background-color: #D9A441; }
 .avance-renglon .avance-segmento-3 .avance-relleno { -fx-background-color: #9C7A3C; }
 .avance-renglon.avance-terminaron .avance-relleno  { -fx-background-color: #235B4E; }
@@ -206,7 +206,7 @@
 .avance-renglon.avance-terminaron .avance-estado { -fx-text-fill: #235B4E; -fx-font-weight: bold; }
 .avance-flecha { -fx-icon-color: sibim-slate-300; -fx-icon-size: 18; }
 .avance-renglon:hover .avance-flecha,
-.avance-renglon:focused .avance-flecha { -fx-icon-color: #A2232D; }
+.avance-renglon:focused .avance-flecha { -fx-icon-color: #9F2241; }
 .avance-aviso-icono { -fx-icon-color: #8A5A12; }
 .avance-aviso-boton-icono { -fx-icon-color: white; -fx-icon-size: 15; }
 
@@ -221,7 +221,7 @@
 .avance-detalle-estado { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 .avance-detalle-hecho  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #235B4E; }
 .avance-detalle .avance-pista { -fx-background-color: sibim-slate-100; }
-.avance-detalle .avance-segmento-1 .avance-relleno { -fx-background-color: #A2232D; }
+.avance-detalle .avance-segmento-1 .avance-relleno { -fx-background-color: #9F2241; }
 .avance-detalle .avance-segmento-2 .avance-relleno { -fx-background-color: #D9A441; }
 .avance-detalle .avance-segmento-3 .avance-relleno { -fx-background-color: #9C7A3C; }
 .avance-detalle .avance-paso-terminado .avance-relleno { -fx-background-color: #235B4E; }
@@ -229,8 +229,8 @@
 /* ── Ventana «Datos de los formatos» (9-nov-2026) ─────────────────────────────────
    Tres tarjetas (Del municipio · Quién firma · Titulares) como las del avance, y
    una lista de campos con sugerencias de un clic. */
-.formatos-tarjeta:selected { -fx-border-color: #A2232D; -fx-background-color: #FCF0F1; }
-.formatos-tarjeta .avance-relleno { -fx-background-color: #A2232D; }
+.formatos-tarjeta:selected { -fx-border-color: #9F2241; -fx-background-color: #FBEFF3; }
+.formatos-tarjeta .avance-relleno { -fx-background-color: #9F2241; }
 .formatos-tarjeta.formatos-completa .avance-relleno { -fx-background-color: #235B4E; }
 .formatos-tarjeta-icono { -fx-icon-color: sibim-indigo-dark; -fx-icon-size: 16; }
 .formatos-completa .formatos-tarjeta-icono { -fx-icon-color: #235B4E; }
@@ -248,8 +248,8 @@
 .formatos-dato-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .formatos-dato-quien  { -fx-font-size: 12px; -fx-text-fill: sibim-slate-700; }
 .formatos-necesario {
-    -fx-background-color: #FCF0F1;
-    -fx-text-fill: #A2232D;
+    -fx-background-color: #FBEFF3;
+    -fx-text-fill: #9F2241;
     -fx-background-radius: 99;
     -fx-padding: 1 7;
     -fx-font-size: 10px;
@@ -266,8 +266,8 @@
     -fx-text-fill: sibim-slate-700;
     -fx-cursor: hand;
 }
-.formatos-sugerencia:hover { -fx-border-color: #A2232D; -fx-text-fill: #A2232D; -fx-background-color: #FCF0F1; }
-.formatos-sugerencia:focused { -fx-border-color: #A2232D; }
+.formatos-sugerencia:hover { -fx-border-color: #9F2241; -fx-text-fill: #9F2241; -fx-background-color: #FBEFF3; }
+.formatos-sugerencia:focused { -fx-border-color: #9F2241; }
 
 /* ── «Revisar mis bienes» (rediseño 9-nov-2026) ──────────────────────────────────
    Para quien no usa la computadora a diario: cada renglón se responde con sus
@@ -283,7 +283,7 @@
 .revisar-codigo { -fx-font-family: "Consolas", "Courier New", monospace; -fx-font-size: 12px; -fx-text-fill: sibim-slate-700; }
 .revisar-bien-nombre { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .revisar-bien-detalle { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
-.revisar-tabla .table-row-cell.revisar-fila-marcada { -fx-background-color: #FCF0F1; }
+.revisar-tabla .table-row-cell.revisar-fila-marcada { -fx-background-color: #FBEFF3; }
 .revisar-tabla .table-row-cell.revisar-fila-marcada:selected { -fx-background-color: #F8E1E3; }
 .revisar-boton {
     -fx-background-color: white;
@@ -306,9 +306,9 @@
 .revisar-etiqueta { -fx-border-color: #DCC8A6; -fx-text-fill: #6E5118; }
 .revisar-etiqueta .revisar-boton-icono { -fx-icon-color: #9C7A3C; }
 .revisar-etiqueta:hover { -fx-background-color: #F7F1E6; -fx-border-color: #9C7A3C; }
-.revisar-completar { -fx-border-color: #F2BCC0; -fx-text-fill: #891D26; -fx-padding: 1 9 1 7; -fx-font-size: 11px; }
-.revisar-completar .revisar-boton-icono { -fx-icon-color: #A2232D; -fx-icon-size: 12; }
-.revisar-completar:hover { -fx-background-color: #FCF0F1; -fx-border-color: #A2232D; }
+.revisar-completar { -fx-border-color: #F0BCCB; -fx-text-fill: #861C38; -fx-padding: 1 9 1 7; -fx-font-size: 11px; }
+.revisar-completar .revisar-boton-icono { -fx-icon-color: #9F2241; -fx-icon-size: 12; }
+.revisar-completar:hover { -fx-background-color: #FBEFF3; -fx-border-color: #9F2241; }
 .revisar-estado { -fx-font-size: 12px; -fx-font-weight: bold; -fx-graphic-text-gap: 5; }
 .revisar-estado-si { -fx-text-fill: #235B4E; }
 .revisar-estado-si .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 15; }
@@ -317,9 +317,9 @@
 .revisar-cambiar { -fx-font-size: 11px; -fx-padding: 0 2; }
 .revisar-acciones .btn-primary .revisar-boton-icono { -fx-icon-color: white; }
 /* Patrimonio atiende los avisos «No es del área» ahí mismo (9-nov-2026). */
-.revisar-pasar { -fx-border-color: #F2BCC0; -fx-text-fill: #891D26; }
-.revisar-pasar .revisar-boton-icono { -fx-icon-color: #A2232D; }
-.revisar-pasar:hover { -fx-background-color: #FCF0F1; -fx-border-color: #A2232D; }
+.revisar-pasar { -fx-border-color: #F0BCCB; -fx-text-fill: #861C38; }
+.revisar-pasar .revisar-boton-icono { -fx-icon-color: #9F2241; }
+.revisar-pasar:hover { -fx-background-color: #FBEFF3; -fx-border-color: #9F2241; }
 .revisar-es-suyo { -fx-border-color: #7FB3A5; -fx-text-fill: #1B4A3F; }
 .revisar-es-suyo .revisar-boton-icono { -fx-icon-color: #235B4E; }
 .revisar-es-suyo:hover { -fx-background-color: #EEF5F2; -fx-border-color: #235B4E; }
@@ -362,7 +362,7 @@
     -fx-padding: 2 9;
     -fx-graphic-text-gap: 5;
 }
-.cuentas-estado-sin      { -fx-background-color: #FCF0F1; -fx-text-fill: #A2232D; -fx-border-color: #F2BCC0; -fx-border-radius: 99; }
+.cuentas-estado-sin      { -fx-background-color: #FBEFF3; -fx-text-fill: #9F2241; -fx-border-color: #F0BCCB; -fx-border-radius: 99; }
 .cuentas-estado-nunca    { -fx-background-color: #FDF3DC; -fx-text-fill: #8A5A12; }
 .cuentas-estado-entro    { -fx-background-color: #EEF5F2; -fx-text-fill: #235B4E; }
 .cuentas-estado-entro .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 13; }

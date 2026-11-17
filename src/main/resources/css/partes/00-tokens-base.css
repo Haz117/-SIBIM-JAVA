@@ -7,38 +7,38 @@
 .root {
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 13px;
-    -fx-background-color: #EEF2F7;
+    -fx-background-color: #F3F0EE;
     /* JavaFX's own accent (progress bars, selections, focus rings without a
        style of their own) was its default sky blue: the brand guinda instead. */
-    -fx-accent: #A2232D;
-    -fx-focus-color: #A2232D;
-    -fx-faint-focus-color: rgba(162,35,45,0.13);
+    -fx-accent: #9F2241;
+    -fx-focus-color: #9F2241;
+    -fx-faint-focus-color: rgba(159,34,65,0.13);
     /* ── Design tokens (JavaFX looked-up colors) ─────────────────── */
     /* sibim-indigo* is the brand color, kept under its old name: since 1.0.5 it
-       is the institutional guinda (Pantone 1805 C, #A2232D), the same one the
+       is the institutional guinda (Pantone 1805 C, #9F2241), the same one the
        PDFs, resguardos and labels use. AppColors.PRIMARY/INDIGO mirror it.
        The rest of the palette is the institutional one too (since 1.0.8):
        sibim-violet* is the dorado (#B38E5D family), the old cyan/teal accents
        are the verde institucional (#235B4E family), the old blue accents are
        guinda. Green / amber / red keep their meaning (done, careful, error). */
-    sibim-indigo:        #A2232D;
-    sibim-indigo-dark:   #891D26;
-    sibim-indigo-darker: #6F1820;
+    sibim-indigo:        #9F2241;
+    sibim-indigo-dark:   #861C38;
+    sibim-indigo-darker: #691C32;
     sibim-slate-900:     #1E293B;
-    sibim-slate-600:     #475569;
-    sibim-slate-500:     #5E6E84;   /* 13-nov-2026: era #64748B, 4.23:1 sobre el fondo gris; este da 4.62:1 (WCAG AA) */
+    sibim-slate-600:     #3F4C5E;
+    sibim-slate-500:     #55647A;   /* 13-nov-2026: era #64748B, 4.23:1 sobre el fondo gris; este da 4.62:1 (WCAG AA) */
     sibim-slate-300:     #CBD5E1;
     sibim-slate-200:     #E2E8F0;
-    sibim-surface:       #F8FAFC;
-    sibim-bg:            #EEF2F7;
+    sibim-surface:       #FBF9F8;
+    sibim-bg:            #F3F0EE;
     sibim-green:         #16A34A;
     sibim-red:           #DC2626;
     sibim-amber:         #D97706;
     sibim-violet:        #9C7A3C;
-    sibim-indigo-50:     #FCF0F1;
-    sibim-indigo-200:    #F2BCC0;
-    sibim-indigo-300:    #E58F96;
-    sibim-indigo-900:    #5A141A;
+    sibim-indigo-50:     #FBEFF3;
+    sibim-indigo-200:    #F0BCCB;
+    sibim-indigo-300:    #E28FA6;
+    sibim-indigo-900:    #521628;
     sibim-slate-950:     #0F172A;
     sibim-slate-700:     #334155;
     sibim-slate-100:     #F1F5F9;

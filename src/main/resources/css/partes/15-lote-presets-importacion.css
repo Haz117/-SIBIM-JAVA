@@ -3,13 +3,13 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 .bulk-action-bar {
-    -fx-background-color: #4A1016;
+    -fx-background-color: #41111F;
     -fx-padding: 9 18 9 18;
     -fx-background-radius: 10;
     -fx-effect: dropshadow(gaussian, rgba(74,16,22,0.35), 10, 0, 0, -2);
 }
 .bulk-bar-icon {
-    -fx-icon-color: #E58F96;
+    -fx-icon-color: #E28FA6;
     -fx-icon-size: 18;
 }
 .bulk-count-label {
@@ -31,7 +31,7 @@
     -fx-background-color: rgba(255,255,255,0.32);
 }
 .bulk-action-bar .btn-icon {
-    -fx-icon-color: #F2BCC0;
+    -fx-icon-color: #F0BCCB;
 }
 .bulk-action-bar .separator {
     -fx-background-color: rgba(255,255,255,0.20);
@@ -52,7 +52,7 @@
     -fx-border-color: sibim-indigo-300;
     -fx-border-radius: 20;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 3, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.10), 3, 0, 0, 1);
 }
 
 /* Label button — click to apply */
@@ -107,7 +107,7 @@
 .import-instructions-card {
     -fx-background-color: #FDF4F5;
     -fx-background-radius: 10;
-    -fx-border-color: #F2BCC0;
+    -fx-border-color: #F0BCCB;
     -fx-border-width: 1;
     -fx-border-radius: 10;
     -fx-margin: 0 18 0 18;

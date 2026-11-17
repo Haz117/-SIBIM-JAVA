@@ -38,7 +38,7 @@
 
 /* Logo area */
 .sidebar-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9F2241, #691C32);
     -fx-background-radius: 9;
     -fx-text-fill: white;
     -fx-font-size: 15px;
@@ -49,7 +49,7 @@
     -fx-max-width: 36;
     -fx-max-height: 36;
     -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.35), 8, 0, 0, 2);
 }
 .sidebar-logo {
     -fx-font-size: 17px;
@@ -79,13 +79,13 @@
 }
 .sidebar-user-box:hover { -fx-background-color: sibim-slate-100; }
 .user-avatar {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9F2241, #691C32);
     -fx-background-radius: 999;
     -fx-min-width: 36;
     -fx-min-height: 36;
     -fx-max-width: 36;
     -fx-max-height: 36;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 6, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.35), 6, 0, 0, 1);
 }
 .user-avatar-text {
     -fx-text-fill: white;

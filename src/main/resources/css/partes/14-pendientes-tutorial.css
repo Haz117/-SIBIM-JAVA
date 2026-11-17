@@ -48,7 +48,7 @@
 /* Header: the wine banner of Inicio (.dashboard-banner), whatever the step.
    The radius is set inline: the left corners square off when the arrow shows. */
 .tutorial-header {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4A1016, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #41111F, #691C32);
     -fx-background-radius: 16 16 0 0;
 }
 
@@ -134,16 +134,16 @@
 
 /* Primary action button: the system's .btn-primary, whatever the step */
 .tutorial-btn-primary {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #6F1820);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #861C38, #691C32);
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 12;
     -fx-padding: 10 24;
     -fx-cursor: hand;
     -fx-font-size: 13.5px;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.35), 8, 0, 0, 2);
 }
-.tutorial-btn-primary:hover   { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A); }
+.tutorial-btn-primary:hover   { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #861C38, #521628); }
 .tutorial-btn-primary:pressed { -fx-opacity: 0.85; -fx-translate-y: 1; }
 .tutorial-btn-primary:disabled { -fx-opacity: 0.50; }
 
@@ -207,9 +207,9 @@
     -fx-border-color: sibim-indigo;
     -fx-border-width: 3;
     -fx-border-radius: 10;
-    -fx-background-color: rgba(162,35,45,0.12);
+    -fx-background-color: rgba(159,34,65,0.12);
     -fx-background-radius: 10;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 20, 0.12, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(159,34,65,0.55), 20, 0.12, 0, 0);
 }
 
 /* Keyboard navigation hint below buttons */

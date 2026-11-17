@@ -211,7 +211,7 @@ public final class TutorialOverlay {
     private static HBox filaGuia(TutorialGuias.Guia g, boolean destacada, java.util.function.Consumer<TutorialGuias.Guia> abrir) {
         FontIcon icono = new FontIcon(g.icon());
         icono.setIconSize(18);
-        icono.setIconColor(destacada ? Color.WHITE : Color.web("#A2232D"));
+        icono.setIconColor(destacada ? Color.WHITE : Color.web("#9F2241"));
         StackPane fondo = new StackPane(icono);
         fondo.getStyleClass().add(destacada ? "tutorial-guia-icono-destacada" : "tutorial-guia-icono");
         fondo.setMinSize(38, 38); fondo.setPrefSize(38, 38); fondo.setMaxSize(38, 38);
