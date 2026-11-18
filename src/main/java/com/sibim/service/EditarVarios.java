@@ -28,6 +28,8 @@ public final class EditarVarios {
     /** What can be changed, in the order of the form (the costo before the valor residual:
      *  «15 % del costo» is worked out from the costo this same change leaves). */
     public enum Dato {
+        // Not in «Cambiar datos»: only for the bienes that had the name a bien just changed (NombreNuevo).
+        NOMBRE("Nombre", Producto::getNombre, (p, v) -> p.setNombre((String) v)),
         FACTURA("N° Factura", Producto::getNumeroFactura, (p, v) -> p.setNumeroFactura((String) v)),
         FOLIO_FISCAL("Folio fiscal", Producto::getFolioFiscal, (p, v) -> p.setFolioFiscal((String) v)),
         PROVEEDOR("Proveedor", Producto::getProveedor, (p, v) -> p.setProveedor((String) v)),

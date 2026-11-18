@@ -1361,11 +1361,16 @@ public class ProductosController {
                             }
                         });
                     };
-                    // What it got, to the other bienes of its factura (11-nov-2026: half of
-                    // Patrimonio's edits repeated a sibling's proveedor, folio, cost…).
+                    // Its new name, to the bienes that had its old one (17-nov-2026: 8 of 8, 2 of
+                    // 2, 2 of 2 renamed one by one); then what it got, to the other bienes of its
+                    // factura (11-nov-2026: half of Patrimonio's edits repeated a sibling's
+                    // proveedor, folio, cost…), with the names already changed.
                     if (com.sibim.session.Permisos.editaFichaCompleta()) {
-                        com.sibim.controller.dialogs.MismaFacturaDialog.ofrecer(table.getScene(), productoService,
-                            isNew ? null : existing, saved, this::loadData, seguirConOtro);
+                        Producto antesDelForm = isNew ? null : existing;
+                        com.sibim.controller.dialogs.NombreNuevoDialog.ofrecer(table.getScene(), productoService,
+                            antesDelForm, saved, this::loadData,
+                            () -> com.sibim.controller.dialogs.MismaFacturaDialog.ofrecer(table.getScene(), productoService,
+                                antesDelForm, saved, this::loadData, seguirConOtro));
                     } else {
                         seguirConOtro.run();
                     }

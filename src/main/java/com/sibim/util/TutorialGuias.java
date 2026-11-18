@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.35";
+    public static final String VERSION_NOVEDADES = "1.0.36";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,10 +119,15 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: más espacio en el formulario y en Inicio, leer el XML de la factura, copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
+                "Primero lo más nuevo: el nombre nuevo a los que se llamaban igual, más espacio en el formulario y en Inicio, leer el XML de la factura, copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
+            p.add(paso("mdi2r-rename-box", GUINDA, GUINDA_D, "El nombre nuevo, a los que se llamaban igual", "productos", "#btnEditar",
+                "Al cambiarle el nombre a un bien (por ejemplo, a como dice su factura), si otros bienes siguen con el nombre que tenía, SIBIM te los enseña para ponérselo también",
+                "Ves el nombre de antes y el de ahora, y cada bien con su área, su resguardante y su compra",
+                "Si el nombre lo tienen bienes de varias compras («IMPRESORA MULTIFUNCIONAL»), solo van marcados los de la misma factura; marca o quita los que quieras",
+                "«Solo a este» lo deja como estaba; lo cambiado se deshace desde el aviso"));
             p.add(paso("mdi2v-view-column-outline", VERDE, VERDE_D, "Más espacio, menos bajar", "dashboard", "#porHacerSection",
                 "En una pantalla ancha, el formulario del bien pone «Compra» junto a «El bien»: factura, folio, proveedor, costo, color, tipo y marca a la vista sin bajar",
                 "Abajo, «Dónde está» junto a «Mantenimiento» y «Vehículos»; Tab sigue el orden de la factura",
