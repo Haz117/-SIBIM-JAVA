@@ -68,6 +68,16 @@ public final class ColorEnNombre {
         return null;
     }
 
+    /** Whether a text is a color, by its first word («NEGRO», «NEGRO ERGONÓMICO», «Blanca»):
+     *  on 18-nov-2026, 7 bienes had a color as their tipo de bien. Not by the ones that are
+     *  often something else alone (café, vino, crema, arena…). */
+    public static boolean esColor(String texto) {
+        Matcher m = PALABRA.matcher(plano(texto));
+        if (!m.find()) return false;
+        String w = m.group();
+        return COLORES.containsKey(w) && !SOLO_CON_COLOR.contains(w);
+    }
+
     /** «… COLOR AZUL MARINO …», «COLOR CAOBA/NEGRO». */
     private static String deFrase(String t) {
         Matcher m = FRASE.matcher(t);

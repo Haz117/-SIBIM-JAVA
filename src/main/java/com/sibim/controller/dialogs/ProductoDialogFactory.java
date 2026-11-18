@@ -77,16 +77,20 @@ public final class ProductoDialogFactory {
             }
         }
         List<String> resguardantes = List.of();
+        List<String> tipos = null;
         try {
             // The names already in use, to pick one instead of typing a second spelling.
-            resguardantes = productoService.getAll().stream().map(Producto::getResguardante)
+            List<Producto> todos = productoService.getAll();
+            resguardantes = todos.stream().map(Producto::getResguardante)
                 .filter(r -> r != null && !r.isBlank()).map(String::trim).distinct().sorted().toList();
+            // Each tipo once, without colors, to pick from a list (18-nov-2026).
+            tipos = com.sibim.service.CalidadDatosService.tiposParaElegir(todos);
         } catch (Exception e) {
             log.debug("No se pudieron leer los resguardantes para sugerirlos", e);
         }
         return new Extras(productoService.getMarcas(), productoService.getModelos(),
             productoService.getProveedores(), productoService.getUbicaciones(), folio, resguardantes,
-            productoService.getColores(), productoService.getTiposBien());
+            productoService.getColores(), tipos != null ? tipos : productoService.getTiposBien());
     }
 
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,

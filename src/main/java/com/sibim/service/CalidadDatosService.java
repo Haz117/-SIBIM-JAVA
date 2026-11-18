@@ -750,7 +750,60 @@ public class CalidadDatosService {
         for (ProveedorRepetido r : proveedoresRepetidos(bienes))
             out.add(new Repetido(Campo.PROVEEDOR, r.variante(), r.bienes(), r.queda()));
         for (Campo c : List.of(Campo.MARCA, Campo.COLOR, Campo.TIPO)) out.addAll(parecidos(c, bienes));
+        Set<String> yaVan = new HashSet<>();
+        out.stream().filter(r -> r.campo() == Campo.TIPO).forEach(r -> yaVan.add(r.variante()));
+        for (Repetido r : coloresEnTipo(bienes)) if (!yaVan.contains(r.variante())) out.add(r);
         return out;
+    }
+
+    /** A color written as tipo de bien (18-nov-2026: «NEGRO» in 6 sillas, «NEGRO ERGONÓMICO» in
+     *  one, typed where the color goes): it becomes the tipo their CONAC account gives, when every
+     *  bien written so gets the same one and already has its color, so no color is lost. */
+    static List<Repetido> coloresEnTipo(List<Producto> bienes) {
+        Map<String, List<Producto>> porTipo = new LinkedHashMap<>();
+        for (Producto p : bienes) {
+            String t = p.getTipoBien();
+            if (t != null && !t.isBlank() && com.sibim.util.ColorEnNombre.esColor(t))
+                porTipo.computeIfAbsent(t, k -> new ArrayList<>()).add(p);
+        }
+        List<Repetido> out = new ArrayList<>();
+        porTipo.forEach((tipo, conEse) -> {
+            Set<String> sugeridos = new HashSet<>();
+            conEse.forEach(p -> sugeridos.add(tipoSugerido(p)));
+            if (sugeridos.size() != 1 || sugeridos.contains(null)) return;
+            if (conEse.stream().anyMatch(p -> vacio(p.getColor()))) return;
+            out.add(new Repetido(Campo.TIPO, tipo, conEse.size(), sugeridos.iterator().next()));
+        });
+        return out;
+    }
+
+    /** The tipos de bien to pick from in the form and in «Cambiar datos» (18-nov-2026: «MUEBLE»
+     *  670 times, and «mueble», «MUBLE», «MUELE», «MUEBLES»; «Camion» and «Camión»; «NEGRO» in
+     *  6): each one written once, as «Unir lo escrito de dos formas» leaves it, without colors,
+     *  most used first. */
+    public static List<String> tiposParaElegir(List<Producto> bienes) {
+        List<Producto> vigentes = bienes.stream().filter(p -> p.getFechaBaja() == null).toList();
+        Map<String, String> queda = new HashMap<>();
+        for (Repetido r : parecidos(Campo.TIPO, vigentes)) queda.put(r.variante(), r.queda());
+        Map<String, Integer> cuenta = new HashMap<>();
+        for (Producto p : vigentes) {
+            String t = p.getTipoBien();
+            if (t == null || t.isBlank() || com.sibim.util.ProductoUtils.esSinDato(t)) continue;
+            t = queda.getOrDefault(t, t).trim();
+            if (com.sibim.util.ColorEnNombre.esColor(t)) continue;
+            cuenta.merge(t, 1, Integer::sum);
+        }
+        return cuenta.entrySet().stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
+            .map(Map.Entry::getKey).toList();
+    }
+
+    /** How {@code lista} writes what was typed, when it is the same letters with other
+     *  capitals, accents or signs («mueble» → «MUEBLE», «camion» → «Camión»); null otherwise. */
+    public static String comoEnLaLista(String escrito, List<String> lista) {
+        String k = claveTexto(escrito);
+        if (k.isEmpty() || lista == null) return null;
+        return lista.stream().filter(s -> claveTexto(s).equals(k)).findFirst().orElse(null);
     }
 
     /** One way of writing for each marca, color or tipo (13-nov-2026: «SMITH WESSON» 25 times

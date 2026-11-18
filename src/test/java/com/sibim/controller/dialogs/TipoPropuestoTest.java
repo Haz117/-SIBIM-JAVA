@@ -65,4 +65,30 @@ class TipoPropuestoTest extends ApplicationTest {
         interact(() -> f.fClaveArm.setText("1.2.4.1.1.511"));
         assertEquals("Camioneta", f.fTipoBien.getText(), "lo escrito no se cambia");
     }
+
+    /** 18-nov-2026: «NEGRO» was the tipo of 6 sillas; «MUEBLE» was also «mueble», «MUBLE»… */
+    @Test
+    void unColorComoTipo_loDice_yLaListaEscribeElTipo() {
+        ProductoTabPatrimonioFields f = campos("1.2.4.1.1.511", null);
+        interact(() -> f.fTipoBien.setText("NEGRO"));
+        assertTrue(f.lblTipoPropuesto.isVisible());
+        assertTrue(f.lblTipoPropuesto.getText().contains("Parece un color"), f.lblTipoPropuesto.getText());
+        assertTrue(f.lblTipoPropuesto.getStyleClass().contains("field-hint-warn"));
+
+        assertTrue(f.btnTipos.isDisable(), "sin lista todavía");
+        interact(() -> f.sugerirColorYTipo(List.of(), List.of("MUEBLE", "Camioneta", "Camión")));
+        assertFalse(f.btnTipos.isDisable());
+        assertEquals(List.of("MUEBLE", "Camioneta", "Camión"), f.btnTipos.getItems().stream().map(javafx.scene.control.MenuItem::getText).toList());
+        interact(() -> f.btnTipos.getItems().get(1).fire());
+        assertEquals("Camioneta", f.fTipoBien.getText());
+        assertFalse(f.lblTipoPropuesto.isVisible());
+
+        interact(() -> { f.fTipoBien.setText("camion"); f.escribirTipoComoLaLista(); });
+        assertEquals("Camión", f.fTipoBien.getText(), "como lo escribe la lista");
+        interact(() -> { f.fTipoBien.setText("3/2 ton"); f.escribirTipoComoLaLista(); });
+        assertEquals("3/2 ton", f.fTipoBien.getText(), "lo que no está en la lista se queda");
+        interact(() -> { f.fTipoBien.setText("mueble"); f.fTipoBien.setEditable(false); f.escribirTipoComoLaLista(); });
+        assertEquals("mueble", f.fTipoBien.getText(), "un campo que no se puede cambiar no se toca");
+        assertTrue(f.btnTipos.isDisable());
+    }
 }

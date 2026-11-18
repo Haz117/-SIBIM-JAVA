@@ -156,7 +156,12 @@ public final class EditarVariosDialog {
 
         AutocompleteUtil.attach(tfProveedor, sugerencias(Producto::getProveedor));
         AutocompleteUtil.attach(tfColor, sugerencias(Producto::getColor));
-        AutocompleteUtil.attach(tfTipo, sugerencias(Producto::getTipoBien));
+        // The tipo, each one once and without colors, also in a list (18-nov-2026: «MUEBLE»,
+        // «mueble», «MUBLE», «MUELE», «MUEBLES» and «NEGRO» were all tipos).
+        List<String> tipos = CalidadDatosService.tiposParaElegir(todos);
+        AutocompleteUtil.attach(tfTipo, tipos);
+        javafx.scene.control.MenuButton listaTipos = com.sibim.util.ListaParaElegir.boton(tfTipo, "el tipo de bien");
+        com.sibim.util.ListaParaElegir.opciones(listaTipos, tfTipo, tipos);
         AutocompleteUtil.attach(tfMarca, sugerencias(Producto::getMarca));
         AutocompleteUtil.attach(tfModelo, sugerencias(Producto::getModelo));
         AutocompleteUtil.attach(tfUbicacion, sugerencias(Producto::getUbicacion));
@@ -171,7 +176,7 @@ public final class EditarVariosDialog {
         renglon(Dato.VALOR_RESIDUAL, tfResidual, new VBox(4, tfResidual, cbResidual));
         seccion("El bien", true);
         renglon(Dato.COLOR, tfColor, tfColor);
-        renglon(Dato.TIPO_BIEN, tfTipo, tfTipo);
+        renglon(Dato.TIPO_BIEN, tfTipo, com.sibim.util.ListaParaElegir.junto(tfTipo, listaTipos));
         renglon(Dato.MARCA, tfMarca, tfMarca);
         renglon(Dato.MODELO, tfModelo, tfModelo);
         seccion("Dónde está", true);

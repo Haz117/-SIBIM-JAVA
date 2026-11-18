@@ -85,7 +85,8 @@ public final class UnirEscritosDialog {
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
         Label ayuda = new Label("En el proveedor se queda la forma más completa del nombre; en la marca, el color y el tipo, la que "
-            + "escriben más bienes, con sus acentos. Cambia en todos los bienes que lo tienen escrito así. "
+            + "escriben más bienes, con sus acentos; un color escrito como tipo de bien («NEGRO») queda con el tipo de su "
+            + "clave CONAC, y su color sigue en «Color / Material». Cambia en todos los bienes que lo tienen escrito así. "
             + "Quita la marca si no es lo mismo (dos marcas que se parecen, por ejemplo).");
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);

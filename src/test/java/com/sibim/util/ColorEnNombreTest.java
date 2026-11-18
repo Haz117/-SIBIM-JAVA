@@ -49,4 +49,18 @@ class ColorEnNombreTest {
         assertNull(ColorEnNombre.de("ESCRITORIO EJECUTIVO", "DE MADERA"));
         assertNull(ColorEnNombre.de(null, null));
     }
+
+    /** 18-nov-2026: a color was the tipo de bien of 7 bienes. */
+    @Test
+    void unTextoQueEsUnColor_porSuPrimeraPalabra() {
+        assertTrue(ColorEnNombre.esColor("NEGRO"));
+        assertTrue(ColorEnNombre.esColor("NEGRO ERGONÓMICO"));
+        assertTrue(ColorEnNombre.esColor(" blanca"));
+        assertFalse(ColorEnNombre.esColor("MUEBLE"));
+        assertFalse(ColorEnNombre.esColor("CAFETERA"));
+        assertFalse(ColorEnNombre.esColor("CAFE"), "solo es color después de «COLOR»");
+        assertFalse(ColorEnNombre.esColor("Camioneta"));
+        assertFalse(ColorEnNombre.esColor(""));
+        assertFalse(ColorEnNombre.esColor(null));
+    }
 }

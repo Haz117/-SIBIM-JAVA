@@ -119,7 +119,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el nombre nuevo a los que se llamaban igual, más espacio en el formulario y en Inicio, leer el XML de la factura, copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
+                "Primero lo más nuevo: el nombre nuevo a los que se llamaban igual, el tipo de bien de una lista, más espacio en el formulario y en Inicio, leer el XML de la factura, copiar lo del bien anterior, tomar datos de los del mismo nombre, el tipo de bien y el color que SIBIM ya sabe, y lo escrito de dos formas; luego lo de las versiones anteriores",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones más viejas ya no está aquí: está en las guías por tema (F2), como «Las áreas: cuentas, avance y avisos» o «Encontrar y corregir bienes»"));
@@ -128,6 +128,12 @@ final class TutorialGuias {
                 "Ves el nombre de antes y el de ahora, y cada bien con su área, su resguardante y su compra",
                 "Si el nombre lo tienen bienes de varias compras («IMPRESORA MULTIFUNCIONAL»), solo van marcados los de la misma factura; marca o quita los que quieras",
                 "«Solo a este» lo deja como estaba; lo cambiado se deshace desde el aviso"));
+            p.add(paso("mdi2f-format-list-bulleted", DORADO, DORADO_D, "El tipo de bien, de una lista", "productos", "#btnEditar",
+                "Junto a «Tipo de bien» hay un botón con la lista de los tipos que ya se usan, cada uno una sola vez (MUEBLE, Camioneta, Motocicleta…); también en «Cambiar datos»",
+                "Se puede seguir escribiendo; «mueble» o «camion» se escriben como en la lista al salir del campo",
+                "Si en el tipo se escribe un color («NEGRO»), lo avisa: el color va en «Color / Material»",
+                "«Unir lo escrito de dos formas» pasa los tipos que son un color al tipo de su clave CONAC, cuando el bien ya tiene su color",
+                "El ícono de SIBIM es la caja del inicio de sesión, en el guinda nuevo"));
             p.add(paso("mdi2v-view-column-outline", VERDE, VERDE_D, "Más espacio, menos bajar", "dashboard", "#porHacerSection",
                 "En una pantalla ancha, el formulario del bien pone «Compra» junto a «El bien»: factura, folio, proveedor, costo, color, tipo y marca a la vista sin bajar",
                 "Abajo, «Dónde está» junto a «Mantenimiento» y «Vehículos»; Tab sigue el orden de la factura",

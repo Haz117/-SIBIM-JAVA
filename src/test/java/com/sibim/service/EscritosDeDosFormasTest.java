@@ -139,4 +139,37 @@ class EscritosDeDosFormasTest {
         assertEquals(1, unir.cantidad());
         assertEquals("Unirlos", unir.accion());
     }
+
+    /** 18-nov-2026: «NEGRO» was the tipo de bien of 6 sillas and «NEGRO ERGONÓMICO» of one. */
+    @Test
+    void unColorEscritoComoTipo_quedaConElDeSuClave_siNingunoPierdeSuColor() {
+        List<Producto> bienes = new ArrayList<>(varios(2, p -> { p.setClaveArmonizada("1.2.4.1.1.511"); p.setTipoBien("NEGRO"); p.setColor("NEGRO"); }));
+        bienes.addAll(varios(1, p -> { p.setClaveArmonizada("1.2.4.1.1.511"); p.setTipoBien("NEGRO ERGONÓMICO"); }));
+        bienes.addAll(varios(1, p -> { p.setClaveArmonizada("1.2.4.4.1.541"); p.setTipoBien("BLANCA"); p.setColor("BLANCO"); }));
+        bienes.addAll(varios(1, p -> { p.setClaveArmonizada("1.2.4.1.1.511"); p.setTipoBien("CAFETERA"); p.setColor("NEGRO"); }));
+
+        var r = CalidadDatosService.escritosDeDosFormas(bienes);
+        assertEquals(Map.of("NEGRO", "MUEBLE"), cambios(r),
+            "sin color se perdería («NEGRO ERGONÓMICO»); un vehículo no tiene tipo propuesto; «CAFETERA» no es un color");
+        assertEquals(2, r.get(0).bienes());
+        assertEquals(Campo.TIPO, r.get(0).campo());
+    }
+
+    @Test
+    void losTiposParaElegir_unaVezCadaUno_sinColores_losMasUsadosPrimero() {
+        List<Producto> bienes = new ArrayList<>();
+        for (Object[] t : new Object[][]{{"MUEBLE", 5}, {"mueble", 1}, {"MUBLE", 1}, {"Camion", 2}, {"Camión", 1},
+                {"Camioneta", 3}, {"NEGRO", 4}, {" ", 2}, {"N/A", 1}}) {
+            String tipo = (String) t[0];
+            bienes.addAll(varios((Integer) t[1], p -> p.setTipoBien(tipo)));
+        }
+        bienes.addAll(varios(9, p -> { p.setTipoBien("Ambulancia"); p.setFechaBaja(java.time.LocalDate.of(2026, 10, 1)); }));
+
+        List<String> lista = CalidadDatosService.tiposParaElegir(bienes);
+        assertEquals(List.of("MUEBLE", "Camioneta", "Camión"), lista, "los de baja no cuentan");
+        assertEquals("MUEBLE", CalidadDatosService.comoEnLaLista(" mueble", lista));
+        assertEquals("Camión", CalidadDatosService.comoEnLaLista("CAMION", lista));
+        assertNull(CalidadDatosService.comoEnLaLista("Camionetas", lista), "otra palabra no se cambia sola");
+        assertNull(CalidadDatosService.comoEnLaLista("", lista));
+    }
 }

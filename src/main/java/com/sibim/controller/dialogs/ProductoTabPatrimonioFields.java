@@ -215,6 +215,8 @@ class ProductoTabPatrimonioFields {
         fClaveArm.textProperty().addListener((o, a, b) -> proponerTipo());
         fTipoBien.textProperty().addListener((o, a, b) -> verTipoPropuesto());
         proponerTipo();
+        btnTipos = com.sibim.util.ListaParaElegir.boton(fTipoBien, "el tipo de bien");
+        fTipoBien.focusedProperty().addListener((o, a, enfocado) -> { if (!enfocado) escribirTipoComoLaLista(); });
 
         fNoMotor = new TextField(existing != null && existing.getNoMotor() != null
                 ? existing.getNoMotor() : "");
@@ -297,7 +299,8 @@ class ProductoTabPatrimonioFields {
         GridPane g = gridBien;
         rp = seccion(g, "El bien", 0, false);
         g.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); g.add(fColor, 1, rp++);
-        g.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); g.add(new javafx.scene.layout.VBox(2, fTipoBien, lblTipoPropuesto), 1, rp++);
+        g.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp);
+        g.add(new javafx.scene.layout.VBox(2, com.sibim.util.ListaParaElegir.junto(fTipoBien, btnTipos), lblTipoPropuesto), 1, rp++);
         g.add(DialogUtil.fieldLabel("Marca"),         0, rp); g.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
         g.add(DialogUtil.fieldLabel("Modelo"),        0, rp); g.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
         g.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); g.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
@@ -627,18 +630,42 @@ class ProductoTabPatrimonioFields {
         verTipoPropuesto();
     }
 
+    /** Under the tipo: what the CONAC account proposed, or that a color was written there
+     *  (18-nov-2026: «NEGRO» as tipo in 6 sillas, «NEGRO ERGONÓMICO» in one). */
     private void verTipoPropuesto() {
         String t = fTipoBien.getText() == null ? "" : fTipoBien.getText().trim();
-        boolean ver = tipoPropuesto != null && t.equals(tipoPropuesto);
+        boolean color = com.sibim.util.ColorEnNombre.esColor(t);
+        boolean ver = color || (tipoPropuesto != null && t.equals(tipoPropuesto));
+        lblTipoPropuesto.setText(color ? "Parece un color: el color va en «Color / Material»"
+            : "Propuesto por su clave CONAC; escribe otro si no es");
+        lblTipoPropuesto.getStyleClass().removeAll("field-hint-warn", "muted-sm");
+        lblTipoPropuesto.getStyleClass().add(color ? "field-hint-warn" : "muted-sm");
         lblTipoPropuesto.setVisible(ver);
         lblTipoPropuesto.setManaged(ver);
     }
 
+    /** The button beside the tipo de bien with the tipos to pick from. */
+    final javafx.scene.control.MenuButton btnTipos;
+
+    /** The tipos the list offers (empty until {@link #sugerirColorYTipo}). */
+    private List<String> tiposEnLista = List.of();
+
     /** The colors and tipos already written, offered while typing, as the marca and the
-     *  proveedor are (13-nov-2026: «NEBRO», «MELEMINA CAFE», «MUELE» were typed by hand). */
+     *  proveedor are (13-nov-2026: «NEBRO», «MELEMINA CAFE», «MUELE» were typed by hand); the
+     *  tipos also in a list beside the field, each one once ({@link com.sibim.service.CalidadDatosService#tiposParaElegir}). */
     void sugerirColorYTipo(List<String> colores, List<String> tipos) {
         AutocompleteUtil.attach(fColor, colores);
         AutocompleteUtil.attach(fTipoBien, tipos);
+        tiposEnLista = tipos == null ? List.of() : tipos;
+        com.sibim.util.ListaParaElegir.opciones(btnTipos, fTipoBien, tiposEnLista);
+    }
+
+    /** A tipo typed with other capitals or accents than one of the list is written as the list
+     *  writes it, on leaving the field («mueble» → «MUEBLE», «camion» → «Camión»). */
+    void escribirTipoComoLaLista() {
+        String t = fTipoBien.getText() == null ? "" : fTipoBien.getText().trim();
+        String enLista = com.sibim.service.CalidadDatosService.comoEnLaLista(t, tiposEnLista);
+        if (enLista != null && !enLista.equals(t) && fTipoBien.isEditable() && !fTipoBien.isDisabled()) fTipoBien.setText(enLista);
     }
 
     /** Under the valor residual: «Poner el 15 % del costo: $X» (see {@link #ofrecerResidual}). */
