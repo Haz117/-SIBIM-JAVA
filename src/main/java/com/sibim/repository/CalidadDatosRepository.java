@@ -154,76 +154,39 @@ public class CalidadDatosRepository {
         }
     }
 
-    /** A bien whose factura number was typed in «Folio fiscal»: its id, what that field had and
-     *  the number «N° Factura» takes. */
-    public record NumeroEnFolio(String id, String folio, String numero) {}
+    /** A bien's «Folio fiscal» as it was and as it is to be. */
+    public record CambioDeFolio(String id, String antes, String despues) {}
 
-    /** The number goes to «N° Factura» and «Folio fiscal» is left empty, on the bienes that
-     *  still have it so (no factura number, the same short folio). @return how many moved */
-    public int pasarNumeroAFactura(List<NumeroEnFolio> cambios) throws SQLException {
+    /** Each bien takes {@code despues} in «Folio fiscal» only if it still says {@code antes}
+     *  (spaces at the ends aside): what somebody changed since is left alone. Applies and undoes.
+     *  @return the changes made */
+    public List<CambioDeFolio> cambiarFolios(List<CambioDeFolio> cambios) throws SQLException {
+        List<CambioDeFolio> hecho = new java.util.ArrayList<>();
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
-            int n = 0;
-            for (NumeroEnFolio c : cambios) {
+            for (CambioDeFolio c : cambios) {
                 var o = local.findProductoById(c.id());
                 if (o.isEmpty()) continue;
                 Producto p = o.get();
-                if (p.getNumeroFactura() != null && !p.getNumeroFactura().isBlank()) continue;
-                if (p.getFolioFiscal() == null || !p.getFolioFiscal().trim().equals(c.folio().trim())) continue;
-                p.setNumeroFactura(c.numero());
-                p.setFolioFiscal(null);
+                if (p.getFolioFiscal() == null || !p.getFolioFiscal().trim().equals(c.antes().trim())) continue;
+                p.setFolioFiscal(c.despues());
                 local.saveProducto(p);
-                n++;
+                hecho.add(c);
             }
-            return n;
+            return hecho;
         }
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                 "UPDATE products SET numero_factura = ?, folio_fiscal = NULL, updated_at = NOW() "
-                     + "WHERE id = ? AND (numero_factura IS NULL OR btrim(numero_factura) = '') AND btrim(folio_fiscal) = btrim(?)")) {
-            for (NumeroEnFolio c : cambios) {
-                ps.setString(1, c.numero());
+                 "UPDATE products SET folio_fiscal = ?, updated_at = NOW() WHERE id = ? AND btrim(folio_fiscal) = btrim(?)")) {
+            for (CambioDeFolio c : cambios) {
+                ps.setString(1, c.despues());
                 ps.setString(2, c.id());
-                ps.setString(3, c.folio());
+                ps.setString(3, c.antes());
                 ps.addBatch();
             }
-            int n = 0;
-            for (int r : ps.executeBatch()) n += Math.max(r, 0);
-            return n;
-        }
-    }
-
-    /** Undo of {@link #pasarNumeroAFactura}, on the bienes nobody changed since. */
-    public int regresarNumeroAFolio(List<NumeroEnFolio> cambios) throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            int n = 0;
-            for (NumeroEnFolio c : cambios) {
-                var o = local.findProductoById(c.id());
-                if (o.isEmpty()) continue;
-                Producto p = o.get();
-                if (p.getFolioFiscal() != null && !p.getFolioFiscal().isBlank()) continue;
-                if (!c.numero().equals(p.getNumeroFactura())) continue;
-                p.setFolioFiscal(c.folio());
-                p.setNumeroFactura(null);
-                local.saveProducto(p);
-                n++;
-            }
-            return n;
-        }
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                 "UPDATE products SET folio_fiscal = ?, numero_factura = NULL, updated_at = NOW() "
-                     + "WHERE id = ? AND (folio_fiscal IS NULL OR btrim(folio_fiscal) = '') AND numero_factura = ?")) {
-            for (NumeroEnFolio c : cambios) {
-                ps.setString(1, c.folio());
-                ps.setString(2, c.id());
-                ps.setString(3, c.numero());
-                ps.addBatch();
-            }
-            int n = 0;
-            for (int r : ps.executeBatch()) n += Math.max(r, 0);
-            return n;
+            int[] r = ps.executeBatch();
+            for (int i = 0; i < r.length; i++) if (r[i] > 0 || r[i] == java.sql.Statement.SUCCESS_NO_INFO) hecho.add(cambios.get(i));
+            return hecho;
         }
     }
 

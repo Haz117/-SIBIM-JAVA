@@ -4,6 +4,9 @@ import com.sibim.model.Producto;
 import com.sibim.service.CalidadDatosService.Dato;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /** The text data Completar datos captures since 1.0.26. */
@@ -65,7 +68,8 @@ class CompletarDatosTextoTest {
             "la O es cero y la I o la L son uno");
         assertEquals("E2117159-9609-11EE-81C1-00155D012007", CalidadDatosService.normalizarTexto(CalidadDatosService.Dato.FOLIO,
             " e2117159-9609-11ee-81c1 -00155d0120o7 "));
-        assertTrue(CalidadDatosService.problemaFolio("01329").startsWith("parece el número de la factura"));
+        assertTrue(CalidadDatosService.problemaFolio("01329").startsWith("parece solo el final del folio fiscal"));
+        assertTrue(CalidadDatosService.problemaFolio("B 5630").startsWith("parece el número de la factura"), "con espacio no es parte de un UUID");
         assertTrue(CalidadDatosService.problemaFolio("E2117159-9609-11EE-81C1-00155D01200G").contains("«G»"));
 
         Producto p = new Producto();
@@ -76,19 +80,76 @@ class CompletarDatosTextoTest {
         assertFalse(CalidadDatosService.falta(p, Dato.FOLIO_REVISAR));
     }
 
-    /** 12-nov-2026: 12 bienes had their factura's own number in «Folio fiscal» and no N° Factura. */
+    /** 17-nov-2026: the 14 short folios Patrimonio corrected by hand were the end of their UUID,
+     *  whole in another bien of the same purchase; that one completes them, and nothing else. */
     @Test
-    void elNumeroDeLaFacturaEscritoEnElFolioSeReconoce() {
+    void soloElFinalDelFolioSeCompletaConElDeSuCompra() {
+        assertEquals("01329", CalidadDatosService.finalDeFolio(" O1329 "), "una O es un cero");
+        assertEquals("AAA4B", CalidadDatosService.finalDeFolio("aaa4b"));
+        assertNull(CalidadDatosService.finalDeFolio("B 5630"));
+        assertNull(CalidadDatosService.finalDeFolio("A1B2C3D4-0000-4000-8000-000000000001"), "ya está entero");
+        assertNull(CalidadDatosService.finalDeFolio("AB1"), "muy corto para decir algo");
+
+        LocalDate fecha = LocalDate.of(2026, 7, 23);
+        Producto noBreak = compra("1", "NOB/23", "1636b", "PROVEEDOR FICTICIO SA", fecha, "2291.55");
+        Producto suHermano = compra("2", "NOB/44", "F0000000-0000-4000-8000-00000001636B", "Proveedor Ficticio, S.A.", fecha, "2291.55");
+        // A purchase by the same proveedor, another day and costo: the same end is not enough.
+        Producto escritorio = compra("3", "ESC/16", "02059", "PROVEEDOR FICTICIO SA", LocalDate.of(2026, 9, 30), "3385.75");
+        Producto silla = compra("4", "SIL/09", "A0000000-0000-4000-8000-000000002059", "PROVEEDOR FICTICIO SA", LocalDate.of(2026, 9, 9), "2198.99");
+        // The whole folio left in «Factura» (as the C-2 lists brought it), without dashes.
+        Producto ventilador = compra("5", "VEN/05", "01329", "OTRO PROVEEDOR FICTICIO", LocalDate.of(2026, 10, 7), "1900.06");
+        Producto suCompra = compra("6", "VEN/25", null, "OTRO PROVEEDOR FICTICIO", LocalDate.of(2026, 10, 7), "1900.06");
+        suCompra.setNumeroFactura("b0000000000040008000000000001329");
+        // Two folios end alike: neither is proof.
+        Producto dudoso = compra("7", "DUD/01", "4D429", "TERCERO FICTICIO", fecha, "100.00");
+        Producto uno = compra("8", "DUD/02", "C0000000-0000-4000-8000-00000004D429", "TERCERO FICTICIO", fecha, "100.00");
+        Producto otro = compra("9", "DUD/03", "D0000000-0000-4000-8000-00000004D429", "TERCERO FICTICIO", fecha, "100.00");
+        Producto deBaja = compra("10", "NOB/24", "1636B", "PROVEEDOR FICTICIO SA", fecha, "2291.55");
+        deBaja.setFechaBaja(LocalDate.of(2026, 11, 1));
+
+        List<Producto> todos = List.of(noBreak, suHermano, escritorio, silla, ventilador, suCompra, dudoso, uno, otro, deBaja);
+        var folios = CalidadDatosService.foliosDeSuCompra(todos, todos);
+
+        assertEquals(List.of("NOB/23", "VEN/05"), folios.stream().map(f -> f.bien().getCodigo()).toList());
+        assertEquals("F0000000-0000-4000-8000-00000001636B", folios.get(0).folio());
+        assertEquals("NOB/44", folios.get(0).de().getCodigo());
+        assertEquals("B0000000-0000-4000-8000-000000001329", folios.get(1).folio(), "con guiones y en mayúsculas");
+    }
+
+    /** 18-nov-2026: 5 of the 24 folios written wrong were a character or two off the folio of
+     *  another bien, and the next one was 15 or more away. */
+    @Test
+    void unFolioConUnCaracterDeMasSeCorrigeConElDeSuCompra() {
+        LocalDate fecha = LocalDate.of(2026, 5, 20);
+        Producto bien = compra("b", "BIEN/01", "E0000000-1111-4222-8333-444455556666", "PROVEEDOR FICTICIO", fecha, "500.00");
+        Producto deMas = compra("1", "MAS/01", "E00000000-1111-4222-8333-444455556666", null, null, "0");
+        Producto conOyMenos = compra("2", "MEN/01", "eOOOOOOO-1111-4222-8333-44445555666", "PROVEEDOR FICTICIO", fecha, "500.00");
+        // Two right folios a character apart: the wrong one could be either.
+        Producto x = compra("x", "X/01", "A1111111-2222-4333-8444-555566667777", null, null, "0");
+        Producto y = compra("y", "Y/01", "A1111111-2222-4333-8444-555566667778", null, null, "0");
+        Producto ambiguo = compra("3", "AMB/01", "A1111111-2222-4333-8444-55556666777", null, null, "0");
+        // Nothing close: it is typed from the factura.
+        Producto lejano = compra("4", "LEJ/01", "F0F37FSE-E2-FE4AC6-B459-E4ADBF3469C6", null, null, "0");
+
+        List<Producto> todos = List.of(bien, deMas, conOyMenos, x, y, ambiguo, lejano);
+        var folios = CalidadDatosService.foliosDeSuCompra(todos, todos);
+
+        assertEquals(List.of("MAS/01", "MEN/01"), folios.stream().map(f -> f.bien().getCodigo()).toList());
+        assertEquals("E0000000-1111-4222-8333-444455556666", folios.get(0).folio());
+        assertEquals("BIEN/01", folios.get(1).de().getCodigo());
+        assertEquals(1, CalidadDatosService.distancia("ABCD", "ABXD", 10));
+        assertEquals(3, CalidadDatosService.distancia("AAAAAAAA", "BBBBBBBB", 3), "se corta en el tope");
+    }
+
+    private static Producto compra(String id, String codigo, String folio, String proveedor, LocalDate fecha, String costo) {
         Producto p = new Producto();
-        p.setFolioFiscal(" O1329 ");
-        assertTrue(CalidadDatosService.esNumeroDeFactura(p));
-        assertEquals("01329", CalidadDatosService.numeroDeFactura(p.getFolioFiscal()), "una O entre números es un cero");
-        assertEquals("AAA4B", CalidadDatosService.numeroDeFactura("aaa4b"));
-        p.setNumeroFactura("A 667");
-        assertFalse(CalidadDatosService.esNumeroDeFactura(p), "si ya tiene número de factura, no se toca");
-        Producto uuid = new Producto();
-        uuid.setFolioFiscal("AAA1EC97-00B3-4CO7-B2E2-E1A11491D3E");
-        assertFalse(CalidadDatosService.esNumeroDeFactura(uuid), "un folio largo mal escrito se corrige, no se mueve");
+        p.setId(id);
+        p.setCodigo(codigo);
+        p.setFolioFiscal(folio);
+        p.setProveedor(proveedor);
+        p.setFechaAdquisicion(fecha);
+        p.setPrecioCompra(new java.math.BigDecimal(costo));
+        return p;
     }
 
     @Test

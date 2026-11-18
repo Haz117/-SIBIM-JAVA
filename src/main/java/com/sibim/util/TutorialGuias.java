@@ -140,7 +140,9 @@ final class TutorialGuias {
                 "Solo llena lo que está vacío (un folio mal escrito sí lo cambia por el del XML) y dice abajo qué puso y qué dejó como estaba",
                 "Si la factura trae varios conceptos, toma el que se llama como el bien o te pregunta cuál es",
                 "Al escribir el folio a mano, la O se vuelve 0 y la I o la L se vuelven 1, y el aviso dice en qué grupo falta o sobra un carácter",
-                "Al guardar un folio mal escrito, pregunta si lo corriges o lo guardas así"));
+                "Al guardar un folio mal escrito, pregunta si lo corriges o lo guardas así",
+                "Completar datos › «Folio fiscal por revisar» › «Corregir con el de su compra»: si quedó solo el final del folio («1636B») o le sobra o falta un carácter, y otro bien de su compra lo tiene bien escrito, lo revisas y se corrige; se deshace desde el aviso",
+                "Al corregir ahí un folio mal escrito, los demás bienes con ese mismo folio mal escrito se corrigen con él"));
             p.add(paso("mdi2c-content-copy", VERDE, VERDE_D, "Copiar lo del bien anterior", "productos", "#btnEditar",
                 "Al abrir el siguiente bien de una misma factura, junto a «Compra» dice «Copiar de TES/24: factura, folio fiscal, proveedor…»",
                 "Un clic (o Ctrl+D) llena esos datos con los del bien que guardaste antes: factura, folio fiscal, proveedor, fecha, color, tipo y vida útil",
@@ -235,7 +237,7 @@ final class TutorialGuias {
             p.add(probar(paso("mdi2f-file-swap-outline", DORADO, DORADO_D, "Folios fiscales y proveedores en orden", "productos", "#btnMasBienes",
                 "Bienes › Más › «Folio fiscal a su lugar»: el UUID que quedó escrito en «Factura» pasa a «Folio fiscal» (en los formatos se imprime igual)",
                 "Completar datos › «Folio fiscal por revisar»: cada folio con una O por un cero o un carácter de menos dice qué tiene mal; lo corriges con la factura a la vista y Enter pasa al siguiente",
-                "Si lo que quedó en «Folio fiscal» es el número de la factura («01329», «AAA4B»), «Pasarlos a N° Factura» lo pone en su lugar, y así «misma factura» reconoce esas compras",
+                "Si quedó solo el final del folio («1636B») o le sobra o falta un carácter, y otro bien de su compra lo tiene bien escrito, «Corregir con el de su compra» lo corrige; al corregir uno a mano, los que tenían ese mismo folio mal escrito se corrigen con él",
                 "En el formulario del bien, un folio fiscal con otra forma se avisa al escribirlo",
                 "Bienes › Más › «Unir lo escrito de dos formas»: un mismo proveedor escrito de dos formas (con y sin «SA DE CV») queda escrito de una; todo se deshace desde el aviso"),
                 "Revisar los folios", abrir("productos", "completar:FOLIO_REVISAR")));

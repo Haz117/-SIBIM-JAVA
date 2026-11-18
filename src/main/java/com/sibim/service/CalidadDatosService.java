@@ -554,8 +554,12 @@ public class CalidadDatosService {
     public static String problemaFolio(String folio) {
         if (folio == null || folio.isBlank() || Producto.pareceFolioFiscal(folio)) return null;
         String t = folio.trim();
+        // 17-nov-2026: the 14 short folios corrected by hand («5BA08», «1636B», «A7F87»…) were
+        // all the last characters of their UUID; none was the factura's number.
         if (t.length() <= 12)
-            return "parece el número de la factura, no su folio fiscal (que tiene 32 caracteres)";
+            return finalDeFolio(t) != null
+                ? "parece solo el final del folio fiscal (el folio entero tiene 32 caracteres)"
+                : "parece el número de la factura, no su folio fiscal (que tiene 32 caracteres)";
         List<String> partes = new ArrayList<>();
         if (t.matches("(?i).*O.*")) partes.add("lleva la letra O donde va un cero");
         if (t.matches(".*[IiLl].*")) partes.add("lleva una letra I o L donde va un uno");
@@ -872,51 +876,161 @@ public class CalidadDatosService {
         return out;
     }
 
-    // ── Número de factura escrito en «Folio fiscal» ───────────────────────────
+    // ── El folio fiscal de su compra ──────────────────────────────────────────
 
-    /** A short number in «Folio fiscal» on a bien with no factura number: that is its
-     *  factura's own number (12-nov-2026: 12 bienes, «01329», «AAA4B», «1636B»…). */
-    public static boolean esNumeroDeFactura(Producto p) {
-        String f = p.getFolioFiscal();
-        return p.getFechaBaja() == null && f != null && !f.isBlank() && f.trim().length() <= 12
-            && (p.getNumeroFactura() == null || p.getNumeroFactura().isBlank());
+    /** The end of a UUID as some lists bring it in place of the whole folio, capitals and an O as
+     *  a zero («1636B», «o1329»); null when it is empty, not 4 to 12 hexadecimal characters, or
+     *  already a whole folio. */
+    public static String finalDeFolio(String folio) {
+        if (folio == null) return null;
+        // «B 5630», with its space, is a factura's serie and number, not part of a UUID.
+        String t = escribirFolio(folio.trim());
+        return t.length() >= 4 && t.length() <= 12 && t.matches("[0-9A-F]+") ? t : null;
     }
 
-    public static List<Producto> numeroEnFolio(List<Producto> bienes) {
-        return bienes.stream().filter(CalidadDatosService::esNumeroDeFactura).toList();
+    /** A bien whose folio fiscal is badly written, the right one, and the bien it comes from. */
+    public record FolioDeSuCompra(Producto bien, String folio, Producto de) {}
+
+    /** The bienes of {@code revisar} whose «Folio fiscal» is badly written and another bien of
+     *  {@code todos} has it right (in its folio, or in «Factura» as the C-2 lists brought it):
+     *  <ul>
+     *  <li>only the end of the UUID, when that UUID is the only one ending so and that bien is of
+     *  the same purchase (17-nov-2026: Patrimonio replaced 14 such ends by the whole folio, by
+     *  hand). The end alone is no proof: PACs that stamp from the same machine repeat the last
+     *  characters (6 pairs of 333 folios share their last 5);</li>
+     *  <li>the whole folio with one or two characters more, less or changed («3016FF2BB-…»), when
+     *  just one folio is that close and the next is far (18-nov-2026: 5 of the 24 badly written
+     *  had one at 1 or 2, the next at 15 or more). Two different UUIDs are never that close.</li>
+     *  </ul> */
+    public static List<FolioDeSuCompra> foliosDeSuCompra(List<Producto> revisar, List<Producto> todos) {
+        Map<String, List<Producto>> porFolio = new HashMap<>();
+        for (Producto q : todos) {
+            String u = Producto.pareceFolioFiscal(q.getFolioFiscal()) ? q.getFolioFiscal()
+                : Producto.pareceFolioFiscal(q.getNumeroFactura()) ? q.getNumeroFactura() : null;
+            if (u != null) porFolio.computeIfAbsent(u.trim().toUpperCase(Locale.ROOT).replace("-", ""), k -> new ArrayList<>()).add(q);
+        }
+        List<FolioDeSuCompra> out = new ArrayList<>();
+        for (Producto p : revisar) {
+            if (p.getFechaBaja() != null || problemaFolio(p.getFolioFiscal()) == null) continue;
+            String fin = finalDeFolio(p.getFolioFiscal());
+            if (fin != null) {
+                List<String> terminan = porFolio.keySet().stream().filter(k -> k.endsWith(fin)).toList();
+                if (terminan.size() != 1) continue;
+                porFolio.get(terminan.get(0)).stream()
+                    .filter(q -> !esElMismo(p, q) && mismaCompra(p, q))
+                    .findFirst()
+                    .ifPresent(q -> out.add(new FolioDeSuCompra(p, comoFolio(terminan.get(0)), q)));
+                continue;
+            }
+            String escrito = escribirFolio(p.getFolioFiscal().trim()).replaceAll("[\\s-]", "");
+            if (Math.abs(escrito.length() - 32) > CASI_IGUAL) continue;
+            String mejor = null;
+            int dMejor = Integer.MAX_VALUE, dSiguiente = Integer.MAX_VALUE;
+            for (String k : porFolio.keySet()) {
+                int d = distancia(escrito, k, CASI_IGUAL + LEJOS);
+                if (d < dMejor) { dSiguiente = dMejor; dMejor = d; mejor = k; }
+                else if (d < dSiguiente) dSiguiente = d;
+            }
+            if (mejor == null || dMejor > CASI_IGUAL || dSiguiente < dMejor + LEJOS) continue;
+            List<Producto> conEse = porFolio.get(mejor).stream().filter(q -> !esElMismo(p, q)).toList();
+            if (conEse.isEmpty()) continue;
+            Producto de = conEse.stream().filter(q -> mismaCompra(p, q)).findFirst().orElse(conEse.get(0));
+            out.add(new FolioDeSuCompra(p, comoFolio(mejor), de));
+        }
+        return out;
     }
 
-    /** The number as «N° Factura» takes it: «O1329» is «01329» (an O among digits is a zero). */
-    public static String numeroDeFactura(String folio) {
-        String t = folio.trim();
-        String digitos = t.replaceAll("[Oo]", "0");
-        return digitos.matches("\\d+") ? digitos : t.toUpperCase(Locale.ROOT);
+    /** Characters more, less or changed that still make a folio the same one; and how much farther
+     *  the next one has to be. */
+    private static final int CASI_IGUAL = 2, LEJOS = 8;
+
+    private static boolean esElMismo(Producto a, Producto b) {
+        return a == b || (a.getId() != null && a.getId().equals(b.getId()));
     }
 
-    /** Moves each number from «Folio fiscal» to «N° Factura». @return what moved, to undo it */
-    public List<CalidadDatosRepository.NumeroEnFolio> pasarNumeroAFactura(List<Producto> bienes) throws SQLException {
-        soloPatrimonio();
-        conConexion();
-        List<CalidadDatosRepository.NumeroEnFolio> cambios = numeroEnFolio(bienes).stream()
-            .map(p -> new CalidadDatosRepository.NumeroEnFolio(p.getId(), p.getFolioFiscal(), numeroDeFactura(p.getFolioFiscal())))
+    /** Characters inserted, deleted or changed to go from one to the other (Levenshtein), counted
+     *  up to {@code tope}: past it, {@code tope}. */
+    static int distancia(String a, String b, int tope) {
+        if (Math.abs(a.length() - b.length()) >= tope) return tope;
+        int[] antes = new int[b.length() + 1], ahora = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) antes[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            ahora[0] = i;
+            int menor = ahora[0];
+            for (int j = 1; j <= b.length(); j++) {
+                int c = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                ahora[j] = Math.min(Math.min(ahora[j - 1] + 1, antes[j] + 1), antes[j - 1] + c);
+                menor = Math.min(menor, ahora[j]);
+            }
+            if (menor >= tope) return tope;
+            int[] t = antes; antes = ahora; ahora = t;
+        }
+        return Math.min(antes[b.length()], tope);
+    }
+
+    /** Two of the three agree: the proveedor (as {@link #claveTexto} writes it), the fecha de
+     *  adquisición and the costo. */
+    static boolean mismaCompra(Producto a, Producto b) {
+        int iguales = 0;
+        String pa = claveTexto(a.getProveedor()), pb = claveTexto(b.getProveedor());
+        if (!pa.isEmpty() && pa.equals(pb)) iguales++;
+        if (a.getFechaAdquisicion() != null && a.getFechaAdquisicion().equals(b.getFechaAdquisicion())) iguales++;
+        if (a.getPrecioCompra() != null && b.getPrecioCompra() != null && a.getPrecioCompra().signum() > 0
+            && a.getPrecioCompra().compareTo(b.getPrecioCompra()) == 0) iguales++;
+        return iguales >= 2;
+    }
+
+    /** 32 hexadecimal characters as a folio fiscal is written, 8-4-4-4-12. */
+    private static String comoFolio(String u) {
+        return u.substring(0, 8) + "-" + u.substring(8, 12) + "-" + u.substring(12, 16) + "-" + u.substring(16, 20) + "-" + u.substring(20);
+    }
+
+    /** Each bien takes the folio of its purchase, if its own is still written as it was.
+     *  @return what changed, to undo it */
+    public List<CalidadDatosRepository.CambioDeFolio> corregirFolios(List<FolioDeSuCompra> folios) throws SQLException {
+        List<CalidadDatosRepository.CambioDeFolio> cambios = folios.stream()
+            .map(f -> new CalidadDatosRepository.CambioDeFolio(f.bien().getId(), f.bien().getFolioFiscal(), f.folio()))
             .toList();
-        if (cambios.isEmpty()) return List.of();
-        int n = repo.pasarNumeroAFactura(cambios);
-        if (n > 0) audit.log("producto", cambios.get(0).id(), "Varios bienes: número de factura", "actualizar",
-            "El número de la factura estaba escrito en «Folio fiscal»: pasó a «N° Factura» en " + n + " bienes: "
-                + codigos(numeroEnFolio(bienes)));
-        ProductosEnMemoria.invalidar();
-        return n > 0 ? cambios : List.of();
+        Map<String, String> deDonde = new HashMap<>();
+        folios.forEach(f -> deDonde.put(f.bien().getId(), f.bien().getCodigo() + " (de " + f.de().getCodigo() + ")"));
+        return cambiarFolios(cambios, "El folio fiscal estaba incompleto o mal escrito: se corrigió con el de otro bien de su compra", deDonde);
     }
 
-    /** Undo of {@link #pasarNumeroAFactura}. */
-    public int regresarNumeroAFolio(List<CalidadDatosRepository.NumeroEnFolio> cambios) throws SQLException {
+    /** The bienes with exactly the same folio written wrong as one just corrected take its
+     *  correction: the same factura (18-nov-2026: 42 bienes had 24 such folios, one of them in 7
+     *  bienes of 6 áreas). @return what changed, to undo it */
+    public List<CalidadDatosRepository.CambioDeFolio> corregirIguales(List<Producto> iguales, String correcto,
+                                                                        String corregidoEn) throws SQLException {
+        List<CalidadDatosRepository.CambioDeFolio> cambios = iguales.stream()
+            .map(p -> new CalidadDatosRepository.CambioDeFolio(p.getId(), p.getFolioFiscal(), correcto)).toList();
+        Map<String, String> codigos = new HashMap<>();
+        iguales.forEach(p -> codigos.put(p.getId(), p.getCodigo()));
+        return cambiarFolios(cambios, "El mismo folio fiscal mal escrito que " + corregidoEn + ": se corrigió igual", codigos);
+    }
+
+    private List<CalidadDatosRepository.CambioDeFolio> cambiarFolios(List<CalidadDatosRepository.CambioDeFolio> cambios,
+                                                                     String porque, Map<String, String> cual) throws SQLException {
         soloPatrimonio();
         conConexion();
-        if (cambios.isEmpty()) return 0;
-        int n = repo.regresarNumeroAFolio(cambios);
-        if (n > 0) audit.log("producto", cambios.get(0).id(), "Varios bienes: número de factura", "actualizar",
-            "Se deshizo: el número regresó a «Folio fiscal» en " + n + " bienes");
+        if (cambios.isEmpty()) return List.of();
+        List<CalidadDatosRepository.CambioDeFolio> hecho = repo.cambiarFolios(cambios);
+        if (!hecho.isEmpty()) audit.log("producto", hecho.get(0).id(), "Varios bienes: folio fiscal", "actualizar",
+            porque + " en " + com.sibim.util.FormatUtils.plural(hecho.size(), "bien", "bienes") + ": "
+                + hecho.stream().map(c -> cual.getOrDefault(c.id(), c.id())).collect(Collectors.joining(", ")));
+        ProductosEnMemoria.invalidar();
+        return hecho;
+    }
+
+    /** Undo of {@link #corregirFolios} and {@link #corregirIguales}, on the bienes nobody changed since. */
+    public int regresarFolios(List<CalidadDatosRepository.CambioDeFolio> hecho) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        if (hecho.isEmpty()) return 0;
+        List<CalidadDatosRepository.CambioDeFolio> alReves = hecho.stream()
+            .map(c -> new CalidadDatosRepository.CambioDeFolio(c.id(), c.despues(), c.antes())).toList();
+        int n = repo.cambiarFolios(alReves).size();
+        if (n > 0) audit.log("producto", hecho.get(0).id(), "Varios bienes: folio fiscal", "actualizar",
+            "Se deshizo: el folio fiscal regresó a como estaba escrito en " + com.sibim.util.FormatUtils.plural(n, "bien", "bienes"));
         ProductosEnMemoria.invalidar();
         return n;
     }

@@ -76,7 +76,7 @@ public final class CompletarDatosDialog {
     private final Label tituloArea = new Label();
     private final Label ayuda = new Label();
     private final HBox barraConac = new HBox(10);
-    /** The bar's button: «Revisar y aplicar» (CONAC), «Pasarlos a N° Factura» (folios). */
+    /** The bar's button: «Revisar y aplicar» (CONAC), «Corregir con el de su compra» (folios). */
     private final Button revisarConac = new Button("Revisar y aplicar");
     private final Label textoConac = new Label();
     /** «Tomar de los del mismo nombre» (factura, proveedor, costo, fecha, vida útil). */
@@ -626,13 +626,14 @@ public final class CompletarDatosDialog {
         revisarConac.setText("Revisar y aplicar");
         revisarConac.setGraphic(new FontIcon("mdi2c-calendar-check-outline"));
         if (datoElegido() == Dato.FOLIO_REVISAR) {
-            // The factura's own number typed in «Folio fiscal» (12 bienes on 12-nov-2026).
-            int n = numerosEnFolio().size();
+            // Only the end of the UUID, or a character off, and another bien has it right
+            // (17-nov-2026: 14 ends corrected by hand; 18-nov: 5 folios a character or two off).
+            int n = foliosDeSuCompra().size();
             ver(barraConac, n > 0);
             if (n > 0) {
-                textoConac.setText(FormatUtils.plural(n, "bien tiene", "bienes tienen") + " en «Folio fiscal» un número corto y «N° Factura» "
-                    + "vacía: es su número de factura.");
-                revisarConac.setText("Pasarlos a N° Factura");
+                textoConac.setText(FormatUtils.plural(n, "folio de esta lista está", "folios de esta lista están")
+                    + " incompletos o con un carácter de más o de menos, y otro bien de su compra lo tiene bien escrito.");
+                revisarConac.setText("Corregir con el de su compra");
                 revisarConac.setGraphic(new FontIcon("mdi2f-file-swap-outline"));
             }
             actualizarTodos();
@@ -668,62 +669,83 @@ public final class CompletarDatosDialog {
         actualizarTodos();
     }
 
-    /** The rows of what is chosen whose «Folio fiscal» holds the factura's number. */
-    private List<Fila> numerosEnFolio() {
-        return delArea().stream().filter(f -> !f.guardado && !f.guardando && CalidadDatosService.esNumeroDeFactura(f.producto)).toList();
+    /** The rows of what is chosen whose folio fiscal another bien has right (looked for among
+     *  every bien in force, not only the área's). */
+    private List<CalidadDatosService.FolioDeSuCompra> foliosDeSuCompra() {
+        List<Producto> revisar = delArea().stream().filter(f -> !f.guardado && !f.guardando).map(f -> f.producto).toList();
+        return CalidadDatosService.foliosDeSuCompra(revisar, filas.stream().map(f -> f.producto).toList());
     }
 
-    /** «Pasarlos a N° Factura», after showing which; undone from the notice. */
-    private void pasarNumerosAFactura() {
-        List<Fila> filas = numerosEnFolio();
-        if (filas.isEmpty()) return;
-        List<Producto> bienes = filas.stream().map(f -> f.producto).toList();
-        String muestra = bienes.stream().limit(8)
-            .map(p -> "• " + p.getCodigo() + ": «" + p.getFolioFiscal().trim() + "» → N° Factura «"
-                + CalidadDatosService.numeroDeFactura(p.getFolioFiscal()) + "»")
-            .collect(Collectors.joining("\n")) + (bienes.size() > 8 ? "\n…" : "");
-        if (!ConfirmacionUtil.confirmar("Es su número de factura",
-                FormatUtils.plural(bienes.size(), "bien tiene", "bienes tienen") + " en «Folio fiscal» un número corto y «N° Factura» vacía:\n\n"
-                    + muestra + "\n\nPasan a «N° Factura» y «Folio fiscal» queda vacío para el UUID, si lo tienes. ¿Pasarlos?", "Pasarlos")) return;
+    /** «Corregir con el de su compra», after showing each one and where its folio comes from;
+     *  undone from the notice. */
+    private void corregirFolios() {
+        List<CalidadDatosService.FolioDeSuCompra> folios = foliosDeSuCompra();
+        if (folios.isEmpty()) return;
         javafx.scene.Scene scene = dialog.getDialogPane().getScene();
-        DialogUtil.runAsyncWithProgress(scene, "Pasando los números…",
-            () -> calidad.pasarNumeroAFactura(bienes),
-            hecho -> {
-                for (var c : hecho)
-                    for (Fila f : filas)
-                        if (f.producto.getId().equals(c.id())) {
-                            f.producto.setNumeroFactura(c.numero());
-                            f.producto.setFolioFiscal(null);
-                            f.guardado = true;
-                        }
-                cambio = true;
-                cargarAreas();
-                refiltrar();
-                actualizarConteos();
-                lista.refresh();
-                NotificacionUtil.exitoConAccion(scene, FormatUtils.plural(hecho.size(), "número pasó", "números pasaron") + " a «N° Factura»",
-                    "Deshacer", () -> DialogUtil.runAsync(() -> calidad.regresarNumeroAFolio(hecho),
-                        m -> {
-                            for (var c : hecho)
-                                for (Fila f : filas)
-                                    if (f.producto.getId().equals(c.id())) {
-                                        f.producto.setFolioFiscal(c.folio());
-                                        f.producto.setNumeroFactura(null);
-                                        f.guardado = false;
-                                    }
-                            cargarAreas();
-                            refiltrar();
-                            actualizarConteos();
-                            lista.refresh();
-                            NotificacionUtil.info(scene, FormatUtils.plural(m, "número regresó", "números regresaron") + " a «Folio fiscal»");
-                        },
-                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
-            },
-            ex -> NotificacionUtil.error(scene, "No se pasaron: " + com.sibim.util.MensajeError.de(ex)));
+        FoliosDeSuCompraDialog.show(folios).ifPresent(elegidos -> DialogUtil.runAsyncWithProgress(scene, "Corrigiendo los folios…",
+            () -> calidad.corregirFolios(elegidos),
+            hecho -> avisarFolios(hecho, FormatUtils.plural(hecho.size(), "folio fiscal corregido", "folios fiscales corregidos")),
+            ex -> NotificacionUtil.error(scene, "No se corrigieron: " + com.sibim.util.MensajeError.de(ex))));
     }
+
+    /** The other bienes, anywhere in the list, with exactly the folio just corrected in {@code f}
+     *  as it was written: the same factura, corrected with it (18-nov-2026: 42 bienes had 24
+     *  folios written wrong; one of them in 7 bienes of 6 áreas). */
+    private void corregirIguales(Fila f, String malEscrito, String correcto) {
+        String clave = malEscrito.trim();
+        List<Producto> iguales = filas.stream()
+            .filter(o -> o != f && !o.guardado && !o.guardando && o.producto.getFolioFiscal() != null
+                && o.producto.getFolioFiscal().trim().equals(clave))
+            .map(o -> o.producto).toList();
+        if (iguales.isEmpty()) return;
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        DialogUtil.runAsync(() -> calidad.corregirIguales(iguales, correcto, f.producto.getCodigo()),
+            hecho -> {
+                if (hecho.isEmpty()) return;
+                Set<String> ids = new HashSet<>();
+                hecho.forEach(c -> ids.add(c.id()));
+                String cuales = iguales.stream().filter(p -> ids.contains(p.getId())).map(Producto::getCodigo).limit(4)
+                    .collect(Collectors.joining(", ")) + (hecho.size() > 4 ? "…" : "");
+                avisarFolios(hecho, "El mismo folio mal escrito, corregido también en " + cuales);
+            },
+            ex -> NotificacionUtil.error(scene, "No se corrigió en los demás con ese folio: " + com.sibim.util.MensajeError.de(ex)));
+    }
+
+    /** The rows take the folios as saved; the notice tells it and undoes it. */
+    private void avisarFolios(List<com.sibim.repository.CalidadDatosRepository.CambioDeFolio> hecho, String mensaje) {
+        if (hecho.isEmpty()) return;
+        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        ponerFolios(hecho, true);
+        NotificacionUtil.exitoConAccion(scene, mensaje,
+            "Deshacer", () -> DialogUtil.runAsync(() -> calidad.regresarFolios(hecho),
+                m -> {
+                    ponerFolios(hecho, false);
+                    NotificacionUtil.info(scene, FormatUtils.plural(m, "folio regresó", "folios regresaron") + " a como estaban escritos");
+                },
+                ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+    }
+
+    private void ponerFolios(List<com.sibim.repository.CalidadDatosRepository.CambioDeFolio> cambios, boolean corregidos) {
+        Map<String, Fila> porId = new HashMap<>();
+        for (Fila f : filas) porId.put(f.producto.getId(), f);
+        for (var c : cambios) {
+            Fila f = porId.get(c.id());
+            if (f == null) continue;
+            String folio = corregidos ? c.despues() : c.antes();
+            f.producto.setFolioFiscal(folio);
+            f.texto = folio.trim();
+            f.guardado = corregidos;
+        }
+        // As a single save does: the rows stay where they are, so the one being typed keeps its place.
+        cambio = true;
+        cargarAreas();
+        actualizarConteos();
+        lista.refresh();
+    }
+
 
     private void aplicarConac() {
-        if (datoElegido() == Dato.FOLIO_REVISAR) { pasarNumerosAFactura(); return; }
+        if (datoElegido() == Dato.FOLIO_REVISAR) { corregirFolios(); return; }
         if (datoElegido() == Dato.COLOR) { tomarColores(); return; }
         if (datoElegido() == Dato.TIPO) {
             List<Fila> sugeridos = conTipoSugerido();
@@ -799,8 +821,17 @@ public final class CompletarDatosDialog {
             if (valor.length() > (dato == Dato.FOLIO ? 60 : 200)) { fallar(f, "Es demasiado largo"); return; }
             // A folio fiscal with another shape is not saved: it would not match its factura.
             String problema = dato == Dato.FOLIO || dato == Dato.FOLIO_REVISAR ? CalidadDatosService.problemaFolio(valor) : null;
-            if (problema != null) { fallar(f, "El folio fiscal " + problema); return; }
-            guardar(f, p -> CalidadDatosService.poner(p, dato, valor));
+            String malEscrito = f.producto.getFolioFiscal();
+            if (problema != null) {
+                // Left as it was written (this list starts with it): passing by is not saving.
+                if (dato == Dato.FOLIO_REVISAR && malEscrito != null
+                    && valor.equals(CalidadDatosService.normalizarTexto(dato, malEscrito))) return;
+                fallar(f, "El folio fiscal " + problema);
+                return;
+            }
+            guardar(f, p -> CalidadDatosService.poner(p, dato, valor),
+                dato == Dato.FOLIO_REVISAR && malEscrito != null && !malEscrito.isBlank()
+                    ? () -> corregirIguales(f, malEscrito, valor) : null);
         }
     }
 
@@ -817,6 +848,11 @@ public final class CompletarDatosDialog {
     }
 
     private void guardar(Fila f, java.util.function.Consumer<Producto> cambiar) {
+        guardar(f, cambiar, null);
+    }
+
+    /** @param despues run once the bien is saved, or null */
+    private void guardar(Fila f, java.util.function.Consumer<Producto> cambiar, Runnable despues) {
         Producto p = f.producto;
         Producto antes = p.copia();
         BigDecimal precioAntes = p.getPrecioCompra();
@@ -835,6 +871,7 @@ public final class CompletarDatosDialog {
                 cargarAreas();
                 actualizarConteos();
                 lista.refresh();
+                if (despues != null) despues.run();
             },
             e -> {
                 // What failed isn't what the bien has: the list and the counts go on saying so.
