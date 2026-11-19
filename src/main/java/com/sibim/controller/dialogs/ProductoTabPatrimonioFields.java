@@ -151,6 +151,12 @@ class ProductoTabPatrimonioFields {
         }));
         facturaOriginal = existing != null ? existing.getNumeroFactura() : null;
         fNumeroFactura.focusedProperty().addListener((o, antes, ahora) -> { if (!ahora) pasarFolioFiscal(); });
+        lnkFolioALugar.setPadding(javafx.geometry.Insets.EMPTY);
+        lnkFolioALugar.setOnAction(e -> ponerFolioEnSuLugar());
+        fNumeroFactura.textProperty().addListener((o, a, b) -> verFolioALugar());
+        fFolioFiscal.textProperty().addListener((o, a, b) -> verFolioALugar());
+        fNumeroFactura.disabledProperty().addListener((o, a, b) -> verFolioALugar());
+        verFolioALugar();
 
         fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
         fEtiquetado.setSelected(existing != null && existing.isEtiquetado());
@@ -266,7 +272,7 @@ class ProductoTabPatrimonioFields {
         grid.add(lnkAnterior, 1, rp - 1);
         grid.add(DialogUtil.fieldLabelWithHelp("N° Factura",
             "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
-                                                         0, rp); grid.add(fNumeroFactura, 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fNumeroFactura, lnkFolioALugar), 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
             "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo.\n"
                 + "La O se escribe sola como 0, y la I o la L como 1.\n«Leer el XML de la factura…» lo llena desde el archivo."),
@@ -287,7 +293,7 @@ class ProductoTabPatrimonioFields {
         filaCosto = rp++;   // the costo, from the other tab (ponerCosto)
         grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
             "Número de años en que el bien se deprecia completamente (depreciación en línea recta)\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10;\nse sugiere al elegir la categoría). Vacío: el bien no se deprecia."),
-                                                         0, rp); grid.add(fVidaUtil,      1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fVidaUtil, lnkVidaComun), 1, rp++);
         lnkResidual.getStyleClass().add("field-hint");
         lnkResidual.setPadding(javafx.geometry.Insets.EMPTY);
         lnkResidual.setVisible(false);
@@ -298,7 +304,7 @@ class ProductoTabPatrimonioFields {
 
         GridPane g = gridBien;
         rp = seccion(g, "El bien", 0, false);
-        g.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); g.add(fColor, 1, rp++);
+        g.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); g.add(new javafx.scene.layout.VBox(2, fColor, lnkColorDelNombre), 1, rp++);
         g.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp);
         g.add(new javafx.scene.layout.VBox(2, com.sibim.util.ListaParaElegir.junto(fTipoBien, btnTipos), lblTipoPropuesto), 1, rp++);
         g.add(DialogUtil.fieldLabel("Marca"),         0, rp); g.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
@@ -792,6 +798,103 @@ class ProductoTabPatrimonioFields {
      *  folio they had) goes to Folio fiscal, if that one is empty, and the número the
      *  bien had comes back. Only one typed now: the 700-odd UUIDs the carga put there
      *  stay until someone moves them, or every edit would rewrite the factura. */
+    /** Under an empty color, the one the bien's name or description says, one click away
+     *  (6 to 18-nov-2026: of 729 colors typed by hand, 136 were exactly the name's and 77 the
+     *  name's with more detail). */
+    final javafx.scene.control.Hyperlink lnkColorDelNombre = new javafx.scene.control.Hyperlink();
+    { lnkColorDelNombre.setVisible(false); lnkColorDelNombre.setManaged(false); }
+    private javafx.beans.value.ObservableStringValue nombreDelBien, descripcionDelBien;
+
+    void ofrecerColorDelNombre(javafx.beans.value.ObservableStringValue nombre, javafx.beans.value.ObservableStringValue descripcion) {
+        nombreDelBien = nombre;
+        descripcionDelBien = descripcion;
+        lnkColorDelNombre.getStyleClass().add("field-hint");
+        lnkColorDelNombre.setPadding(javafx.geometry.Insets.EMPTY);
+        lnkColorDelNombre.setOnAction(e -> {
+            String c = colorDelNombre();
+            if (c != null) fColor.setText(c);
+        });
+        nombre.addListener((o, a, b) -> verColorDelNombre());
+        if (descripcion != null) descripcion.addListener((o, a, b) -> verColorDelNombre());
+        fColor.textProperty().addListener((o, a, b) -> verColorDelNombre());
+        fColor.disabledProperty().addListener((o, a, b) -> verColorDelNombre());
+        verColorDelNombre();
+    }
+
+    private String colorDelNombre() {
+        if (nombreDelBien == null) return null;
+        return com.sibim.util.ColorEnNombre.de(nombreDelBien.get(), descripcionDelBien == null ? null : descripcionDelBien.get());
+    }
+
+    private void verColorDelNombre() {
+        String c = colorDelNombre();
+        boolean ver = c != null && (fColor.getText() == null || fColor.getText().isBlank()) && !fColor.isDisabled() && fColor.isEditable();
+        if (ver) lnkColorDelNombre.setText("Su nombre dice: " + c);
+        lnkColorDelNombre.setVisible(ver);
+        lnkColorDelNombre.setManaged(ver);
+    }
+
+    /** Under the vida útil while it is empty: what most bienes of its CONAC account have, one
+     *  click away (not filled by itself: it moves the depreciation). See
+     *  {@link com.sibim.service.CalidadDatosService#vidaUtilDeSuClave}. */
+    final javafx.scene.control.Hyperlink lnkVidaComun = new javafx.scene.control.Hyperlink();
+    private java.util.Map<String, Integer> vidaComun = java.util.Map.of();
+
+    void ofrecerVidaComun(java.util.Map<String, Integer> comun) {
+        vidaComun = comun == null ? java.util.Map.of() : comun;
+        if (lnkVidaComun.getProperties().putIfAbsent("instalado", Boolean.TRUE) == null) {
+            lnkVidaComun.getStyleClass().add("field-hint");
+            lnkVidaComun.setPadding(javafx.geometry.Insets.EMPTY);
+            lnkVidaComun.setOnAction(e -> {
+                Integer anios = vidaDeSuClave();
+                if (anios != null) fVidaUtil.getValueFactory().setValue(anios);
+                verVidaComun();
+            });
+            fClaveArm.textProperty().addListener((o, a, b) -> verVidaComun());
+            fVidaUtil.valueProperty().addListener((o, a, b) -> verVidaComun());
+            fVidaUtil.getEditor().textProperty().addListener((o, a, b) -> verVidaComun());
+            fVidaUtil.disabledProperty().addListener((o, a, b) -> verVidaComun());
+        }
+        verVidaComun();
+    }
+
+    /** Null without a CONAC account (Map.of() refuses a null key). */
+    private Integer vidaDeSuClave() {
+        String k = com.sibim.service.CalidadDatosService.claveCorta(fClaveArm.getText());
+        return k == null ? null : vidaComun.get(k);
+    }
+
+    private void verVidaComun() {
+        Integer anios = vidaDeSuClave();
+        String escrito = fVidaUtil.getEditor().getText();
+        boolean vacia = fVidaUtil.getValue() == null && (escrito == null || escrito.isBlank());
+        boolean ver = anios != null && vacia && !fVidaUtil.isDisabled();
+        if (ver) lnkVidaComun.setText("Como la mayoría de su clave CONAC: " + FormatUtils.plural(anios, "año", "años"));
+        lnkVidaComun.setVisible(ver);
+        lnkVidaComun.setManaged(ver);
+    }
+
+    /** Under N° Factura, while it holds a whole folio fiscal and «Folio fiscal» is empty: one
+     *  click puts it there (6 to 18-nov-2026, 246 were moved by hand, bien by bien, as part of
+     *  editing each one; 442 still were in «Factura»). */
+    final javafx.scene.control.Hyperlink lnkFolioALugar = new javafx.scene.control.Hyperlink("Es el folio fiscal: pasarlo a «Folio fiscal»");
+
+    private void verFolioALugar() {
+        boolean ver = Producto.pareceFolioFiscal(fNumeroFactura.getText()) && fFolioFiscal.getText().isBlank()
+            && !fNumeroFactura.isDisabled() && fNumeroFactura.isEditable() && !fFolioFiscal.isDisabled();
+        lnkFolioALugar.setVisible(ver);
+        lnkFolioALugar.setManaged(ver);
+    }
+
+    /** What the link does: the folio to its field, «Factura» empty for its own number. */
+    void ponerFolioEnSuLugar() {
+        String uuid = fNumeroFactura.getText().trim();
+        if (!Producto.pareceFolioFiscal(uuid) || !fFolioFiscal.getText().isBlank()) return;
+        fFolioFiscal.setText(uuid.toUpperCase());
+        fNumeroFactura.setText("");
+        fNumeroFactura.requestFocus();
+    }
+
     void pasarFolioFiscal() {
         String texto = fNumeroFactura.getText().trim();
         if (texto.equals(facturaOriginal == null ? "" : facturaOriginal.trim())) return;

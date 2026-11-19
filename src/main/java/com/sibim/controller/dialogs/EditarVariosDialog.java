@@ -102,9 +102,24 @@ public final class EditarVariosDialog {
         revisar.setOnAction(e -> revisar(dialog, scene, servicio, alCambiar));
         Region hueco = new Region();
         HBox.setHgrow(hueco, Priority.ALWAYS);
-        HBox abajo = new HBox(10, lblError, hueco, revisar);
+        // One row of buttons, as in the bien's form: «Cerrar» lived alone in the dialog's
+        // own bar under this one and read as a second footer (18-nov-2026).
+        Button cerrar = new Button("Cerrar");
+        cerrar.getStyleClass().add("btn-secondary");
+        cerrar.setMinWidth(Region.USE_PREF_SIZE);
+        cerrar.setCancelButton(true);
+        cerrar.setOnAction(e -> dialog.close());
+        HBox abajo = new HBox(10, lblError, hueco, cerrar, revisar);
         abajo.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(lblError, Priority.SOMETIMES);
+        // The dialog keeps its Cerrar (Esc and the window's X) but not the bar's height.
+        if (dialog.getDialogPane().lookup(".button-bar") instanceof Region barra) {
+            barra.setVisible(false);
+            barra.setMinHeight(0);
+            barra.setPrefHeight(0);
+            barra.setMaxHeight(0);
+            barra.setPadding(Insets.EMPTY);
+        }
 
         VBox cuerpo = new VBox(10, ayuda, scroll, abajo);
         cuerpo.setPadding(new Insets(0, 22, 14, 22));

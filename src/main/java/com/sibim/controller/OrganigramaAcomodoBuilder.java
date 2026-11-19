@@ -15,6 +15,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -137,6 +138,9 @@ class OrganigramaAcomodoBuilder {
         int bienes = productosPorArea.getOrDefault(direccion, List.of()).size();
         Label cuenta = new Label(String.valueOf(bienes));
         cuenta.getStyleClass().add("org-area-count");
+        // The number whole; the long name gives way (18-nov-2026: «Comunicación Social y Marketing
+        // Digital», «Tesorería — Recursos Humanos y Nómina»… showed «…» instead of their bienes).
+        cuenta.setMinWidth(Region.USE_PREF_SIZE);
         Tooltip.install(cuenta, new Tooltip(FormatUtils.plural(bienes, "bien", "bienes")));
 
         HBox ficha = new HBox(8, asa, nombre, cuenta);

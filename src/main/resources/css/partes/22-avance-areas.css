@@ -24,7 +24,7 @@
     -fx-max-height: 18;
     -fx-background-radius: 99;
     -fx-alignment: center;
-    -fx-font-size: 10px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 .avance-paso-hecho     { -fx-background-color: #235B4E; -fx-text-fill: white; }

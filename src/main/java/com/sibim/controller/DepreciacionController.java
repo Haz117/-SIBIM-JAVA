@@ -109,6 +109,14 @@ public class DepreciacionController {
     @FXML private TableColumn<Producto, String> colValorActual;
     @FXML private TableColumn<Producto, Integer> colDepBar;
     @FXML private TableColumn<Producto, String> colPct;
+
+    /** «43%» → 43; «—» → -1. */
+    static int porcentaje(String celda) {
+        if (celda == null) return -1;
+        int i = celda.indexOf('%');
+        try { return i > 0 ? Integer.parseInt(celda.substring(0, i).trim()) : -1; }
+        catch (NumberFormatException e) { return -1; }
+    }
     @FXML private TableColumn<Producto, String> colFechaTotal;
 
     @FXML private VBox  rangoBox;
@@ -219,8 +227,11 @@ public class DepreciacionController {
 
         colPct.setCellValueFactory(c -> {
             Integer pct = c.getValue().getPorcentajeDepreciado();
-            return new SimpleStringProperty(pct != null ? pct + "% depreciado" : "—");
+            // The column says «Depreciado (%)»: «43% depreciado» was cut to «43% depreci…» at 1366 px.
+            return new SimpleStringProperty(pct != null ? pct + "%" : "—");
         });
+        // As a number: as text «100%» went after «16%» and before «43%» (18-nov-2026).
+        colPct.setComparator(java.util.Comparator.comparingInt(DepreciacionController::porcentaje));
         colPct.setCellFactory(DialogUtil.badgeCellFactory(item -> {
             if ("—".equals(item)) return "cell-badge-success";
             int pct = Integer.parseInt(item.substring(0, item.indexOf('%')));
@@ -474,6 +485,7 @@ public class DepreciacionController {
                     .filter(p -> p.getValorDepreciado() != null)
                     .toList();
                 int sinDatos = getValue().size() - conDepreciacion.size();
+                sinDatosLista = getValue().stream().filter(p -> p.getValorDepreciado() == null && p.getFechaBaja() == null).toList();
                 updateStats(conDepreciacion, sinDatos);
                 updateChart(conDepreciacion);
                 String areaPrevia = areaFilter.getValue() != null
@@ -535,12 +547,44 @@ public class DepreciacionController {
         pop.play();
     }
 
+    /** The bienes in force without costo, fecha or vida útil: not in this screen. */
+    private List<Producto> sinDatosLista = List.of();
+    private javafx.scene.control.Hyperlink ligaSinDatos;
+
+    /** Beside «714 bienes con datos», how many have none and a way to complete them
+     *  (18-nov-2026: 2,247 of 2,961 had no depreciation, and only the folded summary said so). */
+    private void ponerLigaSinDatos() {
+        if (!(lblRangoTotal.getParent() instanceof javafx.scene.layout.HBox fila) || !com.sibim.session.SessionManager.isAdmin()) return;
+        if (ligaSinDatos == null) {
+            ligaSinDatos = new javafx.scene.control.Hyperlink();
+            ligaSinDatos.setPadding(javafx.geometry.Insets.EMPTY);
+            ligaSinDatos.setOnAction(e -> {
+                List<Producto> faltan = sinDatosLista;
+                if (faltan.isEmpty()) return;
+                com.sibim.service.CalidadDatosService.Dato dato =
+                    faltan.stream().anyMatch(x -> x.getPrecioCompra() == null || x.getPrecioCompra().signum() == 0) ? com.sibim.service.CalidadDatosService.Dato.PRECIO
+                    : faltan.stream().anyMatch(x -> x.getFechaAdquisicion() == null) ? com.sibim.service.CalidadDatosService.Dato.FECHA
+                    : com.sibim.service.CalidadDatosService.Dato.VIDA_UTIL;
+                com.sibim.controller.dialogs.CompletarDatosDialog.show(faltan, dato, this::loadData);
+            });
+            ligaSinDatos.setTooltip(new Tooltip("Sin costo, fecha de adquisición o vida útil no se puede calcular su depreciación"));
+            fila.getChildren().add(ligaSinDatos);
+        }
+        int n = sinDatosLista.size();
+        ligaSinDatos.setText(String.format("%,d", n) + (n == 1 ? " sin datos: completarlo" : " sin datos: completarlos"));
+        if (n > 0 && !lblRangoTotal.getText().endsWith(" ·")) lblRangoTotal.setText(lblRangoTotal.getText() + " ·");
+        ligaSinDatos.setVisible(n > 0);
+        ligaSinDatos.setManaged(n > 0);
+    }
+
     private void updateRangos(List<Producto> bienes) {
         if (rangoBox == null) return;
         rangoBox.getChildren().clear();
         int total = bienes.size();
-        if (lblRangoTotal != null)
+        if (lblRangoTotal != null) {
             lblRangoTotal.setText(total + (total == 1 ? " bien con datos" : " bienes con datos"));
+            ponerLigaSinDatos();
+        }
         if (total == 0) return;
 
         int r1 = 0, r2 = 0, r3 = 0, r4 = 0;

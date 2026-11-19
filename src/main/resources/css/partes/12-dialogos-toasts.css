@@ -165,6 +165,9 @@
     -fx-effect: none;
     -fx-translate-y: 1;
 }
+/* Its icon, white like the text (it came out dark: 3.89:1 on the green). */
+.form-submit-btn .ikonli-font-icon { -fx-icon-color: white; }
+.form-submit-btn:disabled .ikonli-font-icon { -fx-icon-color: rgba(255,255,255,0.85); }
 .form-submit-btn:disabled {
     -fx-background-color: #E28FA6;
     -fx-text-fill: #FBEFF3;
@@ -173,16 +176,17 @@
     -fx-opacity: 1;
 }
 /* Edit variant — green accent when updating an existing record */
+/* 18-nov-2026: white on #059669 was 3.77:1 for its 13 px text; #047857 is 5.48:1. */
 .form-submit-btn.form-submit-btn-edit {
-    -fx-background-color: #059669;
+    -fx-background-color: #047857;
     -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.38), 10, 0, 0, 3);
 }
 .form-submit-btn.form-submit-btn-edit:hover {
-    -fx-background-color: #047857;
+    -fx-background-color: #065F46;
     -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.55), 14, 0, 0, 5);
 }
 .form-submit-btn.form-submit-btn-edit:pressed {
-    -fx-background-color: #065F46;
+    -fx-background-color: #064E3B;
     -fx-effect: none;
     -fx-translate-y: 1;
 }

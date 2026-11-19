@@ -25,6 +25,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
@@ -82,6 +83,8 @@ public class OrganigramaController {
     private Map<String, List<Prestamo>>                  prestamosPorArea  = new HashMap<>();
     private Map<String, List<Comodato>>                  comodatosPorArea  = new HashMap<>();
     private Map<String, com.sibim.service.AvanceAreasService.Avance> avancePorArea = new HashMap<>();
+    /** The bienes in a resguardo in force (null until loaded: then nothing is «sin resguardo»). */
+    private java.util.Set<String> enResguardo;
     private boolean abrirAvanceAlCargar;
     @FXML private VBox avanceCard;
     private boolean soloAlertas = false;
@@ -202,6 +205,7 @@ public class OrganigramaController {
                 prestamosPorArea  = data.prestamosPorArea();
                 comodatosPorArea  = data.comodatosPorArea();
                 avancePorArea     = data.avance();
+                enResguardo       = data.enResguardo();
                 if (avanceCard != null) AvanceAreaView.llenarTarjeta(avanceCard, avancePorArea, this::onAvanceAreas);
                 spinner.setVisible(false); spinner.setManaged(false);
                 rebuildCurrentView();
@@ -372,8 +376,11 @@ public class OrganigramaController {
                 badgesRow.getChildren().add(comodBadge);
             }
 
+            Tooltip.install(pb, new Tooltip((totalBienes > 0 ? Math.round(100.0 * areaProds.size() / totalBienes) : 0)
+                + " % de los bienes del municipio"));
             card.getChildren().addAll(cardHeader, statsRow, pb);
             if (!badgesRow.getChildren().isEmpty()) card.getChildren().add(badgesRow);
+            card.getChildren().add(metricasDe(areaName, areaProds));
             flow.getChildren().add(card);
         }
 
@@ -601,7 +608,8 @@ public class OrganigramaController {
                            List<Producto> prods,
                            List<com.sibim.model.Resguardo> rsgs,
                            List<Prestamo> prests,
-                           List<Comodato> comods) {}
+                           List<Comodato> comods,
+                           ResumenSecretaria resumen) {}
 
     private void buildTableView(String filter) {
         orgTree.getChildren().clear();
@@ -635,7 +643,7 @@ public class OrganigramaController {
             rows.add(new AreaRow(areaName, areaProds.size(), valor, alertas,
                 rsgList.size(), prestList.size(), comodList.size(),
                 List.copyOf(areaProds), List.copyOf(rsgList),
-                List.copyOf(prestList), List.copyOf(comodList)));
+                List.copyOf(prestList), List.copyOf(comodList), resumenDe(areaName, areaProds)));
         }
 
         if (rows.isEmpty()) {
@@ -667,6 +675,49 @@ public class OrganigramaController {
         TableColumn<AreaRow, Integer> colRsg    = new TableColumn<>("Resguardos");
         TableColumn<AreaRow, Integer> colPrest  = new TableColumn<>("Préstamos");
         TableColumn<AreaRow, Integer> colComod  = new TableColumn<>("Comodatos");
+        // 18-nov-2026: what Patrimonio works on with each secretaría (Préstamos and Comodatos
+        // said «—» for all of them: hidden while there is none).
+        TableColumn<AreaRow, Integer> colDatos  = new TableColumn<>("Datos completos");
+        TableColumn<AreaRow, Integer> colSinRes = new TableColumn<>("Sin resguardo");
+        TableColumn<AreaRow, String>  colAvance = new TableColumn<>("Sus áreas");
+        colDatos.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().resumen().pctCompletos()).asObject());
+        colSinRes.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().resumen().sinResguardo().size()).asObject());
+        colAvance.setCellValueFactory(r -> new javafx.beans.property.SimpleStringProperty(r.getValue().resumen().avanceCorto()));
+        colDatos.setPrefWidth(150);  colDatos.setMinWidth(120);
+        colSinRes.setPrefWidth(120); colSinRes.setMinWidth(110);
+        colAvance.setPrefWidth(160); colAvance.setMinWidth(140);
+        colSinRes.getStyleClass().add("col-center");
+        colDatos.setCellFactory(col -> new TableCell<>() {
+            private final Label  num   = new Label();
+            private final Region fill  = new Region();
+            private final StackPane track = new StackPane(fill);
+            private final HBox   box   = new HBox(10, track, num);
+            {
+                num.getStyleClass().add("org-table-num");
+                num.setMinWidth(42);
+                track.getStyleClass().add("org-table-track");
+                fill.getStyleClass().add("org-table-fill");
+                StackPane.setAlignment(fill, Pos.CENTER_LEFT);
+                HBox.setHgrow(track, Priority.ALWAYS);
+                box.setAlignment(Pos.CENTER_LEFT);
+            }
+            @Override protected void updateItem(Integer v, boolean empty) {
+                super.updateItem(v, empty); setText(null);
+                if (empty || v == null) { setGraphic(null); return; }
+                num.setText(v + " %");
+                fill.maxWidthProperty().bind(track.widthProperty().multiply(v / 100.0));
+                setGraphic(box);
+            }
+        });
+        colSinRes.setCellFactory(col -> countCell("cell-badge-warning"));
+        colAvance.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(empty ? null : v);
+                getStyleClass().remove("muted-text");
+                if (!empty && v != null && v.startsWith("0 de")) getStyleClass().add("muted-text");
+            }
+        });
 
         colArea.setCellValueFactory(r -> new javafx.beans.property.SimpleObjectProperty<>(r.getValue()));
         colArea.setComparator(Comparator.comparing(AreaRow::nombre, String.CASE_INSENSITIVE_ORDER));
@@ -679,10 +730,10 @@ public class OrganigramaController {
 
         // Minimums keep every header whole ("Bienes" used to collapse to "Bie…" next to the sort arrow).
         colArea.setPrefWidth(300);   colArea.setMinWidth(200);
-        colBienes.setPrefWidth(170); colBienes.setMinWidth(130);
-        colValor.setPrefWidth(190);  colValor.setMinWidth(170);
-        colAlerts.setPrefWidth(105); colAlerts.setMinWidth(100);
-        colRsg.setPrefWidth(120);    colRsg.setMinWidth(115);
+        colBienes.setPrefWidth(150); colBienes.setMinWidth(100);
+        colValor.setPrefWidth(170);  colValor.setMinWidth(140);
+        colAlerts.setPrefWidth(95);  colAlerts.setMinWidth(80);
+        colRsg.setPrefWidth(115);    colRsg.setMinWidth(100);
         colPrest.setPrefWidth(115);  colPrest.setMinWidth(110);
         colComod.setPrefWidth(120);  colComod.setMinWidth(115);
         colValor.getStyleClass().add("col-num");
@@ -744,6 +795,12 @@ public class OrganigramaController {
         colComod.setCellFactory(col  -> countCell("cell-badge-teal"));
 
         table.getColumns().addAll(List.of(colArea, colBienes, colValor, colAlerts, colRsg, colPrest, colComod));
+        boolean admin = SessionManager.isAdmin();
+        if (admin) table.getColumns().addAll(3, List.of(colDatos, colSinRes, colAvance));
+        boolean hayPrestamos = rows.stream().anyMatch(r -> r.prestamos() > 0);
+        boolean hayComodatos = rows.stream().anyMatch(r -> r.comodatos() > 0);
+        colPrest.setVisible(hayPrestamos);
+        colComod.setVisible(hayComodatos);
         table.getItems().addAll(rows);
         colBienes.setSortType(TableColumn.SortType.DESCENDING);
         table.getSortOrder().add(colBienes);
@@ -770,7 +827,20 @@ public class OrganigramaController {
             javafx.scene.control.MenuItem miComod = new javafx.scene.control.MenuItem("Ver comodatos");
             miComod.setGraphic(new FontIcon("mdi2h-handshake-outline"));
             miComod.setOnAction(e -> { AreaRow r = row.getItem(); if (r != null && !r.comods().isEmpty()) dialogs.showComodatosAreaDialog(r.nombre(), r.comods(), searchField.getScene()); });
+            javafx.scene.control.MenuItem miDatos = new javafx.scene.control.MenuItem("Completar sus datos");
+            miDatos.setGraphic(new FontIcon("mdi2c-clipboard-edit-outline"));
+            miDatos.setOnAction(e -> { AreaRow r = row.getItem();
+                if (r != null && !r.resumen().faltanDatos().isEmpty())
+                    com.sibim.controller.dialogs.CompletarDatosDialog.show(r.resumen().faltanDatos(), () -> loadData(false)); });
+            javafx.scene.control.MenuItem miSinRes = new javafx.scene.control.MenuItem("Ver los que no tienen resguardo");
+            miSinRes.setGraphic(new FontIcon("mdi2c-clipboard-alert-outline"));
+            miSinRes.setOnAction(e -> { AreaRow r = row.getItem();
+                if (r != null && !r.resumen().sinResguardo().isEmpty())
+                    dialogs.showAreaProductsDialog(r.nombre() + " — sin resguardo", r.resumen().sinResguardo(), false, searchField.getScene()); });
             menu.getItems().addAll(miVer, miRsg, miPrest, miComod);
+            if (SessionManager.isAdmin()) menu.getItems().addAll(new javafx.scene.control.SeparatorMenuItem(), miDatos, miSinRes);
+            miPrest.setVisible(rows.stream().anyMatch(x -> x.prestamos() > 0));
+            miComod.setVisible(rows.stream().anyMatch(x -> x.comodatos() > 0));
             row.setTooltip(new Tooltip("Doble clic para ver los bienes del área"));
             row.setOnContextMenuRequested(e -> { if (!row.isEmpty()) menu.show(row, e.getScreenX(), e.getScreenY()); });
             return row;
@@ -781,19 +851,132 @@ public class OrganigramaController {
             totalCount(totalBienes, "bien", "bienes"),
             totalItem("valor patrimonial", com.sibim.session.Permisos.pesos(totalValor)),
             totalCount(rows.stream().mapToInt(AreaRow::alertas).sum(), "alerta", "alertas"),
-            totalCount(rows.stream().mapToInt(AreaRow::resguardos).sum(), "resguardo", "resguardos"),
-            totalCount(rows.stream().mapToInt(AreaRow::prestamos).sum(), "préstamo", "préstamos"),
-            totalCount(rows.stream().mapToInt(AreaRow::comodatos).sum(), "comodato", "comodatos"));
+            totalCount(rows.stream().mapToInt(AreaRow::resguardos).sum(), "resguardo", "resguardos"));
+        if (admin) {
+            int conDatos = rows.stream().mapToInt(r -> r.resumen().bienes() - r.resumen().faltanDatos().size()).sum();
+            int vigentes = rows.stream().mapToInt(r -> r.resumen().bienes()).sum();
+            totals.getChildren().add(totalItem("con datos completos", (vigentes == 0 ? 100 : Math.round(100.0 * conDatos / vigentes)) + " %"));
+            totals.getChildren().add(totalCount(rows.stream().mapToInt(r -> r.resumen().sinResguardo().size()).sum(), "sin resguardo", "sin resguardo"));
+        }
+        if (hayPrestamos) totals.getChildren().add(totalCount(rows.stream().mapToInt(AreaRow::prestamos).sum(), "préstamo", "préstamos"));
+        if (hayComodatos) totals.getChildren().add(totalCount(rows.stream().mapToInt(AreaRow::comodatos).sum(), "comodato", "comodatos"));
         totals.getStyleClass().add("org-table-totals");
         totals.setAlignment(Pos.CENTER_LEFT);
         Label lblTotal = new Label("TOTAL");
         lblTotal.getStyleClass().add("org-table-totals-title");
         totals.getChildren().add(0, lblTotal);
 
+        // Built after the screen loaded: the titles-whole sharing of every other table is put
+        // here by hand (with its new columns at 1366 px «Datos completos» read «Datos compl…»).
+        com.sibim.util.ColumnasLegibles.instalar(table);
         VBox wrap = new VBox(table, totals);
         wrap.getStyleClass().add("org-table-wrap");
         orgTree.getChildren().add(wrap);
         AnimationUtils.staggeredFadeInUp(List.of(wrap), 280, 0);
+    }
+
+    private ResumenSecretaria resumenDe(String areaName, List<Producto> prods) {
+        return ResumenSecretaria.de(areaName, prods, getChildrenForTopLevel(areaName), enResguardo, avancePorArea, productosPorArea);
+    }
+
+    /** A link inside a clickable card: its click is its own, not the card's. */
+    private static Hyperlink liga(String texto, Runnable accion) {
+        Hyperlink h = new Hyperlink(texto);
+        h.setPadding(Insets.EMPTY);
+        h.getStyleClass().add("org-card-liga");
+        h.setOnAction(e -> accion.run());
+        h.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, javafx.event.Event::consume);
+        return h;
+    }
+
+    /** Under a card's badges (18-nov-2026, «siento que es muy simple»): how complete its data
+     *  is, what has no resguardo, how its áreas go and its dependencias — each one opens. */
+    private VBox metricasDe(String areaName, List<Producto> areaProds) {
+        ResumenSecretaria r = resumenDe(areaName, areaProds);
+        javafx.scene.Scene escena = searchField.getScene();
+        GridPane g = new GridPane();
+        g.setHgap(8);
+        g.setVgap(5);
+        int fila = 0;
+        if (SessionManager.isAdmin()) {
+            Label lDatos = new Label("Datos completos");
+            lDatos.getStyleClass().add("org-card-metrica");
+            ProgressBar barra = new ProgressBar(r.pctCompletos() / 100.0);
+            barra.getStyleClass().addAll("area-bar-pb", "area-bar-pb-1", "org-card-barra");
+            barra.setPrefWidth(70);
+            Tooltip.install(barra, new Tooltip("Con costo, fecha de adquisición y vida útil: lo que la depreciación necesita"));
+            HBox datos = new HBox(6, barra, new Label(r.pctCompletos() + " %"));
+            datos.setAlignment(Pos.CENTER_LEFT);
+            if (!r.faltanDatos().isEmpty()) {
+                List<Producto> faltan = r.faltanDatos();
+                com.sibim.service.CalidadDatosService.Dato dato =
+                    faltan.stream().anyMatch(p -> p.getPrecioCompra() == null || p.getPrecioCompra().signum() == 0) ? com.sibim.service.CalidadDatosService.Dato.PRECIO
+                    : faltan.stream().anyMatch(p -> p.getFechaAdquisicion() == null) ? com.sibim.service.CalidadDatosService.Dato.FECHA
+                    : com.sibim.service.CalidadDatosService.Dato.VIDA_UTIL;
+                Hyperlink completar = liga("faltan " + String.format("%,d", faltan.size()),
+                    () -> com.sibim.controller.dialogs.CompletarDatosDialog.show(faltan, dato, () -> loadData(false)));
+                completar.setTooltip(new Tooltip("Abrir Completar datos con los bienes de " + areaName + " a los que les falta"));
+                datos.getChildren().add(completar);
+            }
+            g.addRow(fila++, lDatos, datos);
+
+            Label lRes = new Label("Resguardo");
+            lRes.getStyleClass().add("org-card-metrica");
+            Node res;
+            if (enResguardo == null) res = new Label("—");
+            else if (r.sinResguardo().isEmpty()) res = new Label("Todos tienen");
+            else {
+                List<Producto> sin = r.sinResguardo();
+                res = liga(FormatUtils.plural(sin.size(), "bien sin resguardo", "bienes sin resguardo"),
+                    () -> dialogs.showAreaProductsDialog(areaName + " — sin resguardo", sin, false, escena));
+            }
+            g.addRow(fila++, lRes, res);
+
+            Label lAreas = new Label("Sus áreas");
+            lAreas.getStyleClass().add("org-card-metrica");
+            Hyperlink avance = liga(r.avanceEnPalabras(), this::onAvanceAreas);
+            avance.setTooltip(new Tooltip("Los tres pasos de cada área: entrar a SIBIM, revisar sus bienes y confirmar etiquetas"));
+            g.addRow(fila++, lAreas, avance);
+        }
+        if (!r.dependencias().isEmpty()) {
+            Label lDeps = new Label("Dependencias");
+            lDeps.getStyleClass().add("org-card-metrica");
+            FlowPane deps = new FlowPane(8, 2);
+            int mostradas = 0;
+            for (var d : r.dependencias()) {
+                if (mostradas == 3) break;
+                String dep = d.getKey();
+                deps.getChildren().add(liga(corto(dep) + " " + d.getValue(),
+                    () -> dialogs.showAreaProductsDialog(dep, productosPorArea.getOrDefault(dep, List.of()), false, escena)));
+                mostradas++;
+            }
+            if (r.dependencias().size() > 3) {
+                Label mas = new Label("y " + (r.dependencias().size() - 3) + " más");
+                mas.getStyleClass().add("muted-sm");
+                deps.getChildren().add(mas);
+            }
+            GridPane.setValignment(lDeps, javafx.geometry.VPos.TOP);
+            g.addRow(fila++, lDeps, deps);
+        }
+        javafx.scene.layout.ColumnConstraints c0 = new javafx.scene.layout.ColumnConstraints();
+        c0.setMinWidth(Region.USE_PREF_SIZE);
+        javafx.scene.layout.ColumnConstraints c1 = new javafx.scene.layout.ColumnConstraints();
+        c1.setHgrow(Priority.ALWAYS);
+        g.getColumnConstraints().addAll(c0, c1);
+        VBox v = new VBox(g);
+        v.getStyleClass().add("org-card-metricas");
+        if (fila == 0) { v.setVisible(false); v.setManaged(false); }
+        return v;
+    }
+
+    /** «Dirección de Catastro» → «Catastro», «Tesorería — Ingresos» → «Ingresos»: the card is narrow. */
+    static String corto(String area) {
+        String s = area;
+        int raya = s.indexOf(" — ");
+        if (raya > 0) s = s.substring(raya + 3);
+        for (String quita : List.of("Dirección de ", "Dirección del ", "Secretaría de ", "Coordinación de ", "Instancia Municipal de la ", "Instancia Municipal de "))
+            if (s.startsWith(quita)) { s = s.substring(quita.length()); break; }
+        return s.length() > 26 ? s.substring(0, 25) + "…" : s;
     }
 
     private static final double ORG_TABLE_ROW = 54;

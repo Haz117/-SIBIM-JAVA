@@ -370,10 +370,12 @@ public class AlertasController implements Refreshable {
         pPendientes.total = pendientes.size();
         pPendientes.mostrados = patrimoniales.mostrar(pendientes, q);
         if (!allPendientes.isEmpty()) pPendientes.subtitulo =
-            AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
+            AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDO)
+            + " sin resguardo vigente · "
+            + AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
             + " sin resguardante asignado · "
             + AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_ETIQUETAR)
-            + " sin etiqueta física";
+            + " sin etiqueta física (la confirman las áreas)";
 
         refrescarPanel();
     }
@@ -409,12 +411,14 @@ public class AlertasController implements Refreshable {
             + " · " + (nGa - vencidas) + " próximas");
         AnimationUtils.animateCount(lblSumMantenimiento, allMantenimiento.size(), 600);
         AnimationUtils.animateCount(lblSumComodatos, allComodatosVencidos.size(), 600);
-        AnimationUtils.animateCount(lblSumPendientes, allPendientes.size(), 600);
+        // The number is what Patrimonio has to do (18-nov-2026: it said «2961», every bien
+        // waiting for its área to confirm its label, and not the 256 without resguardo).
+        AnimationUtils.animateCount(lblSumPendientes, (int) AlertasPatrimonialesSection.dePatrimonio(allPendientes), 600);
         lblSumPendientesDetalle.setText(
-            AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
-            + " sin resguardante · "
-            + AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_ETIQUETAR)
-            + " sin etiquetar");
+            AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDO)
+            + " sin resguardo · "
+            + AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
+            + " sin resguardante");   // the labels, below: the áreas confirm them
     }
 
     // ── FXML handlers ──────────────────────────────────────────────────────────

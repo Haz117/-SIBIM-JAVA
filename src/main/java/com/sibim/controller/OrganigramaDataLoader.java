@@ -25,7 +25,9 @@ class OrganigramaDataLoader {
         Map<String, List<Resguardo>> resguardosPorArea,
         Map<String, List<Prestamo>> prestamosPorArea,
         Map<String, List<Comodato>> comodatosPorArea,
-        Map<String, com.sibim.service.AvanceAreasService.Avance> avance
+        Map<String, com.sibim.service.AvanceAreasService.Avance> avance,
+        /** The bienes in a resguardo in force: the rest are «sin resguardo». */
+        java.util.Set<String> enResguardo
     ) {}
 
     private final ProductoService  productoService;
@@ -69,6 +71,11 @@ class OrganigramaDataLoader {
                         .collect(Collectors.groupingBy(Producto::getArea));
                 }
 
+                java.util.Set<String> enResguardo = new java.util.HashSet<>();
+                resguardos.join().stream()
+                    .filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado()) && r.getItems() != null)
+                    .forEach(r -> r.getItems().forEach(it -> enResguardo.add(it.getProductoId())));
+
                 Map<String, List<Resguardo>> rsgPorArea = new HashMap<>();
                 resguardos.join().stream()
                     .filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado())
@@ -107,7 +114,7 @@ class OrganigramaDataLoader {
                     productoIdToArea.size(), porArea.size(), (System.nanoTime() - inicio) / 1_000_000);
                 var avance = com.sibim.service.AvanceAreasService.calcular(todos, accesos.join(),
                     cuentas.join(), com.sibim.config.Areas.getAllAreaNames());
-                return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea, avance);
+                return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea, avance, enResguardo);
             },
             onSuccess,
             onError

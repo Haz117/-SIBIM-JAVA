@@ -390,6 +390,8 @@ public class ConfiguracionController {
                         Integer.parseInt(cfg.getOrDefault("inactividad_timeout_minutos", "30")));
                     } catch (NumberFormatException ignored) {}
                     spInactividadTimeout.setDisable(!isAdmin);
+                    // Its box is what a screen reader lands on: it had no name (18-nov-2026).
+                    spInactividadTimeout.getEditor().setAccessibleText("Tiempo de inactividad, en minutos");
                 }
                 // update decorative badge in profile card
                 if (lblDecoNombre != null) {

@@ -229,7 +229,8 @@ public class CategoriasController {
                 ico.setIconSize(18);
                 // Inline style: a table-cell icon rule in styles.css outranks setIconColor(),
                 // and this is a user-picked DB color (same exception as the swatch).
-                String color = c.getColor() != null && c.getColor().matches("#[0-9A-Fa-f]{3,8}") ? c.getColor() : "#4338CA";
+                String color = c.getColor() != null && c.getColor().matches("#[0-9A-Fa-f]{3,8}")
+                    ? com.sibim.util.AppColors.legibleSobreBlanco(c.getColor()) : "#4338CA";
                 String base = ico.getStyle() == null ? "" : ico.getStyle();   // keeps ikonli's own icon-font style
                 ico.setStyle(base + (base.isBlank() || base.endsWith(";") ? "" : ";") + "-fx-icon-color: " + color + ";");
                 setGraphic(ico);

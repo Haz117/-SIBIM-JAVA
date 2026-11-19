@@ -34,14 +34,22 @@ class FormularioCompraTest extends ApplicationTest {
             pt[0].ponerCosto(st[0].etiquetaCosto, st[0].cajaCosto);
         });
         List<Node> hijos = pt[0].grid.getChildren();
-        int factura = hijos.indexOf(pt[0].fNumeroFactura), folio = hijos.indexOf(pt[0].fFolioFiscal.getParent()),
-            proveedor = hijos.indexOf(pt[0].fProveedor), fecha = hijos.indexOf(pt[0].fFechaAdq),
-            costo = hijos.indexOf(st[0].cajaCosto), vida = hijos.indexOf(pt[0].fVidaUtil);
+        // Some go in a box with the link under them (18-nov-2026: «Es el folio fiscal…», «Como la
+        // mayoría de su clave…»): their place is the box's.
+        java.util.function.Function<Node, Integer> lugar = n -> {
+            while (n != null && n.getParent() != pt[0].grid) n = n.getParent();
+            return hijos.indexOf(n);
+        };
+        int factura = lugar.apply(pt[0].fNumeroFactura), folio = lugar.apply(pt[0].fFolioFiscal),
+            proveedor = lugar.apply(pt[0].fProveedor), fecha = lugar.apply(pt[0].fFechaAdq),
+            costo = lugar.apply(st[0].cajaCosto), vida = lugar.apply(pt[0].fVidaUtil);
         assertTrue(factura >= 0 && factura < folio && folio < proveedor && proveedor < fecha && fecha < costo && costo < vida,
             "Tab sigue el orden de la factura: " + List.of(factura, folio, proveedor, fecha, costo, vida));
         // 17-nov-2026: «El bien» is its own group, beside «Compra» on a wide screen; Tab still goes
         // from the purchase to the bien, then where it is, its maintenance and the vehicle's papers.
-        assertTrue(pt[0].gridBien.getChildren().contains(pt[0].fColor));
+        boolean colorEnElBien = false;
+        for (Node n = pt[0].fColor; n != null; n = n.getParent()) if (n == pt[0].gridBien) colorEnElBien = true;
+        assertTrue(colorEnElBien, "el color va en «El bien» (con «Su nombre dice…» debajo)");
         List<Node> orden = new java.util.ArrayList<>();
         recorrer(pt[0].vista, orden);
         int compra = orden.indexOf(pt[0].grid), bien = orden.indexOf(pt[0].gridBien), donde = orden.indexOf(pt[0].gridDonde),

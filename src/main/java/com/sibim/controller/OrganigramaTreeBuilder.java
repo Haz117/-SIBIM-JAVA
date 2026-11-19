@@ -422,6 +422,10 @@ class OrganigramaTreeBuilder {
         Label stock = new Label(p.getStockActual() == 1 ? resguardante
             : resguardante + " · Cant. " + p.getStockActual());
         stock.getStyleClass().add("org-product-stock");
+        // The resguardante whole (a name read «SAN…» at 1366 px, 18-nov-2026); the long
+        // name of the bien gives way instead, and says itself whole on hover.
+        stock.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        name.setTooltip(new javafx.scene.control.Tooltip(p.getNombre()));
         stock.getStyleClass().add(switch (p.getEstado()) {
             default         -> "stock-ok";
         });

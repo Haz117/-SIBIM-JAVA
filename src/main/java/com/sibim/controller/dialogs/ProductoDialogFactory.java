@@ -52,7 +52,13 @@ public final class ProductoDialogFactory {
      *  the server froze the window for a second or two on every open. */
     public record Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
                          List<String> ubicaciones, String folioResguardo, List<String> resguardantes,
-                         List<String> colores, List<String> tipos) {
+                         List<String> colores, List<String> tipos, Map<String, Integer> vidaComun) {
+        public Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
+                      List<String> ubicaciones, String folioResguardo, List<String> resguardantes,
+                      List<String> colores, List<String> tipos) {
+            this(marcas, modelos, proveedores, ubicaciones, folioResguardo, resguardantes, colores, tipos, Map.of());
+        }
+
         public Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
                       List<String> ubicaciones, String folioResguardo) {
             this(marcas, modelos, proveedores, ubicaciones, folioResguardo, List.of());
@@ -78,6 +84,7 @@ public final class ProductoDialogFactory {
         }
         List<String> resguardantes = List.of();
         List<String> tipos = null;
+        Map<String, Integer> vidaComun = Map.of();
         try {
             // The names already in use, to pick one instead of typing a second spelling.
             List<Producto> todos = productoService.getAll();
@@ -85,12 +92,13 @@ public final class ProductoDialogFactory {
                 .filter(r -> r != null && !r.isBlank()).map(String::trim).distinct().sorted().toList();
             // Each tipo once, without colors, to pick from a list (18-nov-2026).
             tipos = com.sibim.service.CalidadDatosService.tiposParaElegir(todos);
+            vidaComun = com.sibim.service.CalidadDatosService.vidaUtilDeSuClave(todos);
         } catch (Exception e) {
             log.debug("No se pudieron leer los resguardantes para sugerirlos", e);
         }
         return new Extras(productoService.getMarcas(), productoService.getModelos(),
             productoService.getProveedores(), productoService.getUbicaciones(), folio, resguardantes,
-            productoService.getColores(), tipos != null ? tipos : productoService.getTiposBien());
+            productoService.getColores(), tipos != null ? tipos : productoService.getTiposBien(), vidaComun);
     }
 
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
@@ -140,8 +148,13 @@ public final class ProductoDialogFactory {
 
         // On a wide screen the patrimonio data goes in two columns (ProductoTabPatrimonioFields.vista).
         boolean dosColumnas = ProductoTabPatrimonioFields.dosColumnas();
-        Dialog<Producto> dialog = DialogUtil.create(dosColumnas ? 1040 : 580);
-        if (dosColumnas) dialog.getDialogPane().getStyleClass().add("dialog-ancho");
+        // One column still as wide as the screen allows: with «Texto: Grande» a 1366 px laptop
+        // left the two columns and the form fell to 580 (667 px with the bigger text) while
+        // with normal text it was 1040 (18-nov-2026). Bigger text, not a narrower form.
+        double ancho = dosColumnas ? 1040
+            : javafx.stage.Screen.getPrimary().getVisualBounds().getWidth() >= 1100 ? 860 : 580;
+        Dialog<Producto> dialog = DialogUtil.create(ancho);
+        if (ancho > 600) dialog.getDialogPane().getStyleClass().add("dialog-ancho");
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
         HBox dialogHeader = DialogUtil.gradientHeader(
@@ -178,6 +191,8 @@ public final class ProductoDialogFactory {
         patrimonioTab.ponerCosto(stockTab.etiquetaCosto, stockTab.cajaCosto);
         patrimonioTab.ofrecerResidual(stockTab.fPrecioC);
         patrimonioTab.sugerirColorYTipo(extras.colores(), extras.tipos());
+        patrimonioTab.ofrecerVidaComun(extras.vidaComun());
+        patrimonioTab.ofrecerColorDelNombre(infoTab.fNombre.textProperty(), infoTab.fDesc.textProperty());
         if (com.sibim.session.Permisos.editaFichaCompleta())
             patrimonioTab.ofrecerAnterior(BienAnterior.get(), existing != null ? existing.getId() : null);
         patrimonioTab.ofrecerXml(stockTab.fPrecioC, () -> infoTab.fNombre.getText());
@@ -306,12 +321,13 @@ public final class ProductoDialogFactory {
             String clave = patrimonioTab.fClaveArm.getText().trim();
             if (nueva != null && !nueva.isBlank() && (clave.isEmpty() || clave.equals(anterior)))
                 patrimonioTab.fClaveArm.setText(nueva.trim());
-            // The vida útil follows it the same way (CONAC parameters), but only when
-            // someone picks the category: opening a bien that has none must not give
-            // it one, or every edit would change its depreciation again.
+            // The vida útil follows it the same way, but only when someone picks the category:
+            // opening a bien that has none must not give it one, or every edit would change its
+            // depreciation again. The municipio's own criterion first (what most bienes of the
+            // account have: muebles 5 years, not CONAC's 10; 18-nov-2026), CONAC where none.
             if (isNewProduct || a != null) {
-                Integer sugerida = com.sibim.config.VidaUtilConac.anios(nueva);
-                Integer previa = com.sibim.config.VidaUtilConac.anios(anterior);
+                Integer sugerida = vidaPara(nueva, extras.vidaComun());
+                Integer previa = vidaPara(anterior, extras.vidaComun());
                 Integer actual = patrimonioTab.vidaUtil();
                 if (sugerida != null && (actual == null || actual.equals(previa)))
                     patrimonioTab.fVidaUtil.getValueFactory().setValue(sugerida);
@@ -428,7 +444,7 @@ public final class ProductoDialogFactory {
             navBar.getChildren().addAll(btnCancelar, navSpacer);
             if (seguir != null) navBar.getChildren().add(btnSeguir);
             navBar.getChildren().add(btnGuardar);
-            tabs.getSelectionModel().select(seguir != null ? seguir.pestana : 0);
+            tabs.getSelectionModel().select(seguir != null ? seguir.pestana : pasoRecordado());
         }
         navBar.getStyleClass().add("stepper-nav-bar");
 
@@ -636,10 +652,35 @@ public final class ProductoDialogFactory {
             p.setFotosUrls(new ArrayList<>(infoTab.fotosHolder));
             p.setFacturaUrl(infoTab.facturaHolder[0] == null || infoTab.facturaHolder[0].isBlank()
                 ? null : infoTab.facturaHolder[0]);
+            if (!isNewProduct) recordarPaso(tabs.getSelectionModel().getSelectedIndex());
             return p;
         });
 
         return dialog.showAndWait();
+    }
+
+    /** The vida útil a CONAC account gets: what most bienes of it have, else CONAC's table. */
+    static Integer vidaPara(String clave, Map<String, Integer> deSuClave) {
+        String corta = com.sibim.service.CalidadDatosService.claveCorta(clave);
+        Integer suya = corta == null || deSuClave == null ? null : deSuClave.get(corta);
+        return suya != null ? suya : com.sibim.config.VidaUtilConac.anios(clave);
+    }
+
+    /** Where an edit opens: the step the last bien was saved from (18-nov-2026: of a week's
+     *  changes bien by bien, 9 of 10 were in «Datos Patrimoniales» — color, proveedor, folio,
+     *  tipo, vida útil, factura —, and each bien opened on step 1). «Guardar y abrir el
+     *  siguiente» already kept its step. */
+    private static final java.util.prefs.Preferences PREFS =
+        java.util.prefs.Preferences.userNodeForPackage(ProductoDialogFactory.class);
+    static final String PASO_AL_EDITAR = "bien.editar.paso";
+
+    static int pasoRecordado() {
+        int paso = PREFS.getInt(PASO_AL_EDITAR, 0);
+        return paso >= 0 && paso <= 2 ? paso : 0;
+    }
+
+    static void recordarPaso(int paso) {
+        if (paso >= 0 && paso <= 2) PREFS.putInt(PASO_AL_EDITAR, paso);
     }
 
     /**

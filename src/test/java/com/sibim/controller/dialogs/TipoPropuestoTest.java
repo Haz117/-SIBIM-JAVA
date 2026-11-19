@@ -91,4 +91,48 @@ class TipoPropuestoTest extends ApplicationTest {
         assertEquals("mueble", f.fTipoBien.getText(), "un campo que no se puede cambiar no se toca");
         assertTrue(f.btnTipos.isDisable());
     }
+
+    /** 18-nov-2026: muebles 5 years in 75 %: offered under an empty vida útil, one click. */
+    @Test
+    void vidaUtilVacia_ofreceLaDeLaMayoriaDeSuClave() {
+        ProductoTabPatrimonioFields f = campos("1.2.4.1.1.511", null);
+        interact(() -> f.ofrecerVidaComun(java.util.Map.of("1.2.4.1.1", 5)));
+        assertTrue(f.lnkVidaComun.isVisible());
+        assertTrue(f.lnkVidaComun.getText().contains("5 años"), f.lnkVidaComun.getText());
+        interact(f.lnkVidaComun::fire);
+        assertEquals(5, f.fVidaUtil.getValue());
+        assertFalse(f.lnkVidaComun.isVisible(), "ya tiene");
+
+        ProductoTabPatrimonioFields otra = campos("1.2.4.1.3.515", null);
+        interact(() -> otra.ofrecerVidaComun(java.util.Map.of("1.2.4.1.1", 5)));
+        assertFalse(otra.lnkVidaComun.isVisible(), "su clave no tiene mayoría");
+        ProductoTabPatrimonioFields sinClave = campos(null, null);
+        interact(() -> sinClave.ofrecerVidaComun(java.util.Map.of("1.2.4.1.1", 5)));
+        assertFalse(sinClave.lnkVidaComun.isVisible(), "un bien nuevo sin categoría todavía no");
+    }
+
+    /** Picking the category of a new bien: the municipio's criterion first, CONAC where none. */
+    @Test
+    void laVidaAlElegirCategoria_sigueLaMayoriaDeSuClave() {
+        assertEquals(5, ProductoDialogFactory.vidaPara("1.2.4.1.1.511", java.util.Map.of("1.2.4.1.1", 5)));
+        assertEquals(10, ProductoDialogFactory.vidaPara("1.2.4.1.1.511", java.util.Map.of()), "sin mayoría: CONAC");
+        assertEquals(3, ProductoDialogFactory.vidaPara("1.2.4.1.3.515", java.util.Map.of("1.2.4.1.1", 5)));
+        assertNull(ProductoDialogFactory.vidaPara(null, java.util.Map.of("1.2.4.1.1", 5)));
+    }
+
+    /** 6 to 18-nov-2026: 136 of 729 colors typed by hand were exactly what the name said. */
+    @Test
+    void colorVacio_ofreceElQueDiceSuNombre() {
+        ProductoTabPatrimonioFields f = campos("1.2.4.1.1.511", null);
+        javafx.beans.property.SimpleStringProperty nombre = new javafx.beans.property.SimpleStringProperty("SILLA OPERATIVA COLOR NEGRO");
+        javafx.beans.property.SimpleStringProperty desc = new javafx.beans.property.SimpleStringProperty("");
+        interact(() -> f.ofrecerColorDelNombre(nombre, desc));
+        assertTrue(f.lnkColorDelNombre.isVisible());
+        assertEquals("Su nombre dice: NEGRO", f.lnkColorDelNombre.getText());
+        interact(f.lnkColorDelNombre::fire);
+        assertEquals("NEGRO", f.fColor.getText());
+        assertFalse(f.lnkColorDelNombre.isVisible(), "ya tiene color");
+        interact(() -> { f.fColor.setText(""); nombre.set("ESCRITORIO DE MADERA"); });
+        assertFalse(f.lnkColorDelNombre.isVisible(), "el nombre no dice color");
+    }
 }

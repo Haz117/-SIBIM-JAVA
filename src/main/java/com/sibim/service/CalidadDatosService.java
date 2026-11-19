@@ -396,11 +396,20 @@ public class CalidadDatosService {
     /** The bienes without vida útil whose CONAC account has one, by years. Equipo de
      *  defensa y seguridad has no value there, so it is left for someone to decide. */
     public static Map<Integer, List<Producto>> propuestaVidaUtil(List<Producto> bienes) {
+        return propuestaVidaUtil(bienes, Map.of());
+    }
+
+    /** {@link #propuestaVidaUtil(List)} following the municipio's own criterion first: what most
+     *  bienes of its CONAC account have ({@link #vidaUtilDeSuClave}), and CONAC's table only where
+     *  its account has no clear majority (18-nov-2026: Patrimonio chose so; CONAC gives muebles
+     *  10 years, the municipio 5). */
+    public static Map<Integer, List<Producto>> propuestaVidaUtil(List<Producto> bienes, Map<String, Integer> deSuClave) {
         Map<Integer, List<Producto>> porAnios = new TreeMap<>();
         for (Producto p : bienes) {
             if (p.getVidaUtilAnios() != null) continue;
-            Integer anios = VidaUtilConac.anios(p.getClaveArmonizada());
-            if (anios != null) porAnios.computeIfAbsent(anios, k -> new ArrayList<>()).add(p);
+            String corta = claveCorta(p.getClaveArmonizada());
+            Integer anios = corta != null && deSuClave.containsKey(corta) ? deSuClave.get(corta) : VidaUtilConac.anios(p.getClaveArmonizada());
+            if (anios != null) porAnios.computeIfAbsent(anios, x -> new ArrayList<>()).add(p);
         }
         return porAnios;
     }
@@ -414,8 +423,9 @@ public class CalidadDatosService {
             List<String> ids = e.getValue().stream().map(Producto::getId).toList();
             int n = repo.asignarVidaUtil(e.getKey(), ids);
             total += n;
-            if (n > 0) audit.log("producto", ids.get(0), "Vida útil por CONAC", "actualizar",
-                "Vida útil de " + e.getKey() + " años, según la clave CONAC, a " + n + " bienes que no tenían");
+            if (n > 0) audit.log("producto", ids.get(0), "Vida útil por su clave", "actualizar",
+                "Vida útil de " + e.getKey() + " años, según la clave CONAC (la de la mayoría de su clave, o la tabla CONAC), a "
+                    + n + " bienes que no tenían");
         }
         ProductosEnMemoria.invalidar();
         return total;
@@ -796,6 +806,34 @@ public class CalidadDatosService {
         return cuenta.entrySet().stream()
             .sorted(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
             .map(Map.Entry::getKey).toList();
+    }
+
+    /** The first five parts of a CONAC account («1.2.4.1.1.511» → «1.2.4.1.1»), the level the
+     *  vida útil is decided at; null without one. */
+    public static String claveCorta(String clave) {
+        if (clave == null || clave.isBlank()) return null;
+        String[] partes = clave.trim().split("\\.");
+        return String.join(".", java.util.Arrays.copyOf(partes, Math.min(5, partes.length)));
+    }
+
+    /** The vida útil most bienes of each CONAC account have (18-nov-2026: muebles 5 years in
+     *  75 %, cómputo 3 in 85 %, vehículos 5 in 100 %, defensa 10 in 97 % — the municipio's own
+     *  criterion: only 234 of 539 typed by hand that fortnight were CONAC's). An account counts
+     *  with 10 bienes or more and 7 of 10 agreeing. */
+    public static Map<String, Integer> vidaUtilDeSuClave(List<Producto> bienes) {
+        Map<String, Map<Integer, Integer>> porClave = new HashMap<>();
+        for (Producto p : bienes) {
+            String k = claveCorta(p.getClaveArmonizada());
+            if (p.getFechaBaja() != null || k == null || p.getVidaUtilAnios() == null) continue;
+            porClave.computeIfAbsent(k, x -> new HashMap<>()).merge(p.getVidaUtilAnios(), 1, Integer::sum);
+        }
+        Map<String, Integer> out = new HashMap<>();
+        porClave.forEach((k, cuenta) -> {
+            int total = cuenta.values().stream().mapToInt(Integer::intValue).sum();
+            var mas = cuenta.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow();
+            if (total >= 10 && mas.getValue() * 10 >= total * 7) out.put(k, mas.getKey());
+        });
+        return out;
     }
 
     /** How {@code lista} writes what was typed, when it is the same letters with other

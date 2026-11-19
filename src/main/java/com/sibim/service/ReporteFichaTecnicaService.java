@@ -251,14 +251,17 @@ public class ReporteFichaTecnicaService extends ReporteService {
         // it used to mix one piece's depreciated value with the lot's total.
         boolean lote = p.getStockActual() > 1;
         if (lote) l.add(par("Cantidad", FormatUtils.plural(p.getStockActual(), "pieza", "piezas")));
+        // A costo of 0 is one not captured (1,080 bienes on 18-nov-2026): «—», not «$0.00».
+        boolean conCosto = p.getPrecioCompra() != null && p.getPrecioCompra().signum() > 0;
         if (conMontos)
             l.add(par(lote ? "Costo de adquisición por pieza" : "Costo de adquisición",
-                p.getPrecioCompra() != null ? pesos(p.getPrecioCompra()) : null));
-        BigDecimal enLibros = p.getValorDepreciadoTotal() != null ? p.getValorDepreciadoTotal() : p.getValorTotal();
+                conCosto ? pesos(p.getPrecioCompra()) : null));
+        BigDecimal enLibros = !conCosto ? null
+            : p.getValorDepreciadoTotal() != null ? p.getValorDepreciadoTotal() : p.getValorTotal();
         l.add(par("Vida útil", p.getVidaUtilAnios() != null ? FormatUtils.plural(p.getVidaUtilAnios(), "año", "años") : null));
         if (conMontos) {
             l.add(par("Valor en libros", enLibros != null ? pesos(enLibros) : null));
-            if (p.getPorcentajeDepreciado() != null && p.getValorDepreciadoTotal() != null)
+            if (conCosto && p.getPorcentajeDepreciado() != null && p.getValorDepreciadoTotal() != null)
                 l.add(par("Depreciación acumulada", pesos(p.getValorTotal().subtract(p.getValorDepreciadoTotal()))
                     + "  (" + p.getPorcentajeDepreciado() + "%)"));
         } else {

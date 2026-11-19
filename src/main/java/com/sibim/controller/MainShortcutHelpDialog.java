@@ -68,6 +68,9 @@ class MainShortcutHelpDialog {
             {"Ctrl + N",        "Nuevo registro (Bienes / Movimientos / Categorías)"},
             {"Ctrl + E",        "Editar fila seleccionada (Bienes / Categorías)"},
             {"Ctrl + S",        "En el formulario del bien: guardar (Ctrl + Shift + S: guardar y el siguiente)"},
+            {"Ctrl + D",        "En el formulario del bien: copiar los datos de compra del bien anterior"},
+            {"Alt + ↓",         "Abrir la lista de un campo que la tiene (Tipo de bien)"},
+            {"S / N / E",       "En «Revisar mis bienes»: Sí es / No es / Ya la tiene, y pasa al siguiente"},
             {"Ctrl + I",        "Importar bienes desde CSV (solo en Bienes)"},
             {"Supr",            "Dar de baja / eliminar fila seleccionada"},
             {"Escape",          "Deseleccionar todas las filas de la tabla"},
@@ -78,6 +81,7 @@ class MainShortcutHelpDialog {
 
         GridPane busqGrid = makeSection.apply("BÚSQUEDA Y FILTROS", new String[][]{
             {"Escribir",             "Busca mientras escribes"},
+            {"↓ en el buscador",     "Abre las búsquedas recientes (Tab las cierra)"},
             {"✕ (botón)",            "Limpiar campo de búsqueda"},
             {"Hoy / Semana / Mes",   "Atajos de fecha en Movimientos y Reportes"},
             {"Guardar filtro",        "Guarda los filtros activos con un nombre (solo en Bienes)"},

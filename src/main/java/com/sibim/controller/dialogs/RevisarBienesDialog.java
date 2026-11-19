@@ -206,12 +206,28 @@ public final class RevisarBienesDialog {
             row.setOnMouseClicked(e -> { if (e.getClickCount() == 2 && !row.isEmpty()) completar(row.getItem()); });
             return row;
         });
-        // Space ticks the row with the focus, Enter completes its data.
+        // Space ticks the row with the focus, Enter completes its data; S, N and E answer it as
+        // its buttons do, and the list stays on the next one (18-nov-2026: the per-row buttons
+        // were out of Tab's reach, and an área has from 4 to 316 bienes to answer).
         tabla.setOnKeyPressed(e -> {
             Producto p = tabla.getSelectionModel().getSelectedItem();
             if (p == null) return;
+            boolean solo = !e.isControlDown() && !e.isAltDown() && !e.isShortcutDown() && !e.isMetaDown();
             if (e.getCode() == KeyCode.SPACE) { alternar(p); e.consume(); }
             else if (e.getCode() == KeyCode.ENTER) { completar(p); e.consume(); }
+            else if (solo && !atendiendo() && e.getCode() == KeyCode.S && !p.isRevisadoPorArea()) {
+                seguirEn = tabla.getSelectionModel().getSelectedIndex();
+                responder(List.of(p), null);
+                e.consume();
+            } else if (solo && !atendiendo() && e.getCode() == KeyCode.N && !p.isRevisadoPorArea()) {
+                e.consume();
+                int en = tabla.getSelectionModel().getSelectedIndex();
+                pedirNota(1).ifPresent(n -> { seguirEn = en; responder(List.of(p), n); });
+            } else if (solo && !atendiendo() && e.getCode() == KeyCode.E && p.isRevisadoPorArea() && !p.isEtiquetado()) {
+                seguirEn = tabla.getSelectionModel().getSelectedIndex();
+                etiquetas(List.of(p));
+                e.consume();
+            }
         });
 
         // ── Acciones sobre los marcados ──
@@ -315,7 +331,8 @@ public final class RevisarBienesDialog {
               + "transfiere con su número y su resguardo nuevos, y esa área lo revisa. Si sí es suyo, «Es suyo» se lo regresa "
               + "a «Por revisar» con lo que le quieras decir. «Ver» muestra quién lo tenía y sus movimientos."
             : "Responde con los botones de cada renglón. Para responder varios a la vez, márcalos con su casilla "
-              + "y usa los botones de abajo. «Completar» le pone foto, ubicación y estado físico.");
+              + "y usa los botones de abajo. «Completar» le pone foto, ubicación y estado físico. "
+              + "Con el teclado: ↑↓ para moverte, S «Sí es», N «No es», E «Ya la tiene», Espacio marca y Enter completa.");
         List<Producto> base = todos.stream().filter(v.filtro).toList();
         Set<Producto> coinciden = new HashSet<>(DialogUtil.coincidencias(base,
             p -> String.join(" ", Objects.requireNonNullElse(p.getCodigo(), ""), Objects.requireNonNullElse(p.getNombre(), ""),
@@ -342,7 +359,21 @@ public final class RevisarBienesDialog {
         pctEtiquetas.setText(total == 0 ? "—" : Math.round(100.0 * etiq / total) + " %");
         textoEtiquetas.setText(etiq + " de " + total + " con su etiqueta pegada");
         actualizarMarcas();
+        // Answered from the keyboard: on to the one that took its place.
+        if (seguirEn >= 0) {
+            int i = Math.min(seguirEn, tabla.getItems().size() - 1);
+            seguirEn = -1;
+            if (i >= 0) {
+                tabla.getSelectionModel().clearAndSelect(i);
+                tabla.getFocusModel().focus(i);
+                tabla.scrollTo(Math.max(0, i - 2));
+                tabla.requestFocus();
+            }
+        }
     }
+
+    /** The row to go on from after an answer given with S, N or E (-1: none). */
+    private int seguirEn = -1;
 
     /** The counts, the buttons, the "all" box and the rows after the marks changed. */
     private void actualizarMarcas() {

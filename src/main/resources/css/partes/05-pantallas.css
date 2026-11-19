@@ -22,7 +22,7 @@
 .chart-vertical-grid-lines   { -fx-stroke: sibim-slate-200; }
 .chart-horizontal-grid-lines { -fx-stroke: sibim-slate-200; }
 .axis-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 11px; }
-.axis       { -fx-tick-label-fill: sibim-slate-500; -fx-font-size: 11px; }
+.axis       { -fx-tick-label-fill: sibim-slate-500; -fx-font-size: 11px; -fx-tick-label-font: 11px "Segoe UI"; }
 /* Line chart series */
 .default-color0.chart-series-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
 .default-color0.chart-line-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }

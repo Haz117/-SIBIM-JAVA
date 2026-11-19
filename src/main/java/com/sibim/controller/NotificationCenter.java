@@ -115,8 +115,12 @@ class NotificationCenter {
             try {
                 var movimientos = new com.sibim.service.MovimientoService();
                 int n = movimientos.getPorRecibir().size();
+                // For Patrimonio they are the áreas' to confirm: listed, not counted in the bell's
+                // number (18-nov-2026: 123 waited, no área had an account, and the bell said «99+»
+                // on every screen for one garantía). An área does count its own.
                 if (n > 0) items.add(0, new Item("mdi2i-inbox-arrow-down-outline", "warning",
-                    n == 1 ? "1 bien por recibir" : n + " bienes por recibir", "movimientos:por-recibir", n));
+                    n == 1 ? "1 bien por recibir" : n + " bienes por recibir", "movimientos:por-recibir",
+                    com.sibim.session.SessionManager.isAdmin() ? 0 : n));
                 if (com.sibim.session.SessionManager.isAdmin()) {
                     int p = movimientos.getPendientesTransferencias().size();
                     if (p > 0) items.add(0, new Item("mdi2t-timer-sand", "warning",

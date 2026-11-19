@@ -149,6 +149,7 @@ public final class DialogUtil {
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         anchoSegunTexto(pane, AccessibilityUtils.getTextScaleIndex());
         sinTopeDelTema(pane);
+        TextoCompleto.instalar(pane);
         // A Dialog's pane already has its scene when it is created, so hook the
         // things callers add afterwards (buttons, content) instead. The "?" help
         // badges turn into tooltips here too: a scene listener never fired for a

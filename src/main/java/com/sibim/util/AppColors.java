@@ -36,4 +36,26 @@ public final class AppColors {
     public static final String SLATE        = "#3F4C5E";
     public static final String SLATE_D      = "#334155";
     public static final String SCENE_BG     = "#0F172A";
+
+    /** A color given as an icon on a white row: an icon needs 3:1 against what is behind it
+     *  (WCAG 1.4.11). A category color picked by hand that doesn't reach it (18-nov-2026 in
+     *  Categorías: amber #F59E0B 2.15:1, cyan #06B6D4 2.43:1, emerald #10B981 2.43:1) is
+     *  darkened, keeping its hue, until it does (3.3:1, for the tinted rows); one that already
+     *  does comes back as it was. */
+    public static String legibleSobreBlanco(String hex) {
+        javafx.scene.paint.Color c;
+        try { c = javafx.scene.paint.Color.web(hex); }
+        catch (IllegalArgumentException | NullPointerException e) { return hex; }
+        if (contrasteConBlanco(c) >= 3.3) return hex;
+        for (int i = 0; i < 30 && contrasteConBlanco(c) < 3.3; i++) c = c.deriveColor(0, 1, 0.93, 1);
+        return String.format("#%02X%02X%02X", (int) Math.round(c.getRed() * 255),
+            (int) Math.round(c.getGreen() * 255), (int) Math.round(c.getBlue() * 255));
+    }
+
+    static double contrasteConBlanco(javafx.scene.paint.Color c) {
+        double[] v = {c.getRed(), c.getGreen(), c.getBlue()};
+        for (int i = 0; i < 3; i++) v[i] = v[i] <= 0.03928 ? v[i] / 12.92 : Math.pow((v[i] + 0.055) / 1.055, 2.4);
+        double l = 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+        return 1.05 / (l + 0.05);
+    }
 }

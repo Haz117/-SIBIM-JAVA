@@ -68,6 +68,25 @@ class MainControllerSmokeTest extends ControllerSmokeTestBase {
         super.stop();
     }
 
+    /** 18-nov-2026: the window said «SIBIM — Sistema Integral…» on every screen; it says where one is. */
+    @Test
+    void elTituloDeLaVentanaDiceLaPantalla() throws Exception {
+        java.lang.reflect.Field principal = com.sibim.MainApp.class.getDeclaredField("primaryStage");
+        principal.setAccessible(true);
+        Object antes = principal.get(null);
+        principal.set(null, stage);
+        try {
+            interact(() -> MainController.getInstance().navigateToView("productos"));
+            org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+            assertEquals("Bienes — SIBIM", stage.getTitle());
+            interact(() -> MainController.getInstance().navigateToView("resguardos"));
+            org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+            assertEquals("Resguardos — SIBIM", stage.getTitle());
+        } finally {
+            principal.set(null, antes);
+        }
+    }
+
     /** Every ApplicationTest method restarts the whole app (~6 s), so the wiring checks share one method. */
     @Test
     void fxmlWiring_isComplete() {

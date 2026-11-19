@@ -3,15 +3,51 @@
  * Va al final a propósito: completa lo que las partes anteriores no cubren.
  * :focus-visible (no :focused) para que el anillo solo aparezca al navegar con
  * Tab, no tras un clic. Se dibuja con -fx-effect, que no mueve el layout. */
-.btn-ghost:focus-visible,
 .toggle-button:focus-visible,
-.hyperlink:focus-visible,
+.btn-preset:focus-visible,
 .menu-button:focus-visible,
 .split-menu-button:focus-visible,
 .filter-chip:focus-visible,
 .check-box:focus-visible > .box,
 .radio-button:focus-visible > .radio {
     -fx-effect: dropshadow(three-pass-box, #861C38, 4, 0.9, 0, 0);
+}
+/* 18-nov-2026, Bienes recorrida con Tab: on a button without a background the shadow drew
+   around the letters («Actualizar» read blotted), and «›» of the pages and the sidebar's
+   search and collapse buttons showed no focus at all. A 2 px guinda ring, drawn as
+   background so nothing moves. */
+.btn-ghost:focus-visible,
+.pagination-btn:focus-visible,
+.sidebar-icon-btn:focus-visible,
+.btn-icon-only:focus-visible {
+    -fx-background-color: #861C38, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 10, 8;
+    -fx-effect: null;
+}
+/* The same with Tab through Organigrama, Movimientos and Reportes: a link («+69 bienes más
+   — ver todos») and an área's heading blotted their letters the same way, «Por recibir»
+   (an outline already) and the sections that fold showed nothing. */
+.hyperlink:focus-visible {
+    -fx-background-color: #861C38, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6, 4;
+    -fx-effect: null;
+}
+.org-child-header.a11y-focusable:focused {
+    -fx-background-color: #861C38, #FDF4F5;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6, 5;
+    -fx-effect: null;
+}
+.btn-warning-outline:focus-visible {
+    -fx-border-color: #861C38;
+    -fx-border-width: 2.5;
+    -fx-padding: 5 15;
+}
+.titled-pane:focus-visible > .title {
+    -fx-border-color: #861C38;
+    -fx-border-width: 2;
 }
 .table-view:focus-visible,
 .list-view:focus-visible,

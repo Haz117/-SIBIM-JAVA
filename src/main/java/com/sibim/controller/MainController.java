@@ -484,10 +484,24 @@ public class MainController {
             com.sibim.util.ResponsiveHeader.installAll(node);
             com.sibim.util.TablaRedondeada.instalarTodas(node);
             com.sibim.util.ColumnasLegibles.instalarTodas(node);
+            // What a screen is for, in two lines when it doesn't fit in one (with «Texto:
+            // Grande» Movimientos, Resguardos and Comodatos cut it, 18-nov-2026).
+            for (Node sub : node.lookupAll(".page-subtitle"))
+                if (sub instanceof javafx.scene.control.Label l) {
+                    l.setWrapText(true);
+                    l.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+                }
+            // A text cut with «…» says itself whole on hover, on every screen (18-nov-2026).
+            if (contentArea != null && contentArea.getScene() != null)
+                com.sibim.util.TextoCompleto.instalar(contentArea.getScene().getRoot());
 
             if (currentController instanceof Refreshable r) r.stopAutoRefresh();
             currentController = loader.getController();
             vistaActual = view;
+            // The window says where one is: the taskbar, Alt+Tab and a screen reader read
+            // the title, and it said «SIBIM — Sistema Integral…» on every screen (18-nov-2026).
+            if (com.sibim.MainApp.getPrimaryStage() != null && button.getText() != null && !button.getText().isBlank())
+                com.sibim.MainApp.getPrimaryStage().setTitle(button.getText().trim() + " — SIBIM");
 
             if (!contentArea.getChildren().isEmpty()) {
                 Node current = contentArea.getChildren().get(0);

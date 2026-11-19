@@ -59,8 +59,13 @@ public final class SearchUtils {
         };
 
         field.setOnAction(e -> { save.run(); histMenu.hide(); });
-        field.focusedProperty().addListener((obs, was, now) -> {
-            if (!was && now) {
+        // The list opens on a click, or with ↓ from the keyboard — not on any focus: arriving
+        // with Tab opened it, and an open list keeps every key, Tab included, so the keyboard
+        // could not leave the search box (18-nov-2026, Bienes). Tab on the list closes it.
+        histMenu.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.TAB) { histMenu.hide(); e.consume(); }
+        });
+        Runnable abrir = () -> {
                 List<String> history = loadHistory(prefs);
                 if (history.isEmpty()) return;
                 histMenu.getItems().clear();
@@ -83,7 +88,17 @@ public final class SearchUtils {
                     histMenu.getItems().add(item);
                 }
                 histMenu.show(field, javafx.geometry.Side.BOTTOM, 0, 0);
-            } else if (was && !now) {
+        };
+        field.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.DOWN || histMenu.isShowing()) return;
+            abrir.run();
+            if (histMenu.isShowing()) e.consume();
+        });
+        field.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+            if (!histMenu.isShowing() && field.isFocused()) abrir.run();
+        });
+        field.focusedProperty().addListener((obs, was, now) -> {
+            if (was && !now) {
                 save.run();
                 histMenu.hide();
             }
@@ -97,9 +112,13 @@ public final class SearchUtils {
 
     private static List<String> loadHistory(Preferences prefs) {
         List<String> result = new ArrayList<>();
-        for (int i = 0; i < HISTORY_MAX; i++) {
-            String v = prefs.get("h" + i, "");
-            if (!v.isBlank()) result.add(v);
+        try {
+            for (int i = 0; i < HISTORY_MAX; i++) {
+                String v = prefs.get("h" + i, "");
+                if (!v.isBlank()) result.add(v);
+            }
+        } catch (IllegalStateException borrado) {
+            // Its node was removed (a test cleaning up after a field still on screen): no history.
         }
         return result;
     }
@@ -109,9 +128,13 @@ public final class SearchUtils {
         list.remove(term);
         list.add(0, term);
         if (list.size() > HISTORY_MAX) list = list.subList(0, HISTORY_MAX);
-        for (int i = 0; i < HISTORY_MAX; i++) {
-            if (i < list.size()) prefs.put("h" + i, list.get(i));
-            else prefs.remove("h" + i);
+        try {
+            for (int i = 0; i < HISTORY_MAX; i++) {
+                if (i < list.size()) prefs.put("h" + i, list.get(i));
+                else prefs.remove("h" + i);
+            }
+        } catch (IllegalStateException borrado) {
+            // Its node was removed: nothing to keep it in.
         }
     }
 }

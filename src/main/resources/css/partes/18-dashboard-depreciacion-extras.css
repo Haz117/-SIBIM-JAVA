@@ -93,7 +93,7 @@
    ("rich-stat-card, rich-stat-indigo") only picks the icon badge color.
    Tinted card backgrounds per color used to live here and made each screen
    a different palette — removed on purpose. */
-.rich-stat-icon-badge-rose  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fb7185, #f43f5e); }
+.rich-stat-icon-badge-rose  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f43f5e, #e11d48); }  /* white icon 2.69:1 on #fb7185, 3.55:1 now (18-nov-2026) */
 .rich-stat-icon-badge-slate { -fx-background-color: sibim-slate-500; }
 .filter-chip-rose { -fx-background-color: #fff1f2; -fx-border-color: #fda4af; -fx-text-fill: #BE123C; }
 .filter-chip-rose:selected { -fx-background-color: #BE123C; -fx-text-fill: white; -fx-border-color: #9F1239; }

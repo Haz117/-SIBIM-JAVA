@@ -93,4 +93,24 @@ class FolioYXmlEnFormularioTest extends ApplicationTest {
     private static FacturaXml.Factura unchecked() {
         try { return factura(); } catch (Exception e) { throw new IllegalStateException(e); }
     }
+
+    /** 6 to 18-nov-2026: 246 folios fiscales moved by hand from «Factura» to «Folio fiscal». */
+    @Test
+    void elFolioEnFactura_sePasaASuLugarConUnClic() {
+        Producto p = new Producto();
+        p.setId("p-folio"); p.setNombre("SILLA"); p.setCodigo("PRU/1");
+        p.setNumeroFactura("a0000000-0000-4000-8000-000000000001");
+        ProductoTabPatrimonioFields f = campos(p);
+        assertTrue(f.lnkFolioALugar.isVisible());
+
+        interact(f.lnkFolioALugar::fire);
+        assertEquals("A0000000-0000-4000-8000-000000000001", f.fFolioFiscal.getText());
+        assertEquals("", f.fNumeroFactura.getText());
+        assertFalse(f.lnkFolioALugar.isVisible(), "ya está en su lugar");
+
+        Producto conAmbos = new Producto();
+        conAmbos.setId("p-ambos"); conAmbos.setNombre("SILLA"); conAmbos.setCodigo("PRU/2");
+        conAmbos.setNumeroFactura("B 5630");
+        assertFalse(campos(conAmbos).lnkFolioALugar.isVisible(), "un número de factura se queda");
+    }
 }

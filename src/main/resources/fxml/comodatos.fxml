@@ -16,7 +16,7 @@
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Comodatos" styleClass="page-title"/>
-            <Label text="Acuerdos formales de préstamo a entidades externas — el bien permanece propiedad municipal" styleClass="page-subtitle"/>
+            <Label text="Acuerdos formales de préstamo a entidades externas — el bien permanece propiedad municipal" styleClass="page-subtitle" wrapText="true" minHeight="-Infinity"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"

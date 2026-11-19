@@ -234,6 +234,7 @@ public final class CompletarDatosDialog {
         // Most of the vida útil comes from the bien's CONAC account: no need to type it.
         textoConac.getStyleClass().add("muted-sm");
         textoConac.setWrapText(true);
+        textoConac.setMinHeight(Region.USE_PREF_SIZE);   // in two lines, not cut («Texto: Extra», 18-nov-2026)
         textoConac.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(textoConac, Priority.ALWAYS);
         Button revisar = revisarConac;
@@ -660,13 +661,23 @@ public final class CompletarDatosDialog {
             actualizarTodos();
             return;
         }
-        Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(sinVida);
+        Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(sinVida, vidaDeSuClave());
         int n = propuesta.values().stream().mapToInt(List::size).sum();
         boolean mostrar = datoElegido() == Dato.VIDA_UTIL && n > 0;
         ver(barraConac, mostrar);
-        if (mostrar) textoConac.setText("Según su clave CONAC, se puede proponer la vida útil de "
-            + FormatUtils.plural(n, "bien", "bienes") + " de lo elegido.");
+        if (mostrar) textoConac.setText("Se puede proponer la vida útil de " + FormatUtils.plural(n, "bien", "bienes")
+            + " de lo elegido: la que tiene la mayoría de los de su clave CONAC (o la tabla CONAC, donde no hay mayoría).");
         actualizarTodos();
+    }
+
+    /** What most bienes of each CONAC account have, over the whole inventory given (not only the
+     *  área chosen): the municipio's criterion, see {@link CalidadDatosService#vidaUtilDeSuClave}. */
+    private Map<String, Integer> vidaDeSuClave;
+
+    private Map<String, Integer> vidaDeSuClave() {
+        if (vidaDeSuClave == null)
+            vidaDeSuClave = CalidadDatosService.vidaUtilDeSuClave(filas.stream().map(f -> f.producto).toList());
+        return vidaDeSuClave;
     }
 
     /** The rows of what is chosen whose folio fiscal another bien has right (looked for among
@@ -753,14 +764,14 @@ public final class CompletarDatosDialog {
             return;
         }
         List<Producto> base = delArea().stream().map(f -> f.producto).toList();
-        Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(base);
+        Map<Integer, List<Producto>> propuesta = CalidadDatosService.propuestaVidaUtil(base, vidaDeSuClave());
         if (propuesta.isEmpty()) return;
         String detalle = propuesta.entrySet().stream()
             .map(e -> e.getKey() + " años: " + FormatUtils.plural(e.getValue().size(), "bien", "bienes"))
             .collect(Collectors.joining("\n"));
         int total = propuesta.values().stream().mapToInt(List::size).sum();
         long quedan = base.stream().filter(p -> p.getVidaUtilAnios() == null).count() - total;
-        if (!ConfirmacionUtil.confirmar("Vida útil según CONAC",
+        if (!ConfirmacionUtil.confirmar("Vida útil según su clave",
                 "Se asigna a los bienes que no tienen:\n\n" + detalle
                     + "\n\nCambia la depreciación y el valor en libros de esos bienes."
                     + (quedan > 0 ? "\nQuedan " + FormatUtils.plural(quedan, "bien", "bienes") + " sin valor en CONAC (por ejemplo, equipo de defensa): los decide el municipio; varios iguales se capturan juntos con «Poner a todos»." : "")
@@ -1080,8 +1091,10 @@ public final class CompletarDatosDialog {
             campo.setMinWidth(ancho);
             if (dato == Dato.PRECIO) campo.setPromptText(p.getStockActual() > 1 ? "Costo por pieza" : "Costo");
             if (dato == Dato.VIDA_UTIL) {
+                String k = CalidadDatosService.claveCorta(p.getClaveArmonizada());
+                Integer suya = k == null ? null : vidaDeSuClave().get(k);
                 Integer conac = VidaUtilConac.anios(p.getClaveArmonizada());
-                campo.setPromptText(conac != null ? "CONAC: " + conac + " años" : "Años");
+                campo.setPromptText(suya != null ? "Su clave: " + suya + " años" : conac != null ? "CONAC: " + conac + " años" : "Años");
             }
             switch (dato) {
                 case PROVEEDOR -> campo.setPromptText("Proveedor");

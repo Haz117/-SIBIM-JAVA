@@ -66,6 +66,8 @@ public class LoginController {
         // reads) stays correct either way since they're bound together.
         if (passwordRevealField != null && btnTogglePassword != null) {
             passwordRevealField.textProperty().bindBidirectional(passwordField.textProperty());
+            // An icon only: its name, for a screen reader, says what it does now (18-nov-2026).
+            btnTogglePassword.setAccessibleText("Mostrar contraseña");
             btnTogglePassword.setOnAction(e -> {
                 boolean revealing = !passwordRevealField.isVisible();
                 passwordField.setVisible(!revealing);
@@ -76,6 +78,7 @@ public class LoginController {
                     iconTogglePassword.setIconLiteral(revealing ? "mdi2e-eye-off-outline" : "mdi2e-eye-outline");
                 Tooltip.install(btnTogglePassword,
                     new Tooltip(revealing ? "Ocultar contraseña" : "Mostrar contraseña"));
+                btnTogglePassword.setAccessibleText(revealing ? "Ocultar contraseña" : "Mostrar contraseña");
                 (revealing ? passwordRevealField : passwordField).requestFocus();
                 (revealing ? passwordRevealField : passwordField).end();
             });

@@ -18,6 +18,9 @@ import java.util.function.Supplier;
  *  an emergency. */
 class AlertasPatrimonialesSection {
 
+    /** Not in any resguardo in force: what Patrimonio has to do (18-nov-2026: 256; the card
+     *  said «2961» because every bien still waits for its área to confirm its label). */
+    static final String SIN_RESGUARDO = "Sin resguardo";
     static final String SIN_RESGUARDANTE = "Sin resguardante";
     static final String SIN_ETIQUETAR = "Sin etiquetar";
     /** Above this many bienes the section opens grouped by área: a list of
@@ -25,21 +28,24 @@ class AlertasPatrimonialesSection {
     private static final int UMBRAL_POR_AREA = 50;
 
     /** One row per área: how many of its bienes are missing what. */
-    record PorArea(String area, long bienes, long sinResguardante, long sinEtiquetar) {}
+    record PorArea(String area, long bienes, long sinResguardo, long sinResguardante, long sinEtiquetar) {}
 
     static List<PorArea> porArea(List<Pendiente> pendientes) {
         java.util.Map<String, long[]> m = new java.util.TreeMap<>();
         for (Pendiente x : pendientes) {
             String area = x.producto().getArea() != null && !x.producto().getArea().isBlank()
                 ? x.producto().getArea() : "Sin área";
-            long[] n = m.computeIfAbsent(area, k -> new long[3]);
+            long[] n = m.computeIfAbsent(area, k -> new long[4]);
             n[0]++;
-            if (x.falta().contains(SIN_RESGUARDANTE)) n[1]++;
-            if (x.falta().contains(SIN_ETIQUETAR)) n[2]++;
+            if (x.falta().contains(SIN_RESGUARDO)) n[1]++;
+            if (x.falta().contains(SIN_RESGUARDANTE)) n[2]++;
+            if (x.falta().contains(SIN_ETIQUETAR)) n[3]++;
         }
         List<PorArea> out = new ArrayList<>();
-        m.forEach((area, n) -> out.add(new PorArea(area, n[0], n[1], n[2])));
-        out.sort(java.util.Comparator.comparingLong(PorArea::bienes).reversed());
+        m.forEach((area, n) -> out.add(new PorArea(area, n[0], n[1], n[2], n[3])));
+        // What Patrimonio has to do first: the áreas with more bienes without resguardo.
+        out.sort(java.util.Comparator.comparingLong(PorArea::sinResguardo).reversed()
+            .thenComparing(java.util.Comparator.comparingLong(PorArea::bienes).reversed()));
         return out;
     }
 
@@ -47,9 +53,17 @@ class AlertasPatrimonialesSection {
     record Pendiente(Producto producto, String falta) {}
 
     static List<Pendiente> pendientes(List<Producto> bienes) {
+        return pendientes(bienes, null);
+    }
+
+    /** @param enResguardo the bienes in a resguardo in force; null when they could not be read
+     *                     (then nobody is said to be «sin resguardo») */
+    static List<Pendiente> pendientes(List<Producto> bienes, java.util.Set<String> enResguardo) {
         List<Pendiente> out = new ArrayList<>();
         for (Producto p : bienes) {
-            List<String> falta = new ArrayList<>(2);
+            if (p.getFechaBaja() != null) continue;
+            List<String> falta = new ArrayList<>(3);
+            if (enResguardo != null && !enResguardo.contains(p.getId())) falta.add(SIN_RESGUARDO);
             if (p.getResguardante() == null || p.getResguardante().isBlank()) falta.add(SIN_RESGUARDANTE);
             if (!p.isEtiquetado()) falta.add(SIN_ETIQUETAR);
             if (!falta.isEmpty()) out.add(new Pendiente(p, String.join(" · ", falta)));
@@ -59,6 +73,12 @@ class AlertasPatrimonialesSection {
 
     static long contar(List<Pendiente> pendientes, String falta) {
         return pendientes.stream().filter(x -> x.falta().contains(falta)).count();
+    }
+
+    /** What Patrimonio has to do: sin resguardo or sin resguardante (the labels are confirmed
+     *  by the áreas). */
+    static long dePatrimonio(List<Pendiente> pendientes) {
+        return pendientes.stream().filter(x -> x.falta().contains(SIN_RESGUARDO) || x.falta().contains(SIN_RESGUARDANTE)).count();
     }
 
     private final Supplier<javafx.scene.Node> okPlaceholder;
@@ -154,11 +174,13 @@ class AlertasPatrimonialesSection {
         cArea.setPrefWidth(340);
         TableColumn<PorArea, Number> cBienes = new TableColumn<>("Bienes con pendientes");
         cBienes.setCellValueFactory(c -> new javafx.beans.property.SimpleLongProperty(c.getValue().bienes()));
+        TableColumn<PorArea, Number> cSinRes = new TableColumn<>("Sin resguardo");
+        cSinRes.setCellValueFactory(c -> new javafx.beans.property.SimpleLongProperty(c.getValue().sinResguardo()));
         TableColumn<PorArea, Number> cResg = new TableColumn<>("Sin resguardante");
         cResg.setCellValueFactory(c -> new javafx.beans.property.SimpleLongProperty(c.getValue().sinResguardante()));
         TableColumn<PorArea, Number> cEtiq = new TableColumn<>("Sin etiquetar");
         cEtiq.setCellValueFactory(c -> new javafx.beans.property.SimpleLongProperty(c.getValue().sinEtiquetar()));
-        t.getColumns().addAll(java.util.List.of(cArea, cBienes, cResg, cEtiq));
+        t.getColumns().addAll(java.util.List.of(cArea, cBienes, cSinRes, cResg, cEtiq));
         t.setOnMouseClicked(e -> {
             PorArea sel = t.getSelectionModel().getSelectedItem();
             if (e.getClickCount() == 2 && sel != null) abrirArea.accept(sel.area());

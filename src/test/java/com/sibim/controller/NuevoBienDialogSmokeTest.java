@@ -27,6 +27,47 @@ import static org.junit.jupiter.api.Assertions.*;
  *  own button bar held only Cancelar and read as a second footer. */
 class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
 
+    /** The step an edit opens on lives in this user's preferences: what the tests save there
+     *  is put back as it was, so the PC that runs them keeps its own. */
+    private static final java.util.prefs.Preferences PREFS =
+        java.util.prefs.Preferences.userNodeForPackage(ProductoDialogFactory.class);
+    private static final String PASO = "bien.editar.paso";
+    private static Integer pasoDeAntes;
+
+    @org.junit.jupiter.api.BeforeAll
+    static void guardarPaso() {
+        int v = PREFS.getInt(PASO, Integer.MIN_VALUE);
+        pasoDeAntes = v == Integer.MIN_VALUE ? null : v;
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    static void regresarPaso() {
+        if (pasoDeAntes == null) PREFS.remove(PASO);
+        else PREFS.putInt(PASO, pasoDeAntes);
+    }
+
+    /** 18-nov-2026: 9 of 10 changes of a week were in «Datos Patrimoniales» and every bien
+     *  opened on step 1: an edit opens where the last bien was saved. */
+    @Test
+    void editar_abreEnElPasoDondeSeGuardoElUltimo() throws Exception {
+        PREFS.putInt(PASO, 2);
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        java.util.concurrent.atomic.AtomicReference<java.util.Optional<com.sibim.model.Producto>> res = new java.util.concurrent.atomic.AtomicReference<>();
+        Platform.runLater(() -> res.set(ProductoDialogFactory.show(bienCompleto(), List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null), null, null)));
+        for (int i = 0; i < 50 && lookup(".stepper-nav-bar").tryQuery().isEmpty(); i++) sleep(100);
+        WaitForAsyncUtils.waitForFxEvents();
+        javafx.scene.control.TabPane pasos = lookup(".dlg-stepper").queryAs(javafx.scene.control.TabPane.class);
+        assertEquals(2, pasos.getSelectionModel().getSelectedIndex(), "abre en Datos Patrimoniales");
+
+        interact(() -> pasos.getSelectionModel().select(1));
+        interact(enBarra("Guardar cambios")::fire);
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(res.get().isPresent());
+        assertEquals(1, PREFS.getInt(PASO, -1), "el siguiente abre donde se guardó este");
+    }
+
     @Override
     public void start(Stage stage) {
         DatabaseConfig.setDemoMode(true);

@@ -74,15 +74,28 @@ public class ErroresEquipoAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
-    private static String pila(IThrowableProxy t) {
+    /** The first 12 steps of each cause and, after them, SIBIM's own (up to 15), saying how
+     *  many were left out between: two «The start must be <= the end» on Backspace (26-oct and
+     *  5-nov-2026) kept only JavaFX's first 12 steps, and not which field it was. */
+    static String pila(IThrowableProxy t) {
         if (t == null) return null;
         StringBuilder sb = new StringBuilder();
         for (IThrowableProxy causa = t; causa != null && sb.length() < MAX_DETALLE; causa = causa.getCause()) {
             if (causa != t) sb.append("Causado por: ");
             sb.append(causa.getClassName()).append(": ").append(causa.getMessage()).append('\n');
             StackTraceElementProxy[] pasos = causa.getStackTraceElementProxyArray();
-            for (int i = 0; pasos != null && i < pasos.length && i < 12; i++)
-                sb.append("  ").append(pasos[i].getSTEAsString()).append('\n');
+            int saltados = 0, propios = 0;
+            for (int i = 0; pasos != null && i < pasos.length; i++) {
+                String paso = pasos[i].getSTEAsString();
+                if (i < 12 || (paso.startsWith("at com.sibim.") && propios < 15)) {
+                    if (i >= 12) propios++;
+                    if (saltados > 0) { sb.append("  … ").append(saltados).append(" más\n"); saltados = 0; }
+                    sb.append("  ").append(paso).append('\n');
+                } else {
+                    saltados++;
+                }
+            }
+            if (saltados > 0) sb.append("  … ").append(saltados).append(" más\n");
         }
         return sb.toString();
     }

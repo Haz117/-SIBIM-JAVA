@@ -493,3 +493,10 @@
 .dialog-pane > .dialog-input-content { -fx-padding: 18 22 18 22; -fx-hgap: 12; }
 
 .field-hint-ok { -fx-text-fill: #065F46; }
+
+/* A field that is read but not changed here (the área of a bien: it moves with a
+   Transferencia). Disabled faded it to 40 %: «Seguridad Pública — C-2» was barely legible. */
+.combo-box-base.campo-fijo:disabled { -fx-opacity: 1; -fx-background-color: sibim-slate-100; -fx-border-color: sibim-slate-200; }
+.combo-box-base.campo-fijo:disabled .list-cell,
+.combo-box-base.campo-fijo:disabled .text-field { -fx-text-fill: sibim-slate-700; -fx-opacity: 1; -fx-background-color: transparent; }
+.combo-box-base.campo-fijo:disabled .arrow-button { -fx-opacity: 0; }

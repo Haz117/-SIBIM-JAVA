@@ -279,8 +279,12 @@ public final class ProductoDetailDialog {
         if (folioFiscal != null && !folioFiscal.isBlank()) rowList.add(new Row("Folio fiscal", folioFiscal, null));
         rowList.add(new Row("Cantidad",        String.valueOf(p.getStockActual()), stockClass));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));
-        rowList.add(new Row("Costo de adquisición", com.sibim.session.Permisos.pesos(p.getPrecioCompra()), null));
-        rowList.add(new Row("Valor patrimonial", com.sibim.session.Permisos.pesos(p.getValorTotal()), "dlg-detail-total"));
+        // Without its costo captured it is not worth $0.00 (18-nov-2026: 1,080 bienes have 0
+        // saved): said as such, as Bienes and the resguardo say «—».
+        boolean sinCosto = p.getPrecioCompra() == null || p.getPrecioCompra().signum() == 0;
+        String sinCapturar = com.sibim.session.Permisos.veValores() ? "Sin capturar" : "—";
+        rowList.add(new Row("Costo de adquisición", sinCosto ? sinCapturar : com.sibim.session.Permisos.pesos(p.getPrecioCompra()), null));
+        rowList.add(new Row("Valor patrimonial", sinCosto ? sinCapturar : com.sibim.session.Permisos.pesos(p.getValorTotal()), "dlg-detail-total"));
         rowList.add(new Row("Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null));
         rowList.add(new Row("Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null));
         rowList.add(new Row("Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null));

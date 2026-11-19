@@ -81,6 +81,7 @@ class LoginControllerSmokeTest extends ApplicationTest {
         // Initial state: password field visible, reveal field hidden
         assertTrue(pwdField.isVisible(),    "passwordField debe ser visible al inicio");
         assertFalse(revealField.isVisible(), "passwordRevealField debe estar oculto al inicio");
+        assertEquals("Mostrar contraseña", toggle.getAccessibleText(), "solo un ícono: su nombre lo dice");
 
         // Fire the toggle action on the FX thread and wait for it to complete.
         // interact() is more reliable than clickOn() here: the button sits inside
@@ -89,6 +90,7 @@ class LoginControllerSmokeTest extends ApplicationTest {
         interact(toggle::fire);
         assertFalse(pwdField.isVisible(),  "passwordField debe ocultarse tras el toggle");
         assertTrue(revealField.isVisible(), "passwordRevealField debe mostrarse tras el toggle");
+        assertEquals("Ocultar contraseña", toggle.getAccessibleText());
 
         // Fire again — should revert to original state
         interact(toggle::fire);

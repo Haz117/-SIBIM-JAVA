@@ -177,6 +177,10 @@
 }
 .btn-primary:pressed  { -fx-background-color: sibim-indigo-darker; -fx-effect: none; }
 .btn-primary:disabled { -fx-background-color: sibim-indigo-200; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
+/* The icon beside the text, white like it (18-nov-2026: the «+» of «Nuevo Bien», «Nuevo
+   Resguardo» and 8 more came out dark on the guinda, 1.56:1). */
+.btn-primary .ikonli-font-icon { -fx-icon-color: white; }
+.btn-primary:disabled .ikonli-font-icon { -fx-icon-color: rgba(255,255,255,0.75); }
 
 /* MenuButtons stack modena's own label + arrow padding on top of the button's,
    ending up taller than the plain buttons beside them — match their height. */

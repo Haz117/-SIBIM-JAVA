@@ -162,6 +162,8 @@ class ProductoTabInfoFields {
         // Editing it here would skip all of that, so the field is read-only.
         if (SessionManager.isDireccion() || !isNewProduct) fArea.setDisable(true);
         fArea.getStyleClass().add("form-input");
+        // Read, though it can't be changed here: disabled faded it to 40 % (18-nov-2026).
+        if (fArea.isDisabled()) fArea.getStyleClass().add("campo-fijo");
         lblAreaBloqueada = new Label("Para cambiar el área registra una Transferencia en Movimientos.");
         lblAreaBloqueada.getStyleClass().addAll("field-hint", "muted-sm");
         lblAreaBloqueada.setWrapText(true);

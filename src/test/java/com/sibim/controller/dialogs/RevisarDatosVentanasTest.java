@@ -400,4 +400,29 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> visibles(panel, ".cnt-fila") == 2);
         assertTrue(panel.lookupAll(".field-hint-warn").stream().anyMatch(Node::isVisible));
     }
+
+    /** 18-nov-2026: the per-row «Sí es» was out of Tab's reach; S answers the row with the
+     *  focus and the list goes on to the next one. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void revisar_conLaTeclaS_respondeYSigueEnElSiguiente() throws Exception {
+        List<Producto> demo = new com.sibim.service.ProductoService().getAll();
+        String area = demo.stream().filter(p -> p.getFechaBaja() == null && !p.isRevisadoPorArea() && p.getArea() != null)
+            .collect(java.util.stream.Collectors.groupingBy(Producto::getArea, java.util.stream.Collectors.counting()))
+            .entrySet().stream().filter(e -> e.getValue() >= 2).map(java.util.Map.Entry::getKey).findFirst().orElseThrow();
+        Platform.runLater(() -> RevisarBienesDialog.show(area, RevisarBienesDialog.Vista.POR_REVISAR, null));
+        DialogPane panel = abierto();
+        TableView<Producto> tabla = (TableView<Producto>) panel.lookup(".revisar-tabla");
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> tabla.getItems().size() >= 2);
+        int antes = tabla.getItems().size();
+        Producto primero = tabla.getItems().get(0), segundo = tabla.getItems().get(1);
+
+        interact(() -> { tabla.requestFocus(); tabla.getSelectionModel().clearAndSelect(0); });
+        interact(() -> javafx.event.Event.fireEvent(tabla, new KeyEvent(KeyEvent.KEY_PRESSED, "s", "s", KeyCode.S, false, false, false, false)));
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> tabla.getItems().size() == antes - 1);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertFalse(tabla.getItems().contains(primero), "ya no está por revisar");
+        assertEquals(segundo.getId(), tabla.getSelectionModel().getSelectedItem().getId(), "sigue en el siguiente");
+    }
 }

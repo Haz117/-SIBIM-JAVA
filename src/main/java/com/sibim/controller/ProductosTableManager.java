@@ -165,8 +165,11 @@ class ProductosTableManager {
         // took the room of the name. Hidden by default; the header menu shows it again.
         if (com.sibim.session.SessionManager.isDireccion()) colArea.setVisible(false);
         // Right-click on header → toggle secondary columns
+        // 18-nov-2026: 1 of 2,961 bienes has a garantía and 47 more than one piece; at
+        // 1366 px «Garantía» (all «—») and «Cantidad» (all «1») took ~200 px while the
+        // categoría read «Cámaras …». Garantía starts hidden and comes back from this menu.
         DialogUtil.setupColumnVisibilityMenu("bienes.cols", table,
-            List.of(colFoto, colNombre, colStock, colEstado));
+            List.of(colFoto, colNombre, colStock));
     }
 
     private void setupTableListeners() {

@@ -97,6 +97,26 @@ class ReporteFichaTecnicaServiceTest {
         assertFileProduced(service.exportFichaTecnica(activo, List.of(buildMovimiento())), ".pdf");
     }
 
+    /** 18-nov-2026: 1,080 bienes have 0 saved as their costo: the ficha said «$0.00». */
+    @Test void sinCostoCapturado_laFichaNoDiceCeroPesos() throws Exception {
+        Producto sinCosto = new Producto();
+        sinCosto.setId("p-sc"); sinCosto.setNombre("Silla de prueba"); sinCosto.setCodigo("PRU-001");
+        sinCosto.setArea("Secretaria General Municipal");
+        sinCosto.setPrecioCompra(BigDecimal.ZERO);
+        sinCosto.setVidaUtilAnios(10);
+        sinCosto.setFechaAdquisicion(java.time.LocalDate.of(2024, 3, 1));
+        sinCosto.setStockActual(1);
+        File f = service.exportFichaTecnica(sinCosto, List.of());
+        StringBuilder texto = new StringBuilder();
+        try (var pdf = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(f))) {
+            for (int i = 1; i <= pdf.getNumberOfPages(); i++)
+                texto.append(com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(pdf.getPage(i)));
+        }
+        assertTrue(texto.toString().contains("COSTO DE ADQUISICIÓN —"), texto.toString());
+        assertTrue(texto.toString().contains("VALOR EN LIBROS —"), texto.toString());
+        assertFalse(texto.toString().contains("$0.00"), texto.toString());
+    }
+
     // ── exportFichasTecnicasMasivas(List<Producto>, MovimientoService) ────────
 
     @Test void exportFichasTecnicasMasivas_conVariosBienes_createsNonEmptyFile() throws Exception {

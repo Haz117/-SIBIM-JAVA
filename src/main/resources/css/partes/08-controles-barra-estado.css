@@ -149,7 +149,7 @@
     -fx-font-weight: bold;
     -fx-padding: 1.5 5;
     -fx-min-width: 16; -fx-min-height: 16;
-    -fx-max-width: 26;
+    -fx-max-width: 46;   /* «99+» fits, also with «Texto: Extra» (at 26 it read «...», 18-nov-2026) */
     -fx-alignment: CENTER;
     -fx-effect: none;
 }

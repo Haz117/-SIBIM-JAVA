@@ -312,9 +312,9 @@
             <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="170" sortable="true" minWidth="150"/>
             <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="210" maxWidth="260" sortable="true" minWidth="150"/>
             <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="190" maxWidth="240" sortable="true" minWidth="130"/>
-            <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>
+            <TableColumn fx:id="colStock"     text="Cant."              prefWidth="64"  sortable="true" minWidth="60"/>
             <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="115" minWidth="100" sortable="true"/>
-            <TableColumn fx:id="colEstado"    text="Garantía"          prefWidth="110" sortable="true" minWidth="100"/>
+            <TableColumn fx:id="colEstado"    text="Garantía"          prefWidth="110" sortable="true" minWidth="100" visible="false"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
