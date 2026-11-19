@@ -249,7 +249,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnFacturasCarpeta, btnCostosDistintos, btnResidual, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -424,6 +424,8 @@ public class ProductosController {
             case "folio"     -> Platform.runLater(this::onFolioFiscal);
             case "proveedores" -> Platform.runLater(this::onUnirProveedores);
             case "tipo"      -> Platform.runLater(this::onPonerMueble);
+            case "residual"  -> Platform.runLater(this::onPonerResidual);
+            case "costos"    -> Platform.runLater(this::onCostosDistintos);
             // Completar datos on the dato the most bienes can take from their name's twins.
             case "mismonombre" -> Platform.runLater(() -> conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.show(bienes,
                 java.util.Objects.requireNonNullElse(com.sibim.service.DelMismoNombre.conMas(bienes),
@@ -596,6 +598,11 @@ public class ProductosController {
     @FXML private MenuItem btnMismaFactura;
     @FXML private MenuItem btnJuntarBienes;
     @FXML private MenuItem btnFolioFiscal;
+    @FXML private MenuItem btnResidual;
+    @FXML private MenuItem btnCostosDistintos;
+    @FXML private MenuItem btnFacturasCarpeta;
+    /** Where the facturas were read from the last time. */
+    private static java.io.File carpetaFacturas;
     @FXML private MenuItem btnUnirProveedores;
     @FXML private MenuItem btnFotosRepetidas;
     @FXML private MenuItem btnCostoLotes;
@@ -703,6 +710,123 @@ public class ProductosController {
                             ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
                 },
                 ex -> NotificacionUtil.error(scene, "No se puso el tipo de bien: " + com.sibim.util.MensajeError.de(ex)));
+        });
+    }
+
+    /** Bienes › Más › «Leer las facturas de una carpeta…»: every PDF or XML of a folder, matched to
+     *  its bienes by the folio fiscal, fills what they lack (proveedor, fecha, the whole folio);
+     *  reviewed first, saved bien by bien and undone from the notice (19-nov-2026: the facturas are
+     *  in PDF; 415 bienes with a UUID had no proveedor). */
+    @FXML
+    private void onFacturasCarpeta() {
+        javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+        dc.setTitle("Carpeta con las facturas (PDF o XML)");
+        if (carpetaFacturas != null && carpetaFacturas.isDirectory()) dc.setInitialDirectory(carpetaFacturas);
+        java.io.File carpeta = dc.showDialog(table.getScene().getWindow());
+        if (carpeta == null) return;
+        carpetaFacturas = carpeta;
+        javafx.scene.Scene scene = table.getScene();
+        conInventario(bienes -> DialogUtil.runAsyncWithProgress(scene, "Leyendo las facturas de " + carpeta.getName() + "…",
+            () -> {
+                String[] receptor = com.sibim.service.FacturasDeCarpeta.receptor();
+                var lectura = com.sibim.service.FacturasDeCarpeta.leer(carpeta.toPath(), receptor[0], receptor[1], x -> { });
+                return java.util.Map.entry(lectura, com.sibim.service.FacturasDeCarpeta.proponer(lectura, bienes));
+            },
+            leido -> {
+                var lectura = leido.getKey();
+                if (lectura.leidas().isEmpty()) {
+                    NotificacionUtil.info(scene, "En " + carpeta.getName() + " no hay facturas que se puedan leer"
+                        + (lectura.noLeidas().isEmpty() ? " (busca PDF y XML)" : ": " + FormatUtils.plural(lectura.noLeidas().size(),
+                            "archivo es escaneado o no es factura", "archivos son escaneados o no son factura")));
+                    return;
+                }
+                var eleccion = com.sibim.controller.dialogs.FacturasCarpetaDialog.show(carpeta.getName(), lectura, leido.getValue());
+                if (eleccion.isEmpty()) return;
+                List<com.sibim.service.EditarVarios.Renglon> renglones =
+                    com.sibim.service.FacturasDeCarpeta.renglones(eleccion.get().elegidas(), eleccion.get().proveedor());
+                if (renglones.isEmpty()) return;
+                DialogUtil.runAsyncWithProgress(scene, "Llenando los datos de las facturas…",
+                    () -> com.sibim.service.EditarVarios.aplicar(productoService, renglones),
+                    r -> {
+                        alCorregirDatos();
+                        r.fallas().forEach(f -> log.warn("Facturas de carpeta: {}", f));
+                        String fallas = r.fallas().isEmpty() ? "" : "; " + FormatUtils.plural(r.fallas().size(), "no se pudo", "no se pudieron")
+                            + " (" + r.fallas().get(0) + (r.fallas().size() > 1 ? "…" : "") + ")";
+                        if (r.guardados().isEmpty()) {
+                            NotificacionUtil.error(scene, "No se llenó ningún bien" + fallas);
+                            return;
+                        }
+                        NotificacionUtil.exitoConAccion(scene, "Datos de sus facturas en " + FormatUtils.plural(r.guardados().size(), "bien", "bienes") + fallas,
+                            "Deshacer", () -> DialogUtil.runAsync(() -> com.sibim.service.EditarVarios.deshacer(productoService, r),
+                                m -> { alCorregirDatos(); NotificacionUtil.info(scene, FormatUtils.plural(m, "bien quedó", "bienes quedaron") + " como estaba"); },
+                                ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                    },
+                    ex -> NotificacionUtil.error(scene, "No se llenaron: " + com.sibim.util.MensajeError.de(ex)));
+            },
+            ex -> NotificacionUtil.error(scene, "No se pudieron leer las facturas: " + com.sibim.util.MensajeError.de(ex))));
+    }
+
+    /** Bienes › Más and Inicio › Por hacer: bienes of one purchase with the same name and different
+     *  costos, reviewed and equalled bien by bien (with their price history; a valor residual at the
+     *  15 % follows); undone from the notice (19-nov-2026: 7 without the IVA their twins have). */
+    @FXML
+    private void onCostosDistintos() {
+        conInventario(bienes -> {
+            List<com.sibim.service.CostoDeSuCompra.Grupo> grupos = com.sibim.service.CostoDeSuCompra.grupos(bienes);
+            if (grupos.isEmpty()) {
+                NotificacionUtil.info(table.getScene(), "Los bienes iguales de cada compra tienen el mismo costo");
+                return;
+            }
+            var elegidos = com.sibim.controller.dialogs.CostoDeSuCompraDialog.show(grupos);
+            if (elegidos.isEmpty()) return;
+            List<com.sibim.service.EditarVarios.Renglon> renglones = com.sibim.service.CostoDeSuCompra.renglones(elegidos.get());
+            if (renglones.isEmpty()) return;
+            javafx.scene.Scene scene = table.getScene();
+            DialogUtil.runAsyncWithProgress(scene, "Igualando los costos…",
+                () -> com.sibim.service.EditarVarios.aplicar(productoService, renglones),
+                r -> {
+                    alCorregirDatos();
+                    r.fallas().forEach(f -> log.warn("Costo de su compra: {}", f));
+                    String fallas = r.fallas().isEmpty() ? "" : "; " + FormatUtils.plural(r.fallas().size(), "no se pudo", "no se pudieron")
+                        + " (" + r.fallas().get(0) + (r.fallas().size() > 1 ? "…" : "") + ")";
+                    if (r.guardados().isEmpty()) {
+                        NotificacionUtil.error(scene, "No se cambió ningún costo" + fallas);
+                        return;
+                    }
+                    NotificacionUtil.exitoConAccion(scene, "El costo de su compra en " + FormatUtils.plural(r.guardados().size(), "bien", "bienes") + fallas,
+                        "Deshacer", () -> DialogUtil.runAsync(() -> com.sibim.service.EditarVarios.deshacer(productoService, r),
+                            m -> { alCorregirDatos(); NotificacionUtil.info(scene, FormatUtils.plural(m, "bien regresó", "bienes regresaron") + " a su costo de antes"); },
+                            ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                },
+                ex -> NotificacionUtil.error(scene, "No se igualaron los costos: " + com.sibim.util.MensajeError.de(ex)));
+        });
+    }
+
+    /** Bienes › Más and Inicio › Por hacer › «Poner el 15 %»: the valor residual of the bienes in
+     *  force with a costo and $0, of the categorías ticked in {@link com.sibim.controller.dialogs.ValorResidualDialog};
+     *  undone from the notice (19-nov-2026: 285 of 296 are the 15 %; 1,588 had $0). */
+    @FXML
+    private void onPonerResidual() {
+        conInventario(bienes -> {
+            if (com.sibim.service.CalidadDatosService.sinResidual(bienes).isEmpty()) {
+                NotificacionUtil.info(table.getScene(), "Todos los bienes con costo ya tienen su valor residual");
+                return;
+            }
+            var elegidos = com.sibim.controller.dialogs.ValorResidualDialog.show(bienes);
+            if (elegidos.isEmpty()) return;
+            List<Producto> estos = elegidos.get();
+            com.sibim.service.CalidadDatosService calidad = new com.sibim.service.CalidadDatosService();
+            javafx.scene.Scene scene = table.getScene();
+            DialogUtil.runAsyncWithProgress(scene, "Poniendo el valor residual…",
+                () -> calidad.ponerResidual(estos),
+                ids -> {
+                    alCorregirDatos();
+                    NotificacionUtil.exitoConAccion(scene, "Valor residual en " + FormatUtils.plural(ids.size(), "bien", "bienes"),
+                        "Deshacer", () -> DialogUtil.runAsync(() -> calidad.quitarResidual(ids),
+                            m -> { alCorregirDatos(); NotificacionUtil.info(scene, FormatUtils.plural(m, "bien regresó", "bienes regresaron") + " a $0 de valor residual"); },
+                            ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
+                },
+                ex -> NotificacionUtil.error(scene, "No se puso el valor residual: " + com.sibim.util.MensajeError.de(ex)));
         });
     }
 

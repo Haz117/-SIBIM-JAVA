@@ -110,6 +110,12 @@
 .timeline-icon { -fx-fill: #94A3B8; }
 .timeline-detail { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 
+/* Auditoría: «Más acciones», the same height as the acción chips beside it (19-nov-2026). */
+.audit-chip-mas { -fx-padding: 4 10 4 13; }
+.audit-chip-mas > .label { -fx-padding: 0; }
+.audit-chip-mas > .arrow-button { -fx-padding: 0 0 0 6; -fx-background-color: transparent; }
+.audit-chip-mas > .arrow-button > .arrow { -fx-background-color: sibim-indigo-darker; -fx-padding: 2 4; }
+
 /* Audit action pills */
 /* Acción column: a compact pill per row, in the institutional palette. */
 .audit-pill {

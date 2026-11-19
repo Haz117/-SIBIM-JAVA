@@ -433,4 +433,33 @@ class ProductoServiceTest {
         assertNull(p.getMensajePatrimonio(), "ya contestó: la nota es suya");
         assertTrue(p.isObservadoPorArea());
     }
+
+    /** 19-nov-2026: a valor residual that was the 15 % of the costo follows a new costo («Sumarle
+     *  el IVA» left 3 at 12.9 %); one typed otherwise, or set by this same change, doesn't. */
+    @Test void residualQueSigue_soloElQueEraEl15PorCientoYNoCambioAhora() {
+        Producto antes = new Producto();
+        antes.setPrecioCompra(new BigDecimal("1000.00")); antes.setValorResidual(new BigDecimal("150.00"));
+        Producto despues = antes.copia();
+        despues.setPrecioCompra(new BigDecimal("1160.00"));
+        assertEquals(0, new BigDecimal("174.00").compareTo(ProductoService.residualQueSigue(antes, despues)));
+
+        despues.setValorResidual(new BigDecimal("100.00"));
+        assertNull(ProductoService.residualQueSigue(antes, despues), "este mismo cambio lo pone");
+        Producto otro = antes.copia();
+        otro.setValorResidual(new BigDecimal("80.00"));
+        Producto otroDespues = otro.copia();
+        otroDespues.setPrecioCompra(new BigDecimal("1160.00"));
+        assertNull(ProductoService.residualQueSigue(otro, otroDespues), "uno distinto del 15 % no se toca");
+        Producto igual = antes.copia();
+        assertNull(ProductoService.residualQueSigue(antes, igual), "sin cambio de costo, nada");
+        Producto sinCosto = antes.copia();
+        sinCosto.setPrecioCompra(BigDecimal.ZERO);
+        assertEquals(0, BigDecimal.ZERO.compareTo(ProductoService.residualQueSigue(antes, sinCosto)));
+        // The 15 % worked out from the factura's unit price, some centavos off, also follows.
+        Producto centavos = new Producto();
+        centavos.setPrecioCompra(new BigDecimal("26678.00")); centavos.setValorResidual(new BigDecimal("4001.73"));
+        Producto conIva = centavos.copia();
+        conIva.setPrecioCompra(new BigDecimal("30946.48"));
+        assertEquals(0, new BigDecimal("4641.97").compareTo(ProductoService.residualQueSigue(centavos, conIva)));
+    }
 }

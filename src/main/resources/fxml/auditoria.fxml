@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
+<!-- 19-nov-2026: at 1366×689 four cards and a filter bar in two rows left 6 rows for the
+     table, and the Detalle column showed «Datos del bien actualizados · número …» but never
+     what changed. Now the acciones are chips that filter (with their counts), the filters fit
+     one row, and the columns say when, which bien, its área, what changed and who. -->
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.AuditoriaController"
       spacing="0" styleClass="page-root">
 
     <!-- PAGE HEADER -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <!-- Same frame as every other page (their root has this padding): this one
-             ran from the side menu to the window edge. -->
         <VBox.margin><Insets top="20" right="22" left="34"/></VBox.margin>
         <StackPane styleClass="page-header-icon, page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Auditoría del Sistema" styleClass="page-title"/>
-            <Label text="Registro completo de acciones realizadas por los usuarios" styleClass="page-subtitle"/>
+            <Label text="Quién hizo qué y cuándo: cada cambio a los bienes, los resguardos y las cuentas" styleClass="page-subtitle"/>
         </VBox>
         <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de auditoría visible" wrapText="true" maxWidth="240"/></tooltip>
+            <tooltip><Tooltip text="Exportar los registros con los filtros actuales" wrapText="true" maxWidth="240"/></tooltip>
             <items>
                 <MenuItem text="PDF" onAction="#onExportarPdf">
                     <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
@@ -48,142 +51,62 @@
             <tooltip><Tooltip text="Restaurar columnas de la tabla a su configuración original (orden, ancho y visibilidad)"
                               wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
-        </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
     </HBox>
 
-    <VBox fx:id="resumenBox" spacing="12">
-    <!-- ══ RESUMEN ═════════════════════════════════════════════════ -->
-    <HBox spacing="12">
-        <padding><Insets top="14" right="22" bottom="0" left="34"/></padding>
-        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-slate"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
-                    <FontIcon iconLiteral="mdi2f-format-list-bulleted" styleClass="rich-stat-icon"/>
-                </StackPane>
-                <Label text="TOTAL" styleClass="rich-stat-label"/>
-            </HBox>
-            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
-            <Label text="registros con los filtros actuales" styleClass="rich-stat-hint"/>
-        </VBox>
-        <VBox fx:id="statCardLogins" styleClass="rich-stat-card, rich-stat-green"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
-                    <FontIcon iconLiteral="mdi2l-login" styleClass="rich-stat-icon"/>
-                </StackPane>
-                <Label text="INICIOS DE SESIÓN" styleClass="rich-stat-label"/>
-            </HBox>
-            <Label fx:id="lblStatLogins" text="—" styleClass="rich-stat-value"/>
-            <Label text="accesos exitosos" styleClass="rich-stat-hint"/>
-        </VBox>
-        <VBox fx:id="statCardFallidos" styleClass="rich-stat-card, rich-stat-red"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
-                    <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="rich-stat-icon"/>
-                </StackPane>
-                <Label text="INTENTOS FALLIDOS" styleClass="rich-stat-label"/>
-                <Label fx:id="helpFallidos" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Intentos de inicio de sesión con usuario o contraseña incorrectos. Varios seguidos a la misma cuenta pueden indicar un intento de acceso no autorizado." wrapText="true" maxWidth="260"/></tooltip>
-                </Label>
-            </HBox>
-            <Label fx:id="lblStatFallidos" text="—" styleClass="rich-stat-value"/>
-            <Label text="usuario o contraseña incorrectos" styleClass="rich-stat-hint"/>
-        </VBox>
-        <VBox fx:id="statCardEliminaciones" styleClass="rich-stat-card, rich-stat-amber"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                    <FontIcon iconLiteral="mdi2d-delete-outline" styleClass="rich-stat-icon"/>
-                </StackPane>
-                <Label text="ELIMINACIONES / BAJAS" styleClass="rich-stat-label"/>
-            </HBox>
-            <Label fx:id="lblStatEliminaciones" text="—" styleClass="rich-stat-value"/>
-            <Label text="registros eliminados o dados de baja" styleClass="rich-stat-hint"/>
-        </VBox>
-    </HBox>
-    </VBox>
-
-    <!-- FILTER BAR -->
-    <!-- One row on a wide screen, wrapping when it doesn't fit; aligned with
-         the cards above. The combos say what they filter in their own first
-         option ("Todas las entidades"), so they need no "Entidad:" label;
-         "Limpiar filtros" only shows while a filter is on. -->
-    <FlowPane fx:id="filterBar" hgap="8" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <!-- FILTER BAR: the search, what and who, the period; the acciones below, as chips. -->
+    <VBox fx:id="filterBar" spacing="8" styleClass="filter-bar">
         <VBox.margin><Insets top="12" right="22" left="34"/></VBox.margin>
         <padding><Insets top="10" right="14" bottom="10" left="16"/></padding>
-            <StackPane prefWidth="260">
-                <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
+        <FlowPane hgap="8" vgap="8" alignment="CENTER_LEFT">
+            <StackPane prefWidth="300">
+                <TextField fx:id="searchField" promptText="Buscar número, nombre, folio…"
                            styleClass="search-field" maxWidth="Infinity"
                            onKeyReleased="#onSearch" accessibleText="Buscar en la bitácora"/>
             </StackPane>
-            <ComboBox fx:id="entidadFilter" prefWidth="180" onAction="#onFilter" accessibleText="Entidad"/>
-            <ComboBox fx:id="accionFilter" prefWidth="180" onAction="#onFilter" accessibleText="Acción"/>
-            <ComboBox fx:id="usuarioFilter" prefWidth="210" onAction="#onFilter" accessibleText="Usuario"/>
-            <Separator orientation="VERTICAL" prefHeight="24"/>
-            <Button fx:id="btnPresetHoy"    text="Hoy"     onAction="#onPresetHoy"    styleClass="btn-preset">
-                <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
-            </Button>
-            <Button fx:id="btnPresetSemana" text="7 días"  onAction="#onPresetSemana" styleClass="btn-preset">
-                <tooltip><Tooltip text="Los últimos 7 días"/></tooltip>
-            </Button>
-            <Button fx:id="btnPresetMes"    text="Este mes" onAction="#onPresetMes"   styleClass="btn-preset">
-                <tooltip><Tooltip text="Del día 1 a hoy"/></tooltip>
-            </Button>
-            <HBox spacing="6" alignment="CENTER_LEFT">
+            <ComboBox fx:id="entidadFilter" prefWidth="180" onAction="#onFilter" accessibleText="Sobre qué"/>
+            <ComboBox fx:id="usuarioFilter" prefWidth="200" onAction="#onFilter" accessibleText="Quién"/>
+            <ComboBox fx:id="periodoBox" prefWidth="170" accessibleText="Periodo"/>
+            <HBox fx:id="fechasBox" spacing="6" alignment="CENTER_LEFT" visible="false" managed="false">
                 <DatePicker fx:id="desdeField" prefWidth="140" onAction="#onFiltroFecha" promptText="Desde"
                             accessibleText="Desde"/>
                 <Label text="–" styleClass="muted"/>
                 <DatePicker fx:id="hastaField" prefWidth="140" onAction="#onFiltroFecha" promptText="Hasta"
                             accessibleText="Hasta"/>
             </HBox>
+            <Button fx:id="btnSoloBien" onAction="#onQuitarSoloBien" styleClass="btn-preset-active"
+                    visible="false" managed="false" contentDisplay="RIGHT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar: volver a ver todos los registros"/></tooltip>
+            </Button>
             <Button fx:id="btnLimpiar" text="Limpiar filtros" onAction="#onLimpiar" styleClass="btn-ghost"
                     visible="false" managed="false">
                 <graphic><FontIcon iconLiteral="mdi2f-filter-remove-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Quitar la búsqueda y todos los filtros"/></tooltip>
             </Button>
-    </FlowPane>
+        </FlowPane>
+        <!-- Each acción with how many there are with the other filters; a click filters by it. -->
+        <FlowPane fx:id="chipsAccion" hgap="6" vgap="6" alignment="CENTER_LEFT" accessibleText="Acciones"/>
+    </VBox>
 
-    <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
+    <!-- TABLE -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <padding><Insets top="8" right="22" bottom="0" left="34"/></padding>
         <Region styleClass="dash-section-bar"/>
         <Label text="REGISTROS" styleClass="dash-section-label"/>
+        <Label text="Doble clic o Enter: el detalle, con cada cambio" styleClass="muted-sm"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblTotal" styleClass="muted-sm"/>
     </HBox>
-
-    <!-- TABLE -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
-        <!-- The same margins as the cards and the filters: it ran from the sidebar to the window's edge. -->
         <VBox.margin><Insets top="6" right="22" left="34"/></VBox.margin>
         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/></columnResizePolicy>
-        <placeholder>
-            <VBox alignment="CENTER" spacing="10" styleClass="empty-state-pane">
-                <FontIcon iconLiteral="mdi2s-shield-lock-outline" iconSize="52" styleClass="empty-icon-lg"/>
-                <Label text="Sin registros de auditoría" styleClass="empty-state-msg"/>
-                <Label text="Las acciones de los usuarios aparecen aquí automáticamente" styleClass="empty-state-hint"/>
-            </VBox>
-        </placeholder>
         <columns>
-            <TableColumn fx:id="colFecha"   text="Fecha y hora"   prefWidth="155" minWidth="130"/>
-            <TableColumn fx:id="colEntidad" text="Entidad"         prefWidth="110" minWidth="90"/>
-            <TableColumn fx:id="colNombre"  text="Nombre"          prefWidth="200" minWidth="130"/>
-            <TableColumn fx:id="colAccion"  text="Acción"          prefWidth="140" minWidth="100"/>
-            <TableColumn fx:id="colUsuario" text="Usuario"         prefWidth="150" minWidth="110"/>
-            <TableColumn fx:id="colDetalle" text="Detalle"         prefWidth="300" minWidth="160"/>
+            <TableColumn fx:id="colCuando" text="Cuándo"      prefWidth="100" minWidth="96"/>
+            <TableColumn fx:id="colSobre"  text="Sobre qué"   prefWidth="225" minWidth="150"/>
+            <TableColumn fx:id="colArea"   text="Área"        prefWidth="125" minWidth="90"/>
+            <TableColumn fx:id="colAccion" text="Acción"      prefWidth="128" minWidth="124"/>
+            <TableColumn fx:id="colQuien"  text="Quién"       prefWidth="185" minWidth="90"/>
+            <TableColumn fx:id="colCambio" text="Qué cambió"  prefWidth="330" minWidth="180"/>
         </columns>
     </TableView>
 
@@ -208,6 +131,6 @@
             <tooltip><Tooltip text="Última página  (Ctrl+Fin)"/></tooltip>
         </Button>
         <Region HBox.hgrow="ALWAYS"/>
-        <ComboBox fx:id="pageSizeBox" prefWidth="90"/>
+        <ComboBox fx:id="pageSizeBox" prefWidth="90" accessibleText="Registros por página"/>
     </HBox>
 </VBox>

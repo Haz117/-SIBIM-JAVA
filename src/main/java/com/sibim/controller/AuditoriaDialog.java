@@ -12,6 +12,7 @@ import javafx.scene.layout.*;
 
 import java.util.List;
 
+/** Configuración › «Ver actividad»: the last entries of the bitácora, as a list. */
 class AuditoriaDialog {
 
     void show(List<AuditLog> entries) {
@@ -39,10 +40,11 @@ class AuditoriaDialog {
             row.setAlignment(Pos.CENTER_LEFT);
 
             VBox info = new VBox(2);
-            Label titulo = new Label(accionEtiqueta(a.getAccion()) + " — " + entidadEtiqueta(a.getEntidad())
-                + (a.getEntidadNombre() != null ? " \"" + a.getEntidadNombre() + "\"" : ""));
+            // The same words and the same reading of the changes as the Auditoría screen.
+            Label titulo = new Label(EtiquetasAuditoria.accion(a.getAccion()) + " — " + AuditoriaColumnSetup.sobre(a));
             titulo.getStyleClass().add("dlg-detail-value");
-            Label detalle = new Label((a.getDetalle() != null ? a.getDetalle() + " · " : "")
+            String cambio = AuditoriaColumnSetup.lectura(a).resumen();
+            Label detalle = new Label((cambio.isBlank() ? "" : cambio + " · ")
                 + a.getUsuarioNombre() + " · " + FormatUtils.formatDateTime(a.getCreadoEn()));
             detalle.getStyleClass().add("muted-sm");
             detalle.setWrapText(true);
@@ -60,31 +62,5 @@ class AuditoriaDialog {
         AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
-    }
-
-    private static String accionEtiqueta(String accion) {
-        if (accion == null) return "—";
-        return switch (accion) {
-            case "crear"      -> "Creado";
-            case "actualizar" -> "Actualizado";
-            case "eliminar"   -> "Eliminado";
-            case "baja"       -> "Dado de baja";
-            case "reactivar"  -> "Reactivado";
-            case "transferencia_deshecha" -> "Transferencia deshecha";
-            case "login"      -> "Inicio de sesión";
-            case "logout"     -> "Cierre de sesión";
-            default           -> accion;
-        };
-    }
-
-    private static String entidadEtiqueta(String entidad) {
-        if (entidad == null) return "—";
-        return switch (entidad) {
-            case "producto"  -> "Bien";
-            case "categoria" -> "Categoría";
-            case "usuario"   -> "Usuario";
-            case "sesion"    -> "Sesión";
-            default          -> entidad;
-        };
     }
 }

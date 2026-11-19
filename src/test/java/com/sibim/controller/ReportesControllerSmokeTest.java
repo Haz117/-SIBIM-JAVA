@@ -32,7 +32,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
 
     @Test
     void nodosClavePresentes() {
-        assertEquals(7, lookup("#listaListados").<javafx.scene.layout.VBox>query().getChildren().size(), "siete listados");
+        assertEquals(8, lookup("#listaListados").<javafx.scene.layout.VBox>query().getChildren().size(), "ocho listados (con la situación de los vehículos, 19-nov-2026)");
         assertEquals(7, lookup("#listaFormatos").<javafx.scene.layout.VBox>query().getChildren().size(),
             "siete formatos oficiales (con saldos por cuenta CONAC y la relación para publicar, 6-nov-2026)");
         assertNotNull(lookup("#btnPresetHoy").query(),    "btnPresetHoy debe existir");
@@ -64,7 +64,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
                 javafx.scene.Node boton = ((javafx.scene.layout.HBox) fila).getChildren().get(2);
                 formatos.add(boton instanceof javafx.scene.control.MenuButton m ? m.getItems().size() : 1);
             }
-        assertEquals(java.util.List.of(1, 4, 2, 3, 3, 3, 3, 2, 4, 2, 2, 1, 1, 2), formatos);
+        assertEquals(java.util.List.of(1, 4, 2, 3, 3, 3, 2, 3, 2, 4, 2, 2, 1, 1, 2), formatos);
     }
 
     /** The resguardos of a person, without going to Resguardos: first row of the page,

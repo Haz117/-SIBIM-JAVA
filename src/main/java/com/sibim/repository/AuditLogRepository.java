@@ -167,15 +167,27 @@ public class AuditLogRepository {
         return list;
     }
 
+    /** What the Auditoría screen filters by; null or blank is no filter.
+     *  @param entidadId one bien's (or resguardo's…) whole history («Ver todo lo de SSPCR/19») */
+    public record Filtro(String busqueda, String entidad, String accion, String usuario,
+                         LocalDate desde, LocalDate hasta, String entidadId) {
+        public static Filtro ninguno() { return new Filtro(null, null, null, null, null, null, null); }
+        /** The same without the acción: what the acción chips count. */
+        public Filtro sinAccion() { return new Filtro(busqueda, entidad, null, usuario, desde, hasta, entidadId); }
+    }
+
     public List<AuditLog> findPaginated(int limit, int offset,
             String busqueda, String entidad, String accion, String usuarioNombre,
             LocalDate desde, LocalDate hasta) throws SQLException {
+        return findPaginated(limit, offset, new Filtro(busqueda, entidad, accion, usuarioNombre, desde, hasta, null));
+    }
+
+    public List<AuditLog> findPaginated(int limit, int offset, Filtro f) throws SQLException {
         requireAdmin();
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
-            return applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta)
-                .stream().skip(offset).limit(limit).toList();
+            return applyClientFilters(findAll(500), f).stream().skip(offset).limit(limit).toList();
         List<Object> params = new ArrayList<>();
-        String where = buildAuditWhere(busqueda, entidad, accion, usuarioNombre, desde, hasta, params);
+        String where = buildAuditWhere(f, params);
         String sql = "SELECT * FROM audit_log" + where + " ORDER BY created_at DESC LIMIT ? OFFSET ?";
         params.add(limit);
         params.add(offset);
@@ -192,11 +204,15 @@ public class AuditLogRepository {
 
     public int countFiltrado(String busqueda, String entidad, String accion, String usuarioNombre,
             LocalDate desde, LocalDate hasta) throws SQLException {
+        return countFiltrado(new Filtro(busqueda, entidad, accion, usuarioNombre, desde, hasta, null));
+    }
+
+    public int countFiltrado(Filtro f) throws SQLException {
         requireAdmin();
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
-            return applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta).size();
+            return applyClientFilters(findAll(500), f).size();
         List<Object> params = new ArrayList<>();
-        String where = buildAuditWhere(busqueda, entidad, accion, usuarioNombre, desde, hasta, params);
+        String where = buildAuditWhere(f, params);
         String sql = "SELECT COUNT(*) FROM audit_log" + where;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -205,6 +221,35 @@ public class AuditLogRepository {
                 return rs.next() ? rs.getInt(1) : 0;
             }
         }
+    }
+
+    /** How many entries of each acción the filter has, ignoring its own acción, the most first:
+     *  the chips over the table (19-nov-2026: four cards said «TOTAL 3794», «162», «25», «479»
+     *  and none of them filtered). */
+    public java.util.LinkedHashMap<String, Integer> contarPorAccion(Filtro f) throws SQLException {
+        requireAdmin();
+        Filtro sin = f.sinAccion();
+        java.util.LinkedHashMap<String, Integer> out = new java.util.LinkedHashMap<>();
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
+            java.util.Map<String, Integer> c = new java.util.HashMap<>();
+            for (AuditLog a : applyClientFilters(findAll(500), sin))
+                if (a.getAccion() != null) c.merge(a.getAccion(), 1, Integer::sum);
+            c.entrySet().stream().sorted(java.util.Map.Entry.<String, Integer>comparingByValue().reversed())
+                .forEach(e -> out.put(e.getKey(), e.getValue()));
+            return out;
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildAuditWhere(sin, params);
+        String sql = "SELECT accion, COUNT(*) FROM audit_log" + (where.isEmpty() ? " WHERE" : where + " AND")
+            + " accion IS NOT NULL GROUP BY accion ORDER BY 2 DESC, 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) ps.setObject(i + 1, params.get(i));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) out.put(rs.getString(1), rs.getInt(2));
+            }
+        }
+        return out;
     }
 
     /** Every distinct "accion" value ever logged — feeds the Acción filter
@@ -268,76 +313,42 @@ public class AuditLogRepository {
      *  entirely and always returned the full unfiltered list, silently
      *  making every filter on the Auditoría screen a no-op whenever the
      *  app runs in demo mode. */
-    private static List<AuditLog> applyClientFilters(List<AuditLog> all, String busqueda, String entidad,
-            String accion, String usuarioNombre, LocalDate desde, LocalDate hasta) {
+    private static List<AuditLog> applyClientFilters(List<AuditLog> all, Filtro f) {
         return all.stream()
-            .filter(a -> busqueda == null || busqueda.isBlank()
-                || containsIgnoreCase(a.getEntidadNombre(), busqueda)
-                || containsIgnoreCase(a.getDetalle(), busqueda)
-                || containsIgnoreCase(a.getAccion(), busqueda))
-            .filter(a -> entidad == null || entidad.isBlank() || entidad.equals(a.getEntidad()))
-            .filter(a -> accion == null || accion.isBlank() || accion.equals(a.getAccion()))
-            .filter(a -> usuarioNombre == null || usuarioNombre.isBlank()
-                || containsIgnoreCase(a.getUsuarioNombre(), usuarioNombre))
-            .filter(a -> desde == null || (a.getCreadoEn() != null && !a.getCreadoEn().toLocalDate().isBefore(desde)))
-            .filter(a -> hasta == null || (a.getCreadoEn() != null && !a.getCreadoEn().toLocalDate().isAfter(hasta)))
+            .filter(a -> vacio(f.busqueda())
+                || containsIgnoreCase(a.getEntidadNombre(), f.busqueda())
+                || containsIgnoreCase(a.getDetalle(), f.busqueda())
+                || containsIgnoreCase(a.getAccion(), f.busqueda()))
+            .filter(a -> vacio(f.entidad()) || f.entidad().equals(a.getEntidad()))
+            .filter(a -> vacio(f.accion()) || f.accion().equals(a.getAccion()))
+            .filter(a -> vacio(f.usuario()) || containsIgnoreCase(a.getUsuarioNombre(), f.usuario()))
+            .filter(a -> f.desde() == null || (a.getCreadoEn() != null && !a.getCreadoEn().toLocalDate().isBefore(f.desde())))
+            .filter(a -> f.hasta() == null || (a.getCreadoEn() != null && !a.getCreadoEn().toLocalDate().isAfter(f.hasta())))
+            .filter(a -> vacio(f.entidadId()) || f.entidadId().equals(a.getEntidadId()))
             .toList();
+    }
+
+    private static boolean vacio(String s) {
+        return s == null || s.isBlank();
     }
 
     private static boolean containsIgnoreCase(String haystack, String needle) {
         return haystack != null && haystack.toLowerCase().contains(needle.toLowerCase());
     }
 
-    public record AuditStats(int total, int logins, int loginsFallidos, int eliminaciones) {}
-
-    /** Summary counts for the stat cards, honoring the same filters as the
-     *  table below them — Auditoría was the only list screen with no summary
-     *  section at all. */
-    public AuditStats getStats(String busqueda, String entidad, String accion, String usuarioNombre,
-            LocalDate desde, LocalDate hasta) throws SQLException {
-        requireAdmin();
-        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
-            List<AuditLog> filtered = applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta);
-            int logins = (int) filtered.stream().filter(a -> "login".equals(a.getAccion())).count();
-            int fallidos = (int) filtered.stream().filter(a -> "login_fallido".equals(a.getAccion())).count();
-            int elim = (int) filtered.stream()
-                .filter(a -> "eliminar".equals(a.getAccion()) || "baja".equals(a.getAccion())).count();
-            return new AuditStats(filtered.size(), logins, fallidos, elim);
-        }
-        List<Object> params = new ArrayList<>();
-        String where = buildAuditWhere(busqueda, entidad, accion, usuarioNombre, desde, hasta, params);
-        String sql = "SELECT COUNT(*) AS total, "
-            + "COUNT(*) FILTER (WHERE accion = 'login') AS logins, "
-            + "COUNT(*) FILTER (WHERE accion = 'login_fallido') AS logins_fallidos, "
-            + "COUNT(*) FILTER (WHERE accion IN ('eliminar','baja')) AS eliminaciones "
-            + "FROM audit_log" + where;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < params.size(); i++) ps.setObject(i + 1, params.get(i));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next())
-                    return new AuditStats(rs.getInt("total"), rs.getInt("logins"),
-                        rs.getInt("logins_fallidos"), rs.getInt("eliminaciones"));
-                return new AuditStats(0, 0, 0, 0);
-            }
-        }
-    }
-
-    private static String buildAuditWhere(String busqueda, String entidad, String accion, String usuarioNombre,
-            LocalDate desde, LocalDate hasta, List<Object> params) {
+    private static String buildAuditWhere(Filtro f, List<Object> params) {
         List<String> conds = new ArrayList<>();
-        if (busqueda != null && !busqueda.isBlank()) {
-            String like = Like.contiene(busqueda);
+        if (!vacio(f.busqueda())) {
+            String like = Like.contiene(f.busqueda());
             conds.add("(entidad_nombre ILIKE ? OR detalle ILIKE ? OR accion ILIKE ?)");
             params.add(like); params.add(like); params.add(like);
         }
-        if (entidad != null && !entidad.isBlank()) { conds.add("entidad = ?"); params.add(entidad); }
-        if (accion != null && !accion.isBlank()) { conds.add("accion = ?"); params.add(accion); }
-        if (usuarioNombre != null && !usuarioNombre.isBlank()) {
-            conds.add("usuario_nombre ILIKE ?"); params.add(Like.contiene(usuarioNombre));
-        }
-        if (desde != null) { conds.add("created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
-        if (hasta != null) { conds.add("created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX))); }
+        if (!vacio(f.entidad())) { conds.add("entidad = ?"); params.add(f.entidad()); }
+        if (!vacio(f.accion())) { conds.add("accion = ?"); params.add(f.accion()); }
+        if (!vacio(f.usuario())) { conds.add("usuario_nombre ILIKE ?"); params.add(Like.contiene(f.usuario())); }
+        if (f.desde() != null) { conds.add("created_at >= ?"); params.add(Timestamp.valueOf(f.desde().atStartOfDay())); }
+        if (f.hasta() != null) { conds.add("created_at <= ?"); params.add(Timestamp.valueOf(f.hasta().atTime(LocalTime.MAX))); }
+        if (!vacio(f.entidadId())) { conds.add("entidad_id = ?"); params.add(f.entidadId()); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 

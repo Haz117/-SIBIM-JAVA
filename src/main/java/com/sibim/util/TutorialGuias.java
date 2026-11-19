@@ -119,7 +119,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: menos tecleo en el formulario, la vida útil con el criterio del municipio, el tipo de bien de una lista, el Organigrama, los avisos, lo que se lee mejor y el teclado",
+                "Aquí está solo lo nuevo: menos tecleo en el formulario, el valor residual y el costo de su compra, las facturas en PDF, la situación de los vehículos, la Auditoría, la vida útil con el criterio del municipio, el tipo de bien de una lista, el Organigrama, los avisos, lo que se lee mejor y el teclado",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
@@ -129,6 +129,29 @@ final class TutorialGuias {
                 "Con la vida útil vacía, abajo dice la que tiene la mayoría de los bienes de su clave CONAC («Como la mayoría de su clave CONAC: 5 años»): un clic la pone",
                 "Si «N° Factura» tiene el folio fiscal y «Folio fiscal» está vacío, abajo dice «Es el folio fiscal: pasarlo a «Folio fiscal»»: un clic",
                 "Para todos los folios de una vez: Bienes › Más › «Folio fiscal a su lugar» (hoy son más de 400)"));
+            p.add(probar(paso("mdi2c-cash-check", VERDE, VERDE_D, "El valor residual y el costo de su compra", "productos", "#btnMasBienes",
+                "Al poner el costo, el valor residual se escribe solo con el 15 % (como 285 de los 295 que ya lo tienen); si es otro, escríbelo encima",
+                "Si le sumas el IVA al costo, el valor residual del 15 % se recalcula; uno distinto que escribiste no se toca",
+                "Bienes › Más › «Valor residual: el 15 % del costo»: a todos los que tienen costo y el residual en $0, por categoría; antes ves cuánto cambia el valor en libros, y se deshace desde el aviso",
+                "Bienes › Más › «Costos distintos en la misma compra»: bienes iguales de una factura con otro costo; donde a unos les falta el IVA ya va marcado, y los demás los revisas con la factura"),
+                "Ver el valor residual", abrir("productos", "residual")));
+            p.add(paso("mdi2f-file-document-multiple-outline", GUINDA, GUINDA_D, "Las facturas en PDF", "productos", "#btnMasBienes",
+                "En el formulario, bajo el folio fiscal, «Leer la factura (XML o PDF)…» también lee el PDF: pone el folio fiscal, la fecha y el proveedor que falten",
+                "Del PDF no se lee el costo de cada pieza: lo escribes tú, y abajo dice el total de la factura para compararlo",
+                "Bienes › Más › «Leer las facturas de una carpeta…»: eliges la carpeta con los PDF (o XML) y cada factura se junta con sus bienes por el folio fiscal; un folio que quedó solo con su final («5BA08») se completa",
+                "Antes de guardar ves cada factura con lo que llena; si el proveedor no se leyó o salió mal, lo escribes ahí. Solo llena lo vacío y se deshace desde el aviso",
+                "Un PDF escaneado (una foto de la factura) no tiene texto y no se puede leer: la lista lo dice"));
+            p.add(paso("mdi2s-shield-lock-outline", DORADO, DORADO_D, "Auditoría, más clara", "auditoria", "#chipsAccion",
+                "Las acciones son etiquetas con su número («Actualización · 2,383», «Acceso fallido · 25»): un clic filtra, otro lo quita; las menos usadas están en «Más acciones»",
+                "Los filtros van en un renglón y el periodo en uno solo: Todo, Hoy, Últimos 7 días, Este mes o Entre fechas",
+                "Cada renglón dice cuándo («Hoy 09:29»), el número y nombre del bien, su área, quién y qué cambió («color: — → GRIS»); caben casi el doble",
+                "Doble clic o Enter abre el detalle: cada cambio en su renglón, Antes → Ahora, con «Copiar» y «Ver todo lo de DCM/17» (la historia completa de ese bien); también con clic derecho"));
+            p.add(probar(paso("mdi2c-car-cog", GUINDA, GUINDA_D, "La situación de los vehículos", "reportes", "#listaListados .report-row",
+                "Reportes › «Situación de los vehículos» (PDF o Excel): cada vehículo con sus placas, su estatus y si tiene tarjeta de circulación, seguro, tenencia pagada y verificación",
+                "Arriba dice cuántos están sin seguro, sin verificación, sin placas, descompuestos o retenidos, y la lista empieza por los que tienen algo pendiente",
+                "Sale de lo que la lista de vehículos de octubre dejó en la descripción de cada uno; para ponerlo al día, edita su descripción («Seguro: si.») o captura la póliza o la tarjeta en su formulario",
+                "En Inicio › Por hacer › «Para seguir» dice cuántos vehículos tienen algo pendiente"),
+                "Generar el reporte", abrir("reportes", "vehiculos")));
             p.add(probar(paso("mdi2c-calendar-check-outline", DORADO, DORADO_D, "La vida útil, con el criterio del municipio", "productos", "#btnMasBienes",
                 "SIBIM propone la vida útil que tiene la mayoría de los bienes de cada clave CONAC: muebles 5 años, cómputo 3, vehículos 5, defensa 10",
                 "La tabla CONAC (muebles 10) solo se usa donde no hay una mayoría clara (10 bienes o más, y 7 de cada 10 iguales)",
@@ -195,7 +218,7 @@ final class TutorialGuias {
     private static List<Paso> deVersionesAnterioresVarios() {
         List<Paso> p = new ArrayList<>();
             p.add(paso("mdi2f-file-code-outline", GUINDA, GUINDA_D, "El folio fiscal, sin teclearlo", "productos", "#btnEditar",
-                "Bajo el folio fiscal, «Leer el XML de la factura…»: eliges el XML y se llenan el folio fiscal, el número de factura, la fecha, el proveedor y el costo por pieza con su IVA",
+                "Bajo el folio fiscal, «Leer la factura (XML o PDF)…»: eliges el XML y se llenan el folio fiscal, el número de factura, la fecha, el proveedor y el costo por pieza con su IVA",
                 "Solo llena lo que está vacío (un folio mal escrito sí lo cambia por el del XML) y dice abajo qué puso y qué dejó como estaba",
                 "Si la factura trae varios conceptos, toma el que se llama como el bien o te pregunta cuál es",
                 "Al escribir el folio a mano, la O se vuelve 0 y la I o la L se vuelven 1, y el aviso dice en qué grupo falta o sobra un carácter",
@@ -389,11 +412,6 @@ final class TutorialGuias {
                 "En Reportes, Solicitud de Baja ya no pide escribir códigos separados por coma",
                 "Búscalo en la lista: escribe el código, Enter lo marca y sigues con el siguiente"));
         return p;
-    }
-
-    private static int indice(List<Paso> p, String titulo) {
-        for (int i = 0; i < p.size(); i++) if (p.get(i).title().equals(titulo)) return i;
-        throw new IllegalStateException("No hay paso «" + titulo + "» en Novedades");
     }
 
     private static Guia conoceElSistema() {

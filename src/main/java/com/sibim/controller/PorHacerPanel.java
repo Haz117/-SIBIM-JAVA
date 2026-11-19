@@ -235,7 +235,7 @@ final class PorHacerPanel {
         PRIMERO("Atiende primero", null),
         RAPIDO("Se arreglan en un momento", "SIBIM te propone el cambio; tú lo revisas y lo confirmas"),
         CAPTURA("Por capturar", "Con la factura o el bien a la vista"),
-        SEGUIMIENTO("Para seguir", "Avanzan con las áreas y las computadoras");
+        SEGUIMIENTO("Para seguir", "Avanzan con las áreas, los vehículos y las computadoras");
 
         final String titulo, pista;
         Grupo(String titulo, String pista) { this.titulo = titulo; this.pista = pista; }
@@ -246,13 +246,13 @@ final class PorHacerPanel {
         // The late backup, an área waiting for an answer, bienes an área says aren't its own.
         if (a == null || "solicitudes".equals(a) || "observados".equals(a)) return Grupo.PRIMERO;
         if (a.startsWith("completar:") || "formatos".equals(a)) return Grupo.CAPTURA;
-        if (Set.of("lote", "juntar", "etiquetas", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
+        if (Set.of("lote", "juntar", "etiquetas", "vehiculos", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
         return Grupo.RAPIDO;
     }
 
     /** Inside a kind: the folio fiscal first, because then «misma factura» copies more. */
     private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "proveedores", "mismonombre", "factura",
-        "tipo", "unir", "titulos", "series", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "equipos");
+        "tipo", "costos", "residual", "unir", "titulos", "series", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "vehiculos", "equipos");
 
     static int orden(PorHacer p) {
         int i = p.abrir() == null ? -1 : ORDEN.indexOf(p.abrir());

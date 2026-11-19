@@ -93,4 +93,29 @@ class AuditLogRepositoryIntegrationTest extends IntegrationTestBase {
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(a -> "Categoria".equals(a.getEntidad())));
     }
+
+    /** 19-nov-2026: «Ver todo lo de SSPCR/19» (one bien's history) and the acción chips, which
+     *  count with every other filter but their own acción. */
+    @Test
+    void elFiltroPorBien_yElConteoPorAccion() throws SQLException {
+        AuditLog uno = buildEntry("producto", "actualizar");
+        repo.logOnline(uno);
+        AuditLog otraVez = buildEntry("producto", "cambio_precio");
+        otraVez.setEntidadId(uno.getEntidadId());
+        repo.logOnline(otraVez);
+        repo.logOnline(buildEntry("producto", "actualizar"));
+        repo.logOnline(buildEntry("sesion", "login"));
+
+        var soloEse = new AuditLogRepository.Filtro(null, null, null, null, null, null, uno.getEntidadId());
+        assertEquals(2, repo.countFiltrado(soloEse));
+        assertTrue(repo.findPaginated(10, 0, soloEse).stream().allMatch(a -> uno.getEntidadId().equals(a.getEntidadId())));
+
+        var bienesActualizados = new AuditLogRepository.Filtro(null, "producto", "actualizar", null, null, null, null);
+        var conteo = repo.contarPorAccion(bienesActualizados);
+        assertEquals(java.util.List.of("actualizar", "cambio_precio"), new java.util.ArrayList<>(conteo.keySet()),
+            "de bienes, la más primero; su propia acción no la filtra");
+        assertEquals(2, conteo.get("actualizar"));
+        assertEquals(1, conteo.get("cambio_precio"));
+        assertEquals(java.util.Map.of("actualizar", 1, "cambio_precio", 1), repo.contarPorAccion(soloEse));
+    }
 }

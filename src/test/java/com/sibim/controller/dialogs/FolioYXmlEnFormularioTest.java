@@ -94,6 +94,26 @@ class FolioYXmlEnFormularioTest extends ApplicationTest {
         try { return factura(); } catch (Exception e) { throw new IllegalStateException(e); }
     }
 
+    /** 19-nov-2026: the facturas are in PDF. The folio, the fecha and the proveedor come from it;
+     *  the costo per piece is typed, with the factura's total said as a reference. */
+    @Test
+    void elPdf_llenaFolioFechaYProveedor_yDiceElTotalParaElCosto() throws Exception {
+        String texto = "Nombre emisor: PAPELERIA FICTICIA SA DE CV\nRFC emisor: PFI010101AB1\n"
+            + "Folio fiscal: A0000000-0000-4000-8000-0000000000C1\nFecha de emisión: 2025-03-14T11:20:05\nTotal $1,160.00\n";
+        FacturaXml.Factura pdf = com.sibim.util.FacturaPdf.leerTexto(texto, List.of(), List.of("PRUEBA"));
+        ProductoTabPatrimonioFields f = campos(null);
+        TextField costo = new TextField("");
+
+        interact(() -> f.aplicarFactura(pdf, costo, "SILLA", false, "PDF"));
+
+        assertEquals("A0000000-0000-4000-8000-0000000000C1", f.fFolioFiscal.getText());
+        assertEquals(LocalDate.of(2025, 3, 14), f.fFechaAdq.getValue());
+        assertEquals("PAPELERIA FICTICIA SA DE CV", f.fProveedor.getText());
+        assertEquals("", costo.getText(), "el costo por pieza no sale del PDF");
+        assertTrue(f.lblXml.getText().startsWith("Del PDF: folio fiscal, fecha 14/03/2025 y proveedor."), f.lblXml.getText());
+        assertTrue(f.lblXml.getText().endsWith("El costo por pieza va a mano (el total de la factura es $1,160.00)."), f.lblXml.getText());
+    }
+
     /** 6 to 18-nov-2026: 246 folios fiscales moved by hand from «Factura» to «Folio fiscal». */
     @Test
     void elFolioEnFactura_sePasaASuLugarConUnClic() {

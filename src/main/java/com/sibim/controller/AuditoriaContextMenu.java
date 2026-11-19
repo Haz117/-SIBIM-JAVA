@@ -20,29 +20,49 @@ final class AuditoriaContextMenu {
 
     private AuditoriaContextMenu() {}
 
-    static ContextMenu build(TableView<AuditLog> table, Consumer<AuditLog> onVerDetalle) {
+    /** @param onVerTodo filters the screen to the entry's bien (or resguardo…) */
+    static ContextMenu build(TableView<AuditLog> table, Consumer<AuditLog> onVerDetalle, Consumer<AuditLog> onVerTodo) {
         ContextMenu cm = new ContextMenu();
 
-        MenuItem cmDetalle = new MenuItem("Ver detalle completo");
+        MenuItem cmDetalle = new MenuItem("Ver el detalle, con cada cambio");
         cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             AuditLog sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) onVerDetalle.accept(sel);
         });
 
-        MenuItem cmCopiar = new MenuItem("Copiar detalle");
+        MenuItem cmTodo = new MenuItem("Ver todo lo de este bien");
+        cmTodo.setGraphic(new FontIcon("mdi2h-history"));
+        cmTodo.setOnAction(e -> {
+            AuditLog sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) onVerTodo.accept(sel);
+        });
+
+        MenuItem cmCopiar = new MenuItem("Copiar");
         cmCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
         cmCopiar.setOnAction(e -> {
             AuditLog sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null || sel.getDetalle() == null) return;
+            if (sel == null) return;
             ClipboardContent cc = new ClipboardContent();
-            cc.putString(sel.getDetalle());
+            cc.putString(AuditoriaDetailDialog.textoParaCopiar(sel, AuditoriaColumnSetup.lectura(sel)));
             Clipboard.getSystemClipboard().setContent(cc);
             Scene s = table.getScene();
-            if (s != null) NotificacionUtil.exito(s, "Detalle copiado al portapapeles");
+            if (s != null) NotificacionUtil.exito(s, "Copiado al portapapeles");
         });
 
-        cm.getItems().addAll(cmDetalle, new SeparatorMenuItem(), cmCopiar);
+        // «Ver todo lo de SSPCR/19», with the número of the row it was opened on.
+        cm.setOnShowing(e -> {
+            AuditLog sel = table.getSelectionModel().getSelectedItem();
+            boolean hay = sel != null && sel.getEntidadId() != null && !sel.getEntidadId().isBlank();
+            cmTodo.setVisible(hay);
+            if (hay) {
+                String numero = AuditoriaColumnSetup.lectura(sel).numero();
+                cmTodo.setText("Ver todo lo de " + (numero != null ? numero
+                    : EtiquetasAuditoria.entidadSingular(sel.getEntidad()).toLowerCase() + " " + sel.getEntidadNombre()));
+            }
+        });
+
+        cm.getItems().addAll(cmDetalle, cmTodo, new SeparatorMenuItem(), cmCopiar);
         return cm;
     }
 }

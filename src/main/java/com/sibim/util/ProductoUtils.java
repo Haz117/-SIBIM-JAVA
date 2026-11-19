@@ -123,4 +123,12 @@ public final class ProductoUtils {
         if (costo == null || costo.signum() <= 0) return null;
         return costo.multiply(PORCENTAJE_RESIDUAL).divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
     }
+
+    /** A valor residual that is the {@link #PORCENTAJE_RESIDUAL} of the costo, give or take 5
+     *  centavos (19-nov-2026: 30 of the 285 were worked out from the factura's unit price with
+     *  more decimals, $4,001.73 for a costo of $26,678.00). */
+    public static boolean esResidualSugerido(java.math.BigDecimal costo, java.math.BigDecimal residual) {
+        java.math.BigDecimal q = residualSugerido(costo);
+        return q != null && residual != null && residual.subtract(q).abs().compareTo(new java.math.BigDecimal("0.05")) <= 0;
+    }
 }

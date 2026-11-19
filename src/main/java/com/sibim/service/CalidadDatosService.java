@@ -1168,6 +1168,100 @@ public class CalidadDatosService {
         return n;
     }
 
+    /** The bienes in force with a costo and the valor residual at $0: by the municipio's
+     *  criterion it is the 15 % of the costo (19-nov-2026: 285 of the 296 that have one; 1,588
+     *  with a costo had none). */
+    public static List<Producto> sinResidual(List<Producto> bienes) {
+        return bienes.stream()
+            .filter(p -> p.getFechaBaja() == null && p.getPrecioCompra() != null && p.getPrecioCompra().signum() > 0
+                && (p.getValorResidual() == null || p.getValorResidual().signum() == 0))
+            .toList();
+    }
+
+    /** The bienes of a categoría with a costo and $0, and how many of it already have the 15 %. */
+    public record ResidualDeCategoria(String categoria, List<Producto> sinResidual, long conElQuince) {}
+
+    /** {@link #sinResidual} by categoría, the one with more first: where none has the 15 % yet
+     *  there is no criterion to follow (19-nov-2026: 257 of Defensa y Seguridad, none with it). */
+    public static List<ResidualDeCategoria> residualPorCategoria(List<Producto> bienes) {
+        Map<String, List<Producto>> sin = new LinkedHashMap<>();
+        Map<String, Long> con = new HashMap<>();
+        for (Producto p : bienes) {
+            if (p.getFechaBaja() != null) continue;
+            String c = Objects.requireNonNullElse(p.getCategoriaNombre(), "Sin categoría");
+            if (conElQuince(p)) con.merge(c, 1L, Long::sum);
+        }
+        for (Producto p : sinResidual(bienes))
+            sin.computeIfAbsent(Objects.requireNonNullElse(p.getCategoriaNombre(), "Sin categoría"), k -> new ArrayList<>()).add(p);
+        return sin.entrySet().stream()
+            .map(e -> new ResidualDeCategoria(e.getKey(), e.getValue(), con.getOrDefault(e.getKey(), 0L)))
+            .sorted(Comparator.comparingInt((ResidualDeCategoria r) -> r.sinResidual().size()).reversed())
+            .toList();
+    }
+
+    /** A bien in force whose valor residual is the 15 % of its costo. */
+    public static boolean conElQuince(Producto p) {
+        return com.sibim.util.ProductoUtils.esResidualSugerido(p.getPrecioCompra(), p.getValorResidual());
+    }
+
+    /** {how many in force have the 15 %, how many have a valor residual at all}. */
+    public static long[] criterioDelResidual(List<Producto> bienes) {
+        long con = 0, todos = 0;
+        for (Producto p : bienes) {
+            if (p.getFechaBaja() != null || p.getValorResidual() == null || p.getValorResidual().signum() <= 0
+                || p.getPrecioCompra() == null || p.getPrecioCompra().signum() <= 0) continue;
+            todos++;
+            if (conElQuince(p)) con++;
+        }
+        return new long[]{con, todos};
+    }
+
+    /** What {@link #ponerResidual} does to the valor en libros of {@code bienes} (the ones with
+     *  costo, fecha and vida útil; the rest have none): {before, after}. */
+    public static java.math.BigDecimal[] librosConResidual(List<Producto> bienes) {
+        java.math.BigDecimal antes = java.math.BigDecimal.ZERO, despues = java.math.BigDecimal.ZERO;
+        for (Producto p : sinResidual(bienes)) {
+            java.math.BigDecimal a = p.getValorDepreciadoTotal();
+            if (a == null) continue;
+            Producto con = p.copia();
+            con.setValorResidual(com.sibim.util.ProductoUtils.residualSugerido(p.getPrecioCompra()));
+            antes = antes.add(a);
+            despues = despues.add(con.getValorDepreciadoTotal());
+        }
+        return new java.math.BigDecimal[]{antes, despues};
+    }
+
+    /** The 15 % of its costo as valor residual, to each of {@code bienes} with a costo and $0;
+     *  one that has its own keeps it. @return the ids that took it, for {@link #quitarResidual} */
+    public List<String> ponerResidual(List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<Producto> estos = sinResidual(bienes);
+        if (estos.isEmpty()) return List.of();
+        List<String> ids = repo.ponerResidual(estos.stream().map(Producto::getId).toList(),
+            com.sibim.util.ProductoUtils.PORCENTAJE_RESIDUAL);
+        if (!ids.isEmpty()) {
+            Set<String> hechos = new HashSet<>(ids);
+            audit.log("producto", ids.get(0), "Varios bienes: valor residual", "actualizar",
+                "Valor residual: el " + com.sibim.util.ProductoUtils.PORCENTAJE_RESIDUAL.toPlainString() + " % de su costo en "
+                    + ids.size() + " bienes que lo tenían en $0: " + codigos(estos.stream().filter(p -> hechos.contains(p.getId())).toList()));
+        }
+        ProductosEnMemoria.invalidar();
+        return ids;
+    }
+
+    /** Undo of {@link #ponerResidual}: back to $0, on the bienes still at the 15 % of their costo. */
+    public int quitarResidual(List<String> ids) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        if (ids.isEmpty()) return 0;
+        int n = repo.quitarResidual(ids, com.sibim.util.ProductoUtils.PORCENTAJE_RESIDUAL);
+        if (n > 0) audit.log("producto", ids.get(0), "Varios bienes: valor residual", "actualizar",
+            "Se deshizo: el valor residual regresó a $0 en " + n + " bienes");
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
     private static String codigos(List<Producto> bienes) {
         return bienes.stream().limit(60).map(p -> Objects.requireNonNullElse(p.getCodigo(), p.getId()))
             .collect(Collectors.joining(", ")) + (bienes.size() > 60 ? " y " + (bienes.size() - 60) + " más" : "");
@@ -1260,6 +1354,10 @@ public class CalidadDatosService {
             "Unirlos", "productos", "proveedores");
         agregar(out, sinTipoConSugerencia(bienes).size(), "bienes sin tipo de bien que por su clave CONAC son «MUEBLE»",
             "Poner MUEBLE", "productos", "tipo");
+        agregar(out, CostoDeSuCompra.cuantos(CostoDeSuCompra.grupos(bienes)),
+            "bienes con otro costo que sus iguales de la misma compra (a unos les falta el IVA)", "Revisarlos", "productos", "costos");
+        agregar(out, sinResidual(bienes).size(), "bienes con costo y el valor residual en $0 (casi todos llevan el 15 %)",
+            "Poner el 15 %", "productos", "residual");
         agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
             "Pasarlo a su lugar", "productos", "folio");
         agregar(out, cuantos(bienes, Dato.FOLIO_REVISAR), "folios fiscales mal escritos", "Revisarlos",
@@ -1276,6 +1374,12 @@ public class CalidadDatosService {
             "bienes que su área dice que no son suyos", "Revisar avisos", "productos", "observados");
         agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && !p.isEtiquetado()).count(),
             "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
+        // 19-nov-2026: the vehicle list's situation was only text in each descripción.
+        List<SituacionVehiculos.Situacion> vehiculos = SituacionVehiculos.de(bienes);
+        SituacionVehiculos.Resumen r = SituacionVehiculos.resumen(vehiculos);
+        agregar(out, vehiculos.stream().filter(SituacionVehiculos.Situacion::pendiente).count(),
+            "vehículos con algo pendiente" + (r.sinSeguro() > 0 ? " (" + r.sinSeguro() + " sin seguro)" : "")
+                + ": papeles, placas, descompuestos o retenidos", "Ver su situación", "reportes", "vehiculos");
         agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),
             "datos faltan para los formatos", "Completar datos", "configuracion", "formatos");
         String ultimoRespaldo = config.get(CLAVE_ULTIMO_RESPALDO);

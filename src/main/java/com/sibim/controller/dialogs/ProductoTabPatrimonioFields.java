@@ -275,7 +275,7 @@ class ProductoTabPatrimonioFields {
                                                          0, rp); grid.add(new javafx.scene.layout.VBox(2, fNumeroFactura, lnkFolioALugar), 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
             "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo.\n"
-                + "La O se escribe sola como 0, y la I o la L como 1.\n«Leer el XML de la factura…» lo llena desde el archivo."),
+                + "La O se escribe sola como 0, y la I o la L como 1.\n«Leer la factura (XML o PDF)…» lo llena desde el archivo."),
                                                          0, rp); grid.add(new javafx.scene.layout.VBox(2, fFolioFiscal, avisoFolio, lnkXml, lblXml), 1, rp++);
         lnkXml.getStyleClass().add("field-hint");
         lnkXml.setPadding(javafx.geometry.Insets.EMPTY);
@@ -300,7 +300,11 @@ class ProductoTabPatrimonioFields {
         lnkResidual.setManaged(false);
         grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fValorResidual, lnkResidual), 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fValorResidual, lnkResidual, lblResidualPropuesto), 1, rp++);
+        lblResidualPropuesto.getStyleClass().addAll("field-hint", "muted-sm");
+        lblResidualPropuesto.setWrapText(true);
+        lblResidualPropuesto.setVisible(false);
+        lblResidualPropuesto.setManaged(false);
 
         GridPane g = gridBien;
         rp = seccion(g, "El bien", 0, false);
@@ -398,25 +402,41 @@ class ProductoTabPatrimonioFields {
     /** Under the folio fiscal: what is wrong with it, while it is typed. */
     final Label avisoFolio = new Label();
 
-    /** Under the folio fiscal: «Leer el XML de la factura…», and what it filled. */
-    final javafx.scene.control.Hyperlink lnkXml = new javafx.scene.control.Hyperlink("Leer el XML de la factura…");
+    /** Under the folio fiscal: «Leer la factura (XML o PDF)…», and what it filled. */
+    final javafx.scene.control.Hyperlink lnkXml = new javafx.scene.control.Hyperlink("Leer la factura (XML o PDF)…");
     final Label lblXml = new Label();
 
-    /** Where the last XML was picked from, to open there the next time. */
+    /** Where the last factura was picked from, to open there the next time. */
     private static java.io.File carpetaXml;
 
-    /** «Leer el XML de la factura…»: picks the CFDI and fills the purchase from it.
+    /** «Leer la factura (XML o PDF)…»: picks the CFDI, or its PDF (19-nov-2026: Patrimonio has
+     *  the facturas in PDF), and fills the purchase from it.
      *  @param costo the costo field (the other tab builds it)
      *  @param nombreBien the bien's name as typed, to pick its concepto among several */
     void ofrecerXml(TextField costo, java.util.function.Supplier<String> nombreBien) {
         lnkXml.setOnAction(e -> {
             javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
-            fc.setTitle("XML de la factura");
-            fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Factura electrónica (XML)", "*.xml", "*.XML"));
+            fc.setTitle("Factura (XML o PDF)");
+            fc.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter("Factura electrónica (XML o PDF)", "*.xml", "*.XML", "*.pdf", "*.PDF"),
+                new javafx.stage.FileChooser.ExtensionFilter("Solo XML", "*.xml", "*.XML"),
+                new javafx.stage.FileChooser.ExtensionFilter("Solo PDF", "*.pdf", "*.PDF"));
             if (carpetaXml != null && carpetaXml.isDirectory()) fc.setInitialDirectory(carpetaXml);
             java.io.File archivo = fc.showOpenDialog(grid.getScene() != null ? grid.getScene().getWindow() : null);
             if (archivo == null) return;
             carpetaXml = archivo.getParentFile();
+            if (archivo.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
+                mostrarXml("Leyendo el PDF…", false);
+                DialogUtil.runAsync(() -> {
+                        String[] receptor = com.sibim.service.FacturasDeCarpeta.receptor();
+                        return com.sibim.util.FacturaPdf.leer(archivo.toPath(),
+                            receptor[0].isBlank() ? List.of() : List.of(receptor[0]), List.of(receptor[1]));
+                    },
+                    f -> aplicarFactura(f, costo, nombreBien.get(), true, "PDF"),
+                    ex -> mostrarXml(ex instanceof com.sibim.util.FacturaXml.NoEsFactura ? ex.getMessage()
+                        : "No se pudo leer el archivo: " + com.sibim.util.MensajeError.de(ex), true));
+                return;
+            }
             try {
                 aplicarFactura(com.sibim.util.FacturaXml.leer(archivo.toPath()), costo, nombreBien.get(), true);
             } catch (com.sibim.util.FacturaXml.NoEsFactura ex) {
@@ -431,13 +451,18 @@ class ProductoTabPatrimonioFields {
      *  the XML's is the right one) and says under the link what it put and what it left.
      *  @param preguntar whether to ask which concepto when the name doesn't tell (not in tests) */
     void aplicarFactura(com.sibim.util.FacturaXml.Factura f, TextField costo, String nombreBien, boolean preguntar) {
+        aplicarFactura(f, costo, nombreBien, preguntar, "XML");
+    }
+
+    /** @param de «XML» or «PDF»: what the note under the link says it was read from */
+    void aplicarFactura(com.sibim.util.FacturaXml.Factura f, TextField costo, String nombreBien, boolean preguntar, String de) {
         List<String> puso = new java.util.ArrayList<>(), dejo = new java.util.ArrayList<>();
         String folio = fFolioFiscal.getText() == null ? "" : fFolioFiscal.getText().trim();
         if (folio.isEmpty() || com.sibim.service.CalidadDatosService.problemaFolio(folio) != null) {
             fFolioFiscal.setText(f.uuid());
             puso.add("folio fiscal");
         } else if (!folio.equalsIgnoreCase(f.uuid())) {
-            dejo.add("el folio fiscal escrito no es el del XML (" + f.uuid() + ")");
+            dejo.add("el folio fiscal escrito no es el del " + de + " (" + f.uuid() + ")");
         }
         if (f.numero() != null) llenar(fNumeroFactura, f.numero(), "factura " + f.numero(), "la factura", puso, dejo);
         if (f.fecha() != null) {
@@ -467,8 +492,15 @@ class ProductoTabPatrimonioFields {
                 }
             }
         }
-        String texto = (puso.isEmpty() ? "Del XML no hizo falta nada" : "Del XML: " + enLista(puso))
+        String texto = (puso.isEmpty() ? "Del " + de + " no hizo falta nada" : "Del " + de + ": " + enLista(puso))
             + (dejo.isEmpty() ? "." : ". Se dejó como estaba " + enLista(dejo) + ".");
+        // A PDF doesn't give its conceptos: the costo is typed from it, with its total as a reference.
+        if (f.conceptos().isEmpty() && costo != null && f.enPesos()) {
+            java.math.BigDecimal escrito = null;
+            try { escrito = new java.math.BigDecimal(costo.getText().trim()); } catch (NumberFormatException ignored) { /* empty */ }
+            if (escrito == null || escrito.signum() == 0)
+                texto += " El costo por pieza va a mano" + (f.total() != null ? " (el total de la factura es " + FormatUtils.formatCurrency(f.total()) + ")" : "") + ".";
+        }
         mostrarXml(texto, false);
     }
 
@@ -677,19 +709,30 @@ class ProductoTabPatrimonioFields {
     /** Under the valor residual: «Poner el 15 % del costo: $X» (see {@link #ofrecerResidual}). */
     final javafx.scene.control.Hyperlink lnkResidual = new javafx.scene.control.Hyperlink();
 
-    /** The 15 % of the costo typed in {@code costo}, one click away under the valor residual:
-     *  on 12/13-nov-2026, 61 of 63 valores residuales were exactly that, worked out by hand.
-     *  Hidden while it is already that, without a costo, or when the field can't be changed. */
+    /** Under the valor residual when SIBIM wrote it (see {@link #proponerResidual}). */
+    final Label lblResidualPropuesto = new Label("El " + com.sibim.util.ProductoUtils.PORCENTAJE_RESIDUAL.toPlainString()
+        + " % del costo, como casi todos los bienes; escribe otro si no es");
+
+    /** What SIBIM wrote in the valor residual, or null. */
+    private java.math.BigDecimal residualPropuesto;
+
+    private static java.math.BigDecimal numero(String texto) {
+        if (texto == null || texto.isBlank()) return null;
+        try { return new java.math.BigDecimal(texto.trim().replace(",", "")); }
+        catch (NumberFormatException e) { return null; }
+    }
+
+    /** The 15 % of the costo typed in {@code costo}, written in the valor residual while it is
+     *  empty, $0, what SIBIM wrote or the 15 % of the costo it had (19-nov-2026: 285 of the 296
+     *  valores residuales are exactly that, and 180 of 186 in a week were worked out bien by bien;
+     *  3 stayed at 12.9 % after «Sumarle el IVA»). A different one is left as it is, with
+     *  «Poner el 15 % del costo» one click away. Nothing when the field can't be changed. */
     void ofrecerResidual(TextField costo) {
         Runnable explicar = () -> {
-            java.math.BigDecimal sugerido = null;
-            try { sugerido = com.sibim.util.ProductoUtils.residualSugerido(new java.math.BigDecimal(costo.getText().trim())); }
-            catch (NumberFormatException ignored) { /* no costo yet */ }
-            java.math.BigDecimal escrito = null;
-            try { escrito = new java.math.BigDecimal(fValorResidual.getText().trim()); }
-            catch (NumberFormatException ignored) { /* empty or being typed */ }
+            java.math.BigDecimal sugerido = com.sibim.util.ProductoUtils.residualSugerido(numero(costo.getText()));
+            java.math.BigDecimal escrito = numero(fValorResidual.getText());
             boolean ver = sugerido != null && !fValorResidual.isDisabled()
-                && (escrito == null || escrito.compareTo(sugerido) != 0);
+                && !com.sibim.util.ProductoUtils.esResidualSugerido(numero(costo.getText()), escrito);
             lnkResidual.setVisible(ver);
             lnkResidual.setManaged(ver);
             if (ver) {
@@ -697,16 +740,47 @@ class ProductoTabPatrimonioFields {
                     + " % del costo: " + com.sibim.util.FormatUtils.formatCurrency(sugerido));
                 lnkResidual.setUserData(sugerido);
             }
+            boolean propuesto = residualPropuesto != null && escrito != null && escrito.compareTo(residualPropuesto) == 0;
+            lblResidualPropuesto.setVisible(propuesto);
+            lblResidualPropuesto.setManaged(propuesto);
         };
         lnkResidual.setOnAction(e -> {
             if (!(lnkResidual.getUserData() instanceof java.math.BigDecimal sugerido)) return;
             fValorResidual.setText(sugerido.toPlainString());
             fValorResidual.positionCaret(fValorResidual.getText().length());
         });
-        costo.textProperty().addListener((o, a, b) -> explicar.run());
+        costo.textProperty().addListener((o, a, b) -> { proponerResidual(a, b); explicar.run(); });
         fValorResidual.textProperty().addListener((o, a, b) -> explicar.run());
         fValorResidual.disabledProperty().addListener((o, a, b) -> explicar.run());
+        proponerResidual(costo.getText(), costo.getText());
         explicar.run();
+    }
+
+    /** See {@link #ofrecerResidual}: {@code costoAntes} is what the costo said before this change. */
+    private void proponerResidual(String costoAntes, String costoAhora) {
+        if (fValorResidual.isDisabled() || !fValorResidual.isEditable()
+                || !com.sibim.session.Permisos.editaFichaCompleta()) return;
+        java.math.BigDecimal sugerido = com.sibim.util.ProductoUtils.residualSugerido(numero(costoAhora));
+        java.math.BigDecimal escrito = numero(fValorResidual.getText());
+        boolean vacio = escrito == null || escrito.signum() == 0;
+        boolean loPuso = residualPropuesto != null && escrito != null && escrito.compareTo(residualPropuesto) == 0;
+        boolean eraDelCosto = com.sibim.util.ProductoUtils.esResidualSugerido(numero(costoAntes), escrito);
+        if (!vacio && !loPuso && !eraDelCosto) return;
+        // The 15 % give or take some centavos, with the costo as it was: left as it is.
+        java.math.BigDecimal antes = numero(costoAntes), ahora = numero(costoAhora);
+        boolean mismoCosto = antes == null ? ahora == null : ahora != null && antes.compareTo(ahora) == 0;
+        if (!vacio && !loPuso && mismoCosto) return;
+        if (sugerido != null) {
+            // Only what SIBIM writes gets the note: a bien that already had its 15 % says nothing.
+            if (escrito == null || escrito.compareTo(sugerido) != 0) {
+                residualPropuesto = sugerido;
+                fValorResidual.setText(sugerido.toPlainString());
+            }
+        } else if (loPuso) {
+            // The costo was erased (to type it again): what SIBIM wrote goes with it.
+            residualPropuesto = null;
+            fValorResidual.setText("0");
+        }
     }
 
     /** The row the costo goes in, inside «Compra». */

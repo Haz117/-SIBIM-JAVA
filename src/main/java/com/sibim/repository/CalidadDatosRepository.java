@@ -307,6 +307,71 @@ public class CalidadDatosRepository {
         }
     }
 
+    /** {@code porcentaje} % of its costo as valor residual, to the bienes in force with a costo
+     *  and the residual at $0 (one with its own keeps it). @return the ids that took it */
+    public List<String> ponerResidual(List<String> bienes, java.math.BigDecimal porcentaje) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<String> hechos = new java.util.ArrayList<>();
+            for (String id : bienes) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                if (p.getFechaBaja() != null || p.getPrecioCompra() == null || p.getPrecioCompra().signum() <= 0
+                        || (p.getValorResidual() != null && p.getValorResidual().signum() != 0)) continue;
+                p.setValorResidual(delCosto(p.getPrecioCompra(), porcentaje));
+                local.saveProducto(p);
+                hechos.add(id);
+            }
+            return hechos;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET valor_residual = round(precio_compra * ? / 100, 2), updated_at = NOW() "
+                     + "WHERE id = ANY(?) AND fecha_baja IS NULL AND precio_compra > 0 "
+                     + "AND (valor_residual IS NULL OR valor_residual = 0) RETURNING id")) {
+            ps.setBigDecimal(1, porcentaje);
+            ps.setArray(2, conn.createArrayOf("text", bienes.toArray(new String[0])));
+            List<String> hechos = new java.util.ArrayList<>();
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) hechos.add(rs.getString(1));
+            }
+            return hechos;
+        }
+    }
+
+    /** Undo of {@link #ponerResidual}: back to $0, only on the bienes still at {@code porcentaje} %
+     *  of their costo. @return how many went back */
+    public int quitarResidual(List<String> bienes, java.math.BigDecimal porcentaje) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : bienes) {
+                var o = local.findProductoById(id);
+                if (o.isEmpty()) continue;
+                Producto p = o.get();
+                java.math.BigDecimal era = p.getPrecioCompra() == null ? null : delCosto(p.getPrecioCompra(), porcentaje);
+                if (era == null || p.getValorResidual() == null || p.getValorResidual().compareTo(era) != 0) continue;
+                p.setValorResidual(java.math.BigDecimal.ZERO);
+                local.saveProducto(p);
+                n++;
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET valor_residual = 0, updated_at = NOW() "
+                     + "WHERE id = ANY(?) AND valor_residual = round(precio_compra * ? / 100, 2)")) {
+            ps.setArray(1, conn.createArrayOf("text", bienes.toArray(new String[0])));
+            ps.setBigDecimal(2, porcentaje);
+            return ps.executeUpdate();
+        }
+    }
+
+    private static java.math.BigDecimal delCosto(java.math.BigDecimal costo, java.math.BigDecimal porcentaje) {
+        return costo.multiply(porcentaje).divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+    }
+
     /** Undo of {@link #pasarFolioFiscal}: the UUID back in «Factura», only on the bienes
      *  still as it left them. @param facturaPorId what each bien had in «Factura» */
     public int regresarFolioFiscal(Map<String, String> facturaPorId) throws SQLException {

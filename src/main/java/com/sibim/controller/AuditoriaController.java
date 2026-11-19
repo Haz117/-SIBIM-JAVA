@@ -26,137 +26,79 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.prefs.Preferences;
 
+/** Auditoría: who did what and when (19-nov-2026 redesign: the acciones as chips that filter,
+ *  the filters in one row, the columns saying which bien, its área and what changed). */
 public class AuditoriaController {
 
     private static final Logger log = LoggerFactory.getLogger(AuditoriaController.class);
 
     private static final int DEFAULT_PAGE_SIZE = 50;
-    private static final DateTimeFormatter FECHA_FMT =
-        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    /** How many acción chips show before «Más acciones». */
+    static final int CHIPS_A_LA_VISTA = 5;
 
-    @FXML private FlowPane filterBar;
+    @FXML private VBox filterBar;
+    @FXML private FlowPane chipsAccion;
     @FXML private Button btnLimpiar;
+    @FXML private Button btnSoloBien;
     @FXML private TextField searchField;
     @FXML private ComboBox<String> entidadFilter;
-    @FXML private ComboBox<String> accionFilter;
     @FXML private ComboBox<String> usuarioFilter;
+    @FXML private ComboBox<String> periodoBox;
+    @FXML private HBox fechasBox;
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
-    @FXML private Button btnPresetHoy;
-    @FXML private Button btnPresetSemana;
-    @FXML private Button btnPresetMes;
     @FXML private Label lblTotal;
-    @FXML private VBox resumenBox;
-    @FXML private Button btnToggleResumen;
-    @FXML private Label lblStatTotal;
-    @FXML private Label lblStatLogins;
-    @FXML private Label lblStatFallidos;
-    @FXML private Label lblStatEliminaciones;
     @FXML private TableView<AuditLog> table;
-    @FXML private TableColumn<AuditLog, String> colFecha;
-    @FXML private TableColumn<AuditLog, String> colEntidad;
-    @FXML private TableColumn<AuditLog, String> colNombre;
+    @FXML private TableColumn<AuditLog, LocalDateTime> colCuando;
+    @FXML private TableColumn<AuditLog, String> colSobre;
+    @FXML private TableColumn<AuditLog, String> colArea;
     @FXML private TableColumn<AuditLog, String> colAccion;
-    @FXML private TableColumn<AuditLog, String> colUsuario;
-    @FXML private TableColumn<AuditLog, String> colDetalle;
+    @FXML private TableColumn<AuditLog, String> colQuien;
+    @FXML private TableColumn<AuditLog, String> colCambio;
     @FXML private Label lblPagina;
     @FXML private Button btnPrimera;
     @FXML private Button btnAnterior;
     @FXML private Button btnSiguiente;
     @FXML private Button btnUltima;
-    @FXML private javafx.scene.control.MenuButton btnExportar;
+    @FXML private MenuButton btnExportar;
     @FXML private ProgressIndicator loadSpinner;
     @FXML private Button btnRefresh;
     @FXML private Button btnResetColumns;
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private HBox paginationBar;
 
-    /** Column widths and sort, kept between sessions. */
+    /** Column widths and sort, kept between sessions (a new node: the columns changed on 19-nov-2026). */
     private static final Preferences STICKY =
-        Preferences.userRoot().node("sibim/filters/auditoria");
+        Preferences.userRoot().node("sibim/filters/auditoria-2");
 
     /** The filters, kept while SIBIM is open (leaving the screen and coming
      *  back) but not between sessions: remembered in the registry, a filter
      *  set days ago greeted the next visit with "4 registros" and no sign why. */
-    private static final java.util.Map<String, String> FILTROS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, String> FILTROS = new java.util.concurrent.ConcurrentHashMap<>();
 
-    static final String TODAS_ENTIDADES = "Todas las entidades";
-    static final String TODAS_ACCIONES  = "Todas las acciones";
+    static final String TODAS_ENTIDADES = "Todos los registros";
     static final String TODOS_USUARIOS  = "Todos los usuarios";
 
-    /** What each "entidad" stored in the bitácora is called on screen. */
-    static String etiquetaEntidad(String entidad) {
-        if (entidad == null) return "";
-        return switch (entidad) {
-            case "sesion" -> "Sesiones";
-            case "producto" -> "Bienes";
-            case "movimiento" -> "Movimientos";
-            case "categoria" -> "Categorías";
-            case "usuario" -> "Usuarios";
-            case "resguardo" -> "Resguardos";
-            case "area_resguardo" -> "Resguardos de área";
-            case "prestamo" -> "Préstamos";
-            case "comodato" -> "Comodatos";
-            case "acta" -> "Actas de entrega-recepción";
-            case "area" -> "Áreas";
-            case "mantenimiento" -> "Mantenimiento";
-            case "configuracion" -> "Configuración";
-            case "solicitud" -> "Solicitudes";
-            case "conteo" -> "Conteos físicos";
-            case "backup" -> "Respaldos";
-            case "sistema" -> "Sistema";
-            default -> Character.toUpperCase(entidad.charAt(0)) + entidad.substring(1).replace('_', ' ');
-        };
-    }
+    /** The period box: the presets and «Entre fechas…», which shows the two dates. */
+    static final String TODO = "Todo el historial", HOY = "Hoy", SIETE = "Últimos 7 días", MES = "Este mes",
+        ENTRE = "Entre fechas…";
 
-    /** What each "accion" stored in the bitácora reads as on screen. */
-    static String etiquetaAccion(String accion) {
-        if (accion == null || accion.isBlank()) return "";
-        return switch (accion.toLowerCase()) {
-            case "login" -> "Inicio de sesión";
-            case "logout" -> "Cierre de sesión";
-            case "login_fallido" -> "Acceso fallido";
-            case "operador" -> "Quién usa la cuenta";
-            case "crear" -> "Alta";
-            case "actualizar" -> "Actualización";
-            case "eliminar" -> "Eliminación";
-            case "baja" -> "Baja";
-            case "reactivar" -> "Reactivación";
-            case "cambio_precio" -> "Cambio de precio";
-            case "codigo_reasignado" -> "Código reasignado";
-            case "transferencia_aprobada" -> "Transferencia aprobada";
-            case "transferencia_rechazada" -> "Transferencia rechazada";
-            case "transferencia_recibida" -> "Transferencia recibida";
-            case "transferencia_deshecha" -> "Transferencia deshecha";
-            case "cancelar" -> "Cancelación";
-            case "devolver" -> "Devolución";
-            case "concluir" -> "Conclusión";
-            case "rescindir" -> "Rescisión";
-            case "restaurar" -> "Restauración";
-            case "aprobar" -> "Aprobación";
-            case "rechazar" -> "Rechazo";
-            default -> Character.toUpperCase(accion.charAt(0)) + accion.substring(1).replace('_', ' ');
-        };
-    }
-
-    /** The pill's tone: done or let in (verde), changed (dorado), taken out
-     *  or refused (guinda), the rest neutral — the institutional palette, not
-     *  the bright alert colors that filled whole cells. */
-    static String tonoAccion(String accion) {
-        if (accion == null) return "audit-pill-neutro";
-        return switch (accion.toLowerCase()) {
-            case "login", "crear", "reactivar", "operador", "transferencia_recibida", "transferencia_aprobada",
-                 "aprobar", "devolver", "concluir", "restaurar" -> "audit-pill-verde";
-            case "baja", "eliminar", "login_fallido", "transferencia_rechazada", "transferencia_deshecha",
-                 "cancelar", "rescindir", "rechazar" -> "audit-pill-guinda";
-            case "actualizar", "cambio_precio", "codigo_reasignado" -> "audit-pill-dorado";
-            default -> "audit-pill-neutro";
+    /** The dates a period means today; null for «Todo» and «Entre fechas…». */
+    static LocalDate[] fechasDe(String periodo, LocalDate hoy) {
+        if (periodo == null) return null;
+        return switch (periodo) {
+            case HOY -> new LocalDate[]{hoy, hoy};
+            case SIETE -> new LocalDate[]{hoy.minusDays(6), hoy};
+            case MES -> new LocalDate[]{hoy.withDayOfMonth(1), hoy};
+            default -> null;
         };
     }
 
@@ -165,8 +107,13 @@ public class AuditoriaController {
      *  filled in the background, quick changes), and one that came back late
      *  put another filter's rows under the current one. */
     private long consulta;
-    /** While the combos are being filled or restored, selecting doesn't reload. */
+    /** While the controls are being filled or restored, changing them doesn't reload. */
     private boolean ajustando;
+
+    /** The acción chosen with a chip; null is all of them. */
+    private String accion;
+    /** «Ver todo lo de SSPCR/19»: one bien's (or resguardo's…) history, and what the chip says. */
+    private String soloId, soloEtiqueta;
 
     private final AuditLogRepository auditRepo    = new AuditLogRepository();
     private final ReporteService      reporteService = new ReporteService();
@@ -180,14 +127,13 @@ public class AuditoriaController {
     @FXML
     public void initialize() {
         ajustando = true;
-        setupColumns();
+        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
+        AuditoriaColumnSetup.configure(table, colCuando, colSobre, colArea, colAccion, colQuien, colCambio, STICKY);
         setupComboFilter(entidadFilter, TODAS_ENTIDADES, "entidad", auditRepo::findDistinctEntidades,
-            AuditoriaController::etiquetaEntidad);
-        setupComboFilter(accionFilter, TODAS_ACCIONES, "accion", auditRepo::findDistinctAcciones,
-            AuditoriaController::etiquetaAccion);
+            EtiquetasAuditoria::entidadPlural);
         setupComboFilter(usuarioFilter, TODOS_USUARIOS, "usuario", auditRepo::findDistinctUsuarios, u -> u);
         setupPageSizeBox();
-        setupResumenToggle();
+        setupPeriodo();
 
         searchDebounce = new PauseTransition(Duration.millis(280));
         searchDebounce.setOnFinished(e -> {
@@ -197,80 +143,92 @@ public class AuditoriaController {
         });
 
         // The filters of this session (see FILTROS).
-        if (searchField != null) searchField.setText(FILTROS.getOrDefault("search", ""));
-        try {
-            if (desdeField != null && FILTROS.containsKey("desde")) desdeField.setValue(LocalDate.parse(FILTROS.get("desde")));
-            if (hastaField != null && FILTROS.containsKey("hasta")) hastaField.setValue(LocalDate.parse(FILTROS.get("hasta")));
-        } catch (Exception ignored) {
-            log.debug("Filtro de fecha de Auditoría no válido; se ignora", ignored);
-        }
+        searchField.setText(FILTROS.getOrDefault("search", ""));
+        accion = FILTROS.get("accion");
+        soloId = FILTROS.get("soloId");
+        soloEtiqueta = FILTROS.get("soloEtiqueta");
+        mostrarSoloBien();
 
-        if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
-        updateExportButtons();
+        loadSpinner.setVisible(false);
+        loadSpinner.setManaged(false);
+        btnExportar.setDisable(true);
 
         AnimationUtils.fadeInDown(filterBar, 220, 0);
         ajustando = false;
         loadData();
 
-        if (searchField != null) {
-            SearchUtils.setupSearchHistory("sibim/search-history/auditoria", searchField, () -> {
-                currentPage = 0;
-                loadData();
-            });
-            Platform.runLater(() -> searchField.requestFocus());
-            searchField.sceneProperty().addListener((obs, old, scene) -> {
-                if (scene == null) return;
-                scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
-                    () -> { searchField.requestFocus(); searchField.selectAll(); });
-                scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN),
-                    this::onAnterior);
-                scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN),
-                    this::onSiguiente);
-                scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.HOME, KeyCombination.CONTROL_DOWN),
-                    this::onPrimera);
-                scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.END, KeyCombination.CONTROL_DOWN),
-                    this::onUltima);
-            });
-        }
+        SearchUtils.setupSearchHistory("sibim/search-history/auditoria", searchField, () -> {
+            currentPage = 0;
+            loadData();
+        });
+        Platform.runLater(() -> searchField.requestFocus());
+        searchField.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene == null) return;
+            scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
+                () -> { searchField.requestFocus(); searchField.selectAll(); });
+            scene.getAccelerators().put(new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN), this::onAnterior);
+            scene.getAccelerators().put(new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN), this::onSiguiente);
+            scene.getAccelerators().put(new KeyCodeCombination(KeyCode.HOME, KeyCombination.CONTROL_DOWN), this::onPrimera);
+            scene.getAccelerators().put(new KeyCodeCombination(KeyCode.END, KeyCombination.CONTROL_DOWN), this::onUltima);
+        });
 
-        if (table != null) {
-            table.setPlaceholder(EmptyStateUtil.build(
-                "mdi2s-shield-lock-outline",
-                "Sin actividad registrada",
-                "Los eventos del sistema aparecerán aquí"));
-            table.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2) {
-                    AuditLog sel = table.getSelectionModel().getSelectedItem();
-                    if (sel != null) showDetalle(sel);
-                }
-            });
-            table.setOnKeyPressed(e -> {
-                if (e.getCode() == KeyCode.F5) { loadData(); e.consume(); }
-                else if (e.getCode() == KeyCode.ENTER) {
-                    AuditLog sel = table.getSelectionModel().getSelectedItem();
-                    if (sel != null) { showDetalle(sel); e.consume(); }
-                } else if (e.getCode() == KeyCode.ESCAPE) {
-                    table.getSelectionModel().clearSelection(); e.consume();
-                }
-            });
-
-            table.setContextMenu(AuditoriaContextMenu.build(table, this::showDetalle));
-        }
+        table.setPlaceholder(EmptyStateUtil.build("mdi2s-shield-lock-outline", "Sin registros con estos filtros",
+            "Quita algún filtro, o cambia el periodo"));
+        table.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                AuditLog sel = table.getSelectionModel().getSelectedItem();
+                if (sel != null) showDetalle(sel);
+            }
+        });
+        table.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.F5) { loadData(); e.consume(); }
+            else if (e.getCode() == KeyCode.ENTER) {
+                AuditLog sel = table.getSelectionModel().getSelectedItem();
+                if (sel != null) { showDetalle(sel); e.consume(); }
+            } else if (e.getCode() == KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); e.consume();
+            }
+        });
+        table.setContextMenu(AuditoriaContextMenu.build(table, this::showDetalle, this::verTodoDe));
     }
 
     private void showDetalle(AuditLog entry) {
-        AuditoriaDetailDialog.show(entry, FECHA_FMT);
+        AuditoriaDetailDialog.show(entry, this::verTodoDe);
     }
 
-    private void setupColumns() {
-        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
-        AuditoriaColumnSetup.configure(table, colFecha, colEntidad, colNombre, colAccion,
-            colUsuario, colDetalle, FECHA_FMT, STICKY);
+    /** «Ver todo lo de SSPCR/19»: that bien's history, every acción and date, newest first. */
+    void verTodoDe(AuditLog entry) {
+        if (entry == null || entry.getEntidadId() == null || entry.getEntidadId().isBlank()) return;
+        String numero = AuditoriaColumnSetup.lectura(entry).numero();
+        soloId = entry.getEntidadId();
+        soloEtiqueta = numero != null ? numero
+            : EtiquetasAuditoria.entidadSingular(entry.getEntidad()) + " " + entry.getEntidadNombre();
+        ajustando = true;
+        accion = null;
+        searchField.clear();
+        periodoBox.setValue(TODO);
+        ajustando = false;
+        mostrarSoloBien();
+        guardarFiltros();
+        currentPage = 0;
+        loadData();
+    }
+
+    @FXML private void onQuitarSoloBien() {
+        soloId = null;
+        soloEtiqueta = null;
+        mostrarSoloBien();
+        guardarFiltros();
+        currentPage = 0;
+        loadData();
+    }
+
+    private void mostrarSoloBien() {
+        boolean hay = soloId != null;
+        btnSoloBien.setText(hay ? "Solo " + soloEtiqueta : "");
+        btnSoloBien.setVisible(hay);
+        btnSoloBien.setManaged(hay);
+        btnSoloBien.setAccessibleText(hay ? "Quitar el filtro: solo " + soloEtiqueta : null);
     }
 
     @FunctionalInterface
@@ -282,7 +240,6 @@ public class AuditoriaController {
      *  and set back to this session's choice without reloading the table. */
     private void setupComboFilter(ComboBox<String> combo, String todas, String clave,
                                   Valores valores, java.util.function.Function<String, String> etiqueta) {
-        if (combo == null) return;
         javafx.util.Callback<ListView<String>, ListCell<String>> celdas = lv -> new ListCell<>() {
             @Override protected void updateItem(String v, boolean empty) {
                 super.updateItem(v, empty);
@@ -319,14 +276,36 @@ public class AuditoriaController {
         });
     }
 
-    private void setupResumenToggle() {
-        if (btnToggleResumen == null || resumenBox == null) return;
-        DialogUtil.makeCollapsible("sibim/filters/auditoria-resumen", btnToggleResumen, resumenBox,
-            "Mostrar resumen", "Ocultar resumen");
+    private void setupPeriodo() {
+        periodoBox.getItems().setAll(TODO, HOY, SIETE, MES, ENTRE);
+        String guardado = FILTROS.getOrDefault("periodo", TODO);
+        periodoBox.setValue(periodoBox.getItems().contains(guardado) ? guardado : TODO);
+        try {
+            if (FILTROS.containsKey("desde")) desdeField.setValue(LocalDate.parse(FILTROS.get("desde")));
+            if (FILTROS.containsKey("hasta")) hastaField.setValue(LocalDate.parse(FILTROS.get("hasta")));
+        } catch (Exception ignored) {
+            log.debug("Filtro de fecha de Auditoría no válido; se ignora", ignored);
+        }
+        mostrarFechas();
+        periodoBox.valueProperty().addListener((o, a, b) -> {
+            mostrarFechas();
+            if (ajustando) return;
+            if (ENTRE.equals(b)) {
+                // The two dates appear; it filters once one is set.
+                Platform.runLater(desdeField::requestFocus);
+                if (desdeField.getValue() == null && hastaField.getValue() == null) { guardarFiltros(); return; }
+            }
+            onFilter();
+        });
+    }
+
+    private void mostrarFechas() {
+        boolean entre = ENTRE.equals(periodoBox.getValue());
+        fechasBox.setVisible(entre);
+        fechasBox.setManaged(entre);
     }
 
     private void setupPageSizeBox() {
-        if (pageSizeBox == null) return;
         pageSizeBox.getItems().addAll(25, 50, 100, 250);
         pageSizeBox.getSelectionModel().select(Integer.valueOf(DEFAULT_PAGE_SIZE));
         pageSizeBox.setOnAction(e -> {
@@ -335,66 +314,109 @@ public class AuditoriaController {
         });
     }
 
+    /** What the controls say now. */
+    AuditLogRepository.Filtro filtro() {
+        String periodo = periodoBox.getValue();
+        LocalDate desde, hasta;
+        if (ENTRE.equals(periodo)) { desde = desdeField.getValue(); hasta = hastaField.getValue(); }
+        else {
+            LocalDate[] f = fechasDe(periodo, LocalDate.now());
+            desde = f == null ? null : f[0];
+            hasta = f == null ? null : f[1];
+        }
+        return new AuditLogRepository.Filtro(searchField.getText(), valor(entidadFilter, TODAS_ENTIDADES), accion,
+            valor(usuarioFilter, TODOS_USUARIOS), desde, hasta, soloId);
+    }
+
     private void loadData() {
-        if (loadSpinner != null) { loadSpinner.setVisible(true); loadSpinner.setManaged(true); }
-        String busqueda = searchField != null ? searchField.getText() : null;
-        String entidad  = getEntidadValue();
-        String accion   = getAccionValue();
-        String usuario  = getUsuarioValue();
-        LocalDate desde = desdeField != null ? desdeField.getValue() : null;
-        LocalDate hasta = hastaField != null ? hastaField.getValue() : null;
+        loadSpinner.setVisible(true);
+        loadSpinner.setManaged(true);
+        AuditLogRepository.Filtro f = filtro();
         int offset = currentPage * pageSize;
         long mia = ++consulta;
         actualizarLimpiar();
 
         AppExecutor.submit(() -> {
             try {
-                int total = auditRepo.countFiltrado(busqueda, entidad, accion, usuario, desde, hasta);
-                List<AuditLog> rows = auditRepo.findPaginated(pageSize, offset,
-                    busqueda, entidad, accion, usuario, desde, hasta);
-                AuditLogRepository.AuditStats stats = auditRepo.getStats(busqueda, entidad, accion, usuario, desde, hasta);
+                int total = auditRepo.countFiltrado(f);
+                List<AuditLog> rows = auditRepo.findPaginated(pageSize, offset, f);
+                LinkedHashMap<String, Integer> porAccion = auditRepo.contarPorAccion(f);
                 Platform.runLater(() -> {
                     if (mia != consulta) return;   // a newer read is on its way
-                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
+                    loadSpinner.setVisible(false);
+                    loadSpinner.setManaged(false);
                     totalCount = total;
                     table.getItems().setAll(rows);
                     AnimationUtils.staggerTableRows(table);
                     updatePaginationUI();
-                    updateExportButtons();
-                    updateStats(stats);
+                    btnExportar.setDisable(rows.isEmpty());
+                    pintarChips(porAccion);
                 });
             } catch (SecurityException se) {
                 Platform.runLater(() -> {
                     if (mia != consulta) return;
-                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
+                    loadSpinner.setVisible(false);
+                    loadSpinner.setManaged(false);
                     table.getItems().clear();
-                    if (lblTotal != null) lblTotal.setText("Acceso denegado — se requiere rol Administrador");
+                    lblTotal.setText("Acceso denegado — se requiere rol Administrador");
                     updatePaginationDisabled();
-                    updateExportButtons();
+                    btnExportar.setDisable(true);
                 });
             } catch (Exception ex) {
                 log.error("Error al cargar registros de auditoría", ex);
                 Platform.runLater(() -> {
                     if (mia != consulta) return;
-                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
+                    loadSpinner.setVisible(false);
+                    loadSpinner.setManaged(false);
                     Scene scene = table.getScene();
-                    if (scene != null)
-                        NotificacionUtil.error(scene, "No se pudo cargar el registro de auditoría");
+                    if (scene != null) NotificacionUtil.error(scene, "No se pudo cargar el registro de auditoría");
                 });
             }
         });
     }
 
-    private void updateStats(AuditLogRepository.AuditStats stats) {
-        if (lblStatTotal        != null) lblStatTotal.setText(String.valueOf(stats.total()));
-        if (lblStatLogins       != null) lblStatLogins.setText(String.valueOf(stats.logins()));
-        if (lblStatFallidos     != null) lblStatFallidos.setText(String.valueOf(stats.loginsFallidos()));
-        if (lblStatEliminaciones != null) lblStatEliminaciones.setText(String.valueOf(stats.eliminaciones()));
+    /** «Todas · 3,794», then each acción with its count, the most first; the rest under
+     *  «Más acciones». The one chosen is marked, and shown even if it isn't among the first. */
+    private void pintarChips(LinkedHashMap<String, Integer> porAccion) {
+        List<javafx.scene.Node> chips = new ArrayList<>();
+        int todas = porAccion.values().stream().mapToInt(Integer::intValue).sum();
+        chips.add(chip("Todas", todas, null));
+        List<Map.Entry<String, Integer>> lista = new ArrayList<>(porAccion.entrySet());
+        List<Map.Entry<String, Integer>> resto = new ArrayList<>();
+        int i = 0;
+        for (Map.Entry<String, Integer> e : lista) {
+            if (i++ < CHIPS_A_LA_VISTA || e.getKey().equals(accion)) chips.add(chip(EtiquetasAuditoria.accion(e.getKey()), e.getValue(), e.getKey()));
+            else resto.add(e);
+        }
+        if (!resto.isEmpty()) {
+            MenuButton mas = new MenuButton("Más acciones");
+            mas.getStyleClass().addAll("btn-preset", "audit-chip-mas");
+            for (Map.Entry<String, Integer> e : resto) {
+                MenuItem m = new MenuItem(EtiquetasAuditoria.accion(e.getKey()) + "  ·  " + String.format("%,d", e.getValue()));
+                m.setOnAction(ev -> elegirAccion(e.getKey()));
+                mas.getItems().add(m);
+            }
+            chips.add(mas);
+        }
+        // An acción chosen that the other filters leave without entries still shows, at 0, to be unticked.
+        if (accion != null && !porAccion.containsKey(accion)) chips.add(chip(EtiquetasAuditoria.accion(accion), 0, accion));
+        chipsAccion.getChildren().setAll(chips);
     }
 
-    private void updateExportButtons() {
-        boolean empty = table.getItems().isEmpty();
-        if (btnExportar != null) btnExportar.setDisable(empty);
+    private Button chip(String texto, int cuantos, String valor) {
+        Button b = new Button(texto + "  ·  " + String.format("%,d", cuantos));
+        boolean activo = java.util.Objects.equals(valor, accion);
+        b.getStyleClass().add(activo ? "btn-preset-active" : "btn-preset");
+        b.setAccessibleText(texto + ": " + cuantos + (activo ? ", elegido" : ""));
+        b.setOnAction(e -> elegirAccion(activo && valor != null ? null : valor));
+        return b;
+    }
+
+    private void elegirAccion(String valor) {
+        accion = valor;
+        guardarFiltros();
+        currentPage = 0;
+        loadData();
     }
 
     private static String valor(ComboBox<String> combo, String todas) {
@@ -403,19 +425,18 @@ public class AuditoriaController {
         return (sel == null || sel.equals(todas)) ? null : sel;
     }
 
-    private String getEntidadValue() { return valor(entidadFilter, TODAS_ENTIDADES); }
-    private String getAccionValue()  { return valor(accionFilter, TODAS_ACCIONES); }
-    private String getUsuarioValue() { return valor(usuarioFilter, TODOS_USUARIOS); }
-
     /** Remembers the filters for this session (see FILTROS). A combo still
      *  waiting for its options keeps what was saved instead of erasing it. */
     private void guardarFiltros() {
-        guardar("search", searchField != null && !searchField.getText().isBlank() ? searchField.getText() : null);
-        if (entidadFilter != null && entidadFilter.getItems().size() > 1) guardar("entidad", getEntidadValue());
-        if (accionFilter  != null && accionFilter.getItems().size()  > 1) guardar("accion",  getAccionValue());
-        if (usuarioFilter != null && usuarioFilter.getItems().size() > 1) guardar("usuario", getUsuarioValue());
-        guardar("desde", desdeField != null && desdeField.getValue() != null ? desdeField.getValue().toString() : null);
-        guardar("hasta", hastaField != null && hastaField.getValue() != null ? hastaField.getValue().toString() : null);
+        guardar("search", searchField.getText().isBlank() ? null : searchField.getText());
+        if (entidadFilter.getItems().size() > 1) guardar("entidad", valor(entidadFilter, TODAS_ENTIDADES));
+        if (usuarioFilter.getItems().size() > 1) guardar("usuario", valor(usuarioFilter, TODOS_USUARIOS));
+        guardar("accion", accion);
+        guardar("periodo", periodoBox.getValue());
+        guardar("desde", desdeField.getValue() != null ? desdeField.getValue().toString() : null);
+        guardar("hasta", hastaField.getValue() != null ? hastaField.getValue().toString() : null);
+        guardar("soloId", soloId);
+        guardar("soloEtiqueta", soloEtiqueta);
     }
 
     private static void guardar(String clave, String valor) {
@@ -424,47 +445,37 @@ public class AuditoriaController {
 
     /** "Limpiar filtros" only while there is something to clear. */
     private void actualizarLimpiar() {
-        if (btnLimpiar == null) return;
-        boolean hay = (searchField != null && !searchField.getText().isBlank())
-            || getEntidadValue() != null || getAccionValue() != null || getUsuarioValue() != null
-            || (desdeField != null && desdeField.getValue() != null)
-            || (hastaField != null && hastaField.getValue() != null);
+        boolean hay = !searchField.getText().isBlank()
+            || valor(entidadFilter, TODAS_ENTIDADES) != null || valor(usuarioFilter, TODOS_USUARIOS) != null
+            || accion != null || soloId != null || !TODO.equals(periodoBox.getValue());
         btnLimpiar.setVisible(hay);
         btnLimpiar.setManaged(hay);
     }
 
     private void updatePaginationUI() {
         int totalPages = totalCount == 0 ? 1 : (int) Math.ceil((double) totalCount / pageSize);
-
-        if (lblTotal != null) {
-            lblTotal.setText(totalCount == 1
-                ? "1 registro encontrado"
-                : totalCount + " registros encontrados");
-        }
-        if (lblPagina != null) {
-            lblPagina.setText("Página " + (currentPage + 1) + " de " + totalPages);
-        }
-
+        lblTotal.setText(totalCount == 1 ? "1 registro" : String.format("%,d registros", totalCount));
+        lblPagina.setText("Página " + String.format("%,d", currentPage + 1) + " de " + String.format("%,d", totalPages));
         boolean isFirst = currentPage == 0;
         boolean isLast  = currentPage >= totalPages - 1;
-
-        if (btnPrimera   != null) btnPrimera.setDisable(isFirst);
-        if (btnAnterior  != null) btnAnterior.setDisable(isFirst);
-        if (btnSiguiente != null) btnSiguiente.setDisable(isLast);
-        if (btnUltima    != null) btnUltima.setDisable(isLast);
+        btnPrimera.setDisable(isFirst);
+        btnAnterior.setDisable(isFirst);
+        btnSiguiente.setDisable(isLast);
+        btnUltima.setDisable(isLast);
     }
 
     private void updatePaginationDisabled() {
-        if (lblTotal  != null) lblTotal.setText("");
-        if (lblPagina != null) lblPagina.setText("—");
-        if (btnPrimera   != null) btnPrimera.setDisable(true);
-        if (btnAnterior  != null) btnAnterior.setDisable(true);
-        if (btnSiguiente != null) btnSiguiente.setDisable(true);
-        if (btnUltima    != null) btnUltima.setDisable(true);
+        lblTotal.setText("");
+        lblPagina.setText("—");
+        btnPrimera.setDisable(true);
+        btnAnterior.setDisable(true);
+        btnSiguiente.setDisable(true);
+        btnUltima.setDisable(true);
     }
 
     @FXML private void onSearch() {
-        if (searchDebounce != null) { searchDebounce.stop(); searchDebounce.playFromStart(); }
+        searchDebounce.stop();
+        searchDebounce.playFromStart();
     }
 
     @FXML private void onFilter() {
@@ -476,13 +487,17 @@ public class AuditoriaController {
 
     @FXML private void onLimpiar() {
         ajustando = true;
-        if (searchField   != null) searchField.clear();
-        if (usuarioFilter != null) usuarioFilter.setValue(TODOS_USUARIOS);
-        if (accionFilter  != null) accionFilter.getSelectionModel().selectFirst();
-        if (desdeField    != null) desdeField.setValue(null);
-        if (hastaField    != null) hastaField.setValue(null);
-        if (entidadFilter != null) entidadFilter.getSelectionModel().selectFirst();
+        searchField.clear();
+        usuarioFilter.setValue(TODOS_USUARIOS);
+        entidadFilter.getSelectionModel().selectFirst();
+        periodoBox.setValue(TODO);
+        desdeField.setValue(null);
+        hastaField.setValue(null);
+        accion = null;
+        soloId = null;
+        soloEtiqueta = null;
         ajustando = false;
+        mostrarSoloBien();
         FILTROS.clear();
         currentPage = 0;
         loadData();
@@ -493,7 +508,7 @@ public class AuditoriaController {
     /** "Desde" after "Hasta" found nothing and said nothing: the two are swapped. */
     @FXML private void onFiltroFecha() {
         if (ajustando) return;
-        if (desdeField != null && hastaField != null && desdeField.getValue() != null && hastaField.getValue() != null
+        if (desdeField.getValue() != null && hastaField.getValue() != null
                 && desdeField.getValue().isAfter(hastaField.getValue())) {
             ajustando = true;
             LocalDate d = desdeField.getValue();
@@ -504,45 +519,23 @@ public class AuditoriaController {
         onFilter();
     }
 
-    @FXML private void onPresetHoy() {
-        LocalDate hoy = LocalDate.now();
-        aplicarPreset(hoy, hoy);
+    @FXML private void onExportarPdf() {
+        AuditLogRepository.Filtro f = filtro();
+        exportar(() -> reporteService.exportAuditoriaPdf(todos(f), f.entidad(), f.busqueda(), f.desde(), f.hasta()));
     }
 
-    @FXML private void onPresetSemana() {
-        aplicarPreset(LocalDate.now().minusDays(6), LocalDate.now());
+    @FXML private void onExportarExcel() {
+        AuditLogRepository.Filtro f = filtro();
+        exportar(() -> reporteService.exportAuditoriaExcel(todos(f)));
     }
 
-    @FXML private void onPresetMes() {
-        LocalDate hoy = LocalDate.now();
-        aplicarPreset(hoy.withDayOfMonth(1), hoy);
+    @FXML private void onExportarCsv() {
+        AuditLogRepository.Filtro f = filtro();
+        exportar(() -> reporteService.exportAuditoriaCsv(todos(f)));
     }
 
-    private void aplicarPreset(LocalDate desde, LocalDate hasta) {
-        ajustando = true;   // one read, not one per date picker
-        if (desdeField != null) desdeField.setValue(desde);
-        if (hastaField  != null) hastaField.setValue(hasta);
-        ajustando = false;
-        onFilter();
-    }
-
-    @FXML private void onExportarPdf() { exportar(() -> reporteService.exportAuditoriaPdf(
-        getAllFilteredLogs(), getEntidadValue(), searchField != null ? searchField.getText() : null,
-        desdeField != null ? desdeField.getValue() : null,
-        hastaField != null ? hastaField.getValue() : null)); }
-
-    @FXML private void onExportarExcel() { exportar(() -> reporteService.exportAuditoriaExcel(getAllFilteredLogs())); }
-
-    @FXML private void onExportarCsv() { exportar(() -> reporteService.exportAuditoriaCsv(getAllFilteredLogs())); }
-
-    private List<AuditLog> getAllFilteredLogs() throws Exception {
-        String busqueda = searchField  != null ? searchField.getText()  : null;
-        String entidad  = getEntidadValue();
-        String accion   = getAccionValue();
-        String usuario  = getUsuarioValue();
-        LocalDate desde = desdeField   != null ? desdeField.getValue()  : null;
-        LocalDate hasta = hastaField   != null ? hastaField.getValue()  : null;
-        return auditRepo.findPaginated(50_000, 0, busqueda, entidad, accion, usuario, desde, hasta);
+    private List<AuditLog> todos(AuditLogRepository.Filtro f) throws Exception {
+        return auditRepo.findPaginated(50_000, 0, f);
     }
 
     private void exportar(Callable<File> task) {

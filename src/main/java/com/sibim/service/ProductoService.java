@@ -395,6 +395,8 @@ public class ProductoService {
                     throw new ValidationException("El resguardante lo define el resguardo " + folio.get()
                         + "; para cambiarlo cancélalo o genera uno nuevo en Resguardos");
             }
+            BigDecimal sigue = residualQueSigue(actual, p);
+            if (sigue != null) p.setValorResidual(sigue);
         }
         validate(p);
         String queCambio = antes != null ? cambios(antes, p) : "";
@@ -450,6 +452,20 @@ public class ProductoService {
         }
 
         return saved;
+    }
+
+    /** A valor residual that was exactly the 15 % of the old costo follows a new costo, unless
+     *  this same change sets it (19-nov-2026: 285 of 296 are the 15 %, and «Sumarle el IVA» left
+     *  3 at 12.9 %); in «Cambiar datos», «La misma factura» and the form alike.
+     *  @return the residual it takes, or null to leave it */
+    static BigDecimal residualQueSigue(Producto antes, Producto despues) {
+        if (antes == null || despues == null || !priceChanged(antes.getPrecioCompra(), despues.getPrecioCompra())) return null;
+        BigDecimal era = antes.getValorResidual();
+        if (!com.sibim.util.ProductoUtils.esResidualSugerido(antes.getPrecioCompra(), era)) return null;
+        BigDecimal ahora = despues.getValorResidual();
+        if (ahora == null || ahora.compareTo(era) != 0) return null;   // this change sets it
+        BigDecimal nuevo = com.sibim.util.ProductoUtils.residualSugerido(despues.getPrecioCompra());
+        return nuevo != null ? nuevo : BigDecimal.ZERO;
     }
 
     /** An área keeps four things of a bien current: where it is, its

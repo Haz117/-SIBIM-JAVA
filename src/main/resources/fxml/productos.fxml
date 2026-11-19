@@ -65,6 +65,15 @@
                 <MenuItem fx:id="btnFolioFiscal" text="Folio fiscal a su lugar" onAction="#onFolioFiscal">
                     <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnFacturasCarpeta" text="Leer las facturas de una carpeta…" onAction="#onFacturasCarpeta">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnCostosDistintos" text="Costos distintos en la misma compra" onAction="#onCostosDistintos">
+                    <graphic><FontIcon iconLiteral="mdi2s-scale-balance"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnResidual" text="Valor residual: el 15 % del costo" onAction="#onPonerResidual">
+                    <graphic><FontIcon iconLiteral="mdi2c-cash-check"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnUnirProveedores" text="Unir lo escrito de dos formas" onAction="#onUnirProveedores">
                     <graphic><FontIcon iconLiteral="mdi2s-spellcheck"/></graphic>
                 </MenuItem>

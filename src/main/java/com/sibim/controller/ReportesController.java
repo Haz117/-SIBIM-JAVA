@@ -109,8 +109,11 @@ public class ReportesController {
         });
 
         AnimationUtils.staggeredFadeInUp(List.of(periodCard, listaListados, listaFormatos), 300, 70);
-        if ("resguardante".equals(com.sibim.session.NavigationContext.consumePendingAbrir()))
-            Platform.runLater(this::resguardoDePersona);
+        String abrir = com.sibim.session.NavigationContext.consumePendingAbrir();
+        if ("resguardante".equals(abrir)) Platform.runLater(this::resguardoDePersona);
+        // Inicio › Por hacer › «Ver su situación»: the report, ready.
+        if ("vehiculos".equals(abrir)) Platform.runLater(() -> completo(() -> new com.sibim.service.ReporteSituacionVehiculosService()
+            .exportPdf(productoService.getAll())).run());
     }
 
     // ── Catálogo de reportes ───────────────────────────────────────────────────
@@ -155,6 +158,15 @@ public class ReportesController {
                 completo(reporteService::exportAlertasPdf),
                 completo(reporteService::exportAlertasExcel),
                 completo(reporteService::exportAlertasCsv))));
+        if (control) {
+            // 19-nov-2026: what the vehicle list said of each vehicle was only text in its descripción.
+            com.sibim.service.ReporteSituacionVehiculosService vehiculos = new com.sibim.service.ReporteSituacionVehiculosService();
+            listados.add(ReporteFila.crear("mdi2c-car-cog", "red", "Situación de los vehículos",
+                "Cada vehículo con sus placas, su estatus y si tiene tarjeta de circulación, seguro, tenencia pagada y verificación; primero los que tienen algo pendiente.",
+                null, "Exportar", pdfYExcel(
+                    completo(() -> vehiculos.exportPdf(productoService.getAll())),
+                    completo(() -> vehiculos.exportExcel(productoService.getAll())))));
+        }
         if (control) listados.add(ReporteFila.crear("mdi2d-delete-circle-outline", "slate", "Bienes Dados de Baja",
             "Bienes fuera del inventario activo; su historial se conserva para auditoría.",
             null, "Exportar", formatos(
