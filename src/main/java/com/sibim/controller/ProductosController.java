@@ -249,7 +249,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnCompletarGrupos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnFacturasCarpeta, btnCostosDistintos, btnResidual, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos,
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnCompletarGrupos, btnFotosCarpeta, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnFacturasCarpeta, btnCostosDistintos, btnResidual, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos,
                 secFactura, sepEscrito, secEscrito, sepRepetidos, secRepetidos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
@@ -414,6 +414,7 @@ public class ProductosController {
         switch (abrir) {
             case "completar" -> Platform.runLater(this::onCompletarDatos);
             case "grupos"    -> Platform.runLater(this::onCompletarGrupos);
+            case "fotoscarpeta" -> Platform.runLater(this::onFotosCarpeta);
             // 24-nov-2026: 691 bienes without color said it in their name; straight to the review.
             case "colores"   -> Platform.runLater(() -> conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.showTomarColores(bienes, this::alCorregirDatos)));
             case "unir"      -> Platform.runLater(this::onUnirPersonas);
@@ -597,6 +598,7 @@ public class ProductosController {
     @FXML private Label lblPistaAcciones;
     @FXML private MenuItem btnCompletarDatos;
     @FXML private MenuItem btnCompletarGrupos;
+    @FXML private MenuItem btnFotosCarpeta;
     @FXML private MenuItem btnUnirPersonas;
     @FXML private MenuItem btnQuitarTitulos;
     @FXML private MenuItem btnSeriesRepetidas;
@@ -632,6 +634,11 @@ public class ProductosController {
     @FXML
     private void onCompletarDatos() {
         conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onFotosCarpeta() {
+        conInventario(bienes -> com.sibim.controller.dialogs.FotosDeCarpetaDialog.show(bienes, null, this::alCorregirDatos));
     }
 
     @FXML

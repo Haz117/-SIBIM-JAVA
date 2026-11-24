@@ -18,7 +18,7 @@ import java.util.List;
 
 /** The photos of a bien inside a form: thumbnails with × and "Principal",
  *  and "Agregar foto". The first one is the principal, the one the table and
- *  the formats show. {@link #fotos} is the live list: local paths for photos
+ *  the formats show; a photo added goes first (since 1.0.38). {@link #fotos} is the live list: local paths for photos
  *  just picked, URLs for the ones already stored (ProductoDialogFactory
  *  #procesarArchivos uploads the former on saving). Shared by the full form
  *  and the áreas' "Actualizar datos". */
@@ -44,7 +44,7 @@ final class GaleriaFotos {
         btnAgregarFoto.setOnAction(ev -> agregar());
 
         Label hint = new Label("La primera foto es la principal: la que sale en la tabla y en los formatos. "
-            + "Usa \"Principal\" en otra foto para cambiarla.");
+            + "La que agregas queda como principal; usa \"Principal\" en otra foto para cambiarla.");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted-sm");
 
@@ -110,11 +110,15 @@ final class GaleriaFotos {
     private void agregar() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Seleccionar imagen del bien");
+        java.io.File carpeta = com.sibim.util.CarpetaDeFotos.ultima();
+        if (carpeta != null) chooser.setInitialDirectory(carpeta);
         chooser.getExtensionFilters().add(
             new FileChooser.ExtensionFilter("Imágenes",
                 "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"));
         List<File> files = chooser.showOpenMultipleDialog(dialog.getOwner());
-        if (files == null) return;
+        if (files == null || files.isEmpty()) return;
+        com.sibim.util.CarpetaDeFotos.recordar(files.get(0));
+        List<String> nuevas = new java.util.ArrayList<>();
         for (File file : files) {
             if (ImageUtils.exceedsMaxSize(file)) {
                 Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
@@ -130,8 +134,11 @@ final class GaleriaFotos {
                 tooBig.showAndWait();
                 continue;
             }
-            fotos.add(file.getAbsolutePath());
+            nuevas.add(file.getAbsolutePath());
         }
+        // The new one first, as the principal: from 20 to 24-nov-2026, 112 of the 241 bienes that got a
+        // photo had one already, and the one taken on the visit replaced it; added last it showed nowhere.
+        fotos.addAll(0, nuevas);
         cambio();
     }
 }

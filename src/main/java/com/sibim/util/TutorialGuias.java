@@ -119,10 +119,23 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
+                "Aquí está solo lo nuevo: las fotos de una carpeta, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
+            p.add(probar(paso("mdi2c-camera-burst", GUINDA, GUINDA_D, "Las fotos de una carpeta", "productos", "#btnMasBienes",
+                "Bienes › Más › «Fotos de una carpeta…»: eliges la carpeta donde copiaste las fotos del teléfono (SIBIM la recuerda)",
+                "A la izquierda, los bienes del área en el orden de la visita (primero los que no tienen foto); a la derecha, las fotos en el orden en que se tomaron; en medio, la foto grande para leer su etiqueta",
+                "Un clic (o Espacio) marca la foto para el bien, o varias, como las de una patrulla. Enter la guarda como su foto principal y pasa al siguiente bien, con la siguiente foto ya marcada",
+                "← → cambian de foto y ↑ ↓ de bien; si el bien ya tenía foto, «Quitar las fotos que ya tiene» la reemplaza. Cada bien se deshace desde su aviso"),
+                "Abrir Fotos de una carpeta", abrir("productos", "fotoscarpeta")));
+            p.add(paso("mdi2c-camera-outline", VERDE, VERDE_D, "La lista para tomar las fotos", "reportes", "#listaListados .report-row",
+                "Reportes › «Bienes sin foto, para tomarlas» (también en «Fotos de una carpeta»): una hoja por área, en el orden de su ubicación, con su número anterior —el que trae pegado— y una casilla",
+                "Tómalas en ese orden: en «Fotos de una carpeta» los bienes salen igual y cada foto se propone para el que sigue",
+                "Inicio › Por hacer › «bienes sin foto» abre «Fotos de una carpeta»"));
+            p.add(paso("mdi2c-camera-plus-outline", DORADO, DORADO_D, "La foto nueva, la principal", "productos", "#btnEditar",
+                "En el formulario, la foto que agregas queda primero: es la principal, la que sale en la tabla y en los formatos; la que tenía sigue ahí hasta que la quites",
+                "La ventana para elegirla abre en la carpeta de la última foto, también en Completar datos › Sin foto"));
             p.add(probar(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "Completar por grupos", "productos", "#btnMasBienes",
                 "Bienes › Más › «Completar por grupos (mismo nombre)»: cada renglón es un nombre con todos sus bienes («ESPOSAS SEMIRIGIDAS (MANO) · 71 bienes»)",
                 "Escribes la vida útil, el color y el tipo una sola vez y se ponen a los bienes del grupo que no los tienen; Enter guarda y pasa al siguiente grupo",
@@ -150,6 +163,9 @@ final class TutorialGuias {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Aquí está solo lo nuevo; lo de antes está en las guías por tema (F2), como «Mantener al día los bienes de mi área»",
                 "Cada paso te lleva a la pantalla y marca dónde está"));
+            p.add(paso("mdi2c-camera-plus-outline", VERDE, VERDE_D, "La foto nueva, la principal", null, null,
+                "Al poner una foto a un bien, la nueva queda primero: es la que se ve en la lista y en su ficha; la que tenía sigue ahí hasta que la quites",
+                "La ventana para elegirla abre en la carpeta de la última foto"));
             p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Más fácil de leer", "productos", "#table",
                 "Las categorías se leen cortas en la tabla de Bienes («Cómputo», «Muebles», «Cámaras»); el nombre completo, al pasar el mouse",
                 "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan"));

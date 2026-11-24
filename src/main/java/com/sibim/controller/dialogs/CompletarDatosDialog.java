@@ -326,6 +326,27 @@ public final class CompletarDatosDialog {
         return p;
     }
 
+    /** «Fotos de una carpeta» on the área chosen; on closing the list is read again (a bien that got a
+     *  photo there is no longer without one). */
+    private void abrirFotosCarpeta() {
+        String area = areas.getSelectionModel().getSelectedItem();
+        FotosDeCarpetaDialog.show(filas.stream().map(f -> f.producto).toList(), TODAS.equals(area) ? null : area, () -> {
+            cambio = true;
+            DialogUtil.runAsync(() -> service.getAll(), todos -> {
+                Map<String, Producto> porId = new HashMap<>();
+                todos.forEach(p -> porId.put(p.getId(), p));
+                for (Fila f : filas) {
+                    Producto g = porId.get(f.producto.getId());
+                    if (g != null && !Objects.equals(g.getFotoUrl(), f.producto.getFotoUrl())) { f.producto = g; f.guardado = true; }
+                }
+                cargarAreas();
+                refiltrar();
+                actualizarConteos();
+                lista.refresh();
+            }, e -> log.warn("No se pudo releer el inventario: {}", e.getMessage()));
+        });
+    }
+
     /** «Por grupos»: on the área chosen; what it saves is what the rows have from then on. */
     private void abrirPorGrupos() {
         String area = areas.getSelectionModel().getSelectedItem();
@@ -684,6 +705,15 @@ public final class CompletarDatosDialog {
             actualizarTodos();
             return;
         }
+        if (datoElegido() == Dato.FOTO) {
+            // 24-nov-2026: 418 photos for 241 bienes in four days, one form at a time.
+            ver(barraConac, true);
+            textoConac.setText("Las fotos de una visita, de una vez: eliges la carpeta donde las copiaste y vas marcando la de cada bien.");
+            revisarConac.setText("Fotos de una carpeta…");
+            revisarConac.setGraphic(new FontIcon("mdi2c-camera-burst"));
+            actualizarTodos();
+            return;
+        }
         if (datoElegido() == Dato.TIPO) {
             int n = conTipoSugerido().size();
             ver(barraConac, n > 0);
@@ -800,6 +830,7 @@ public final class CompletarDatosDialog {
 
 
     private void aplicarConac() {
+        if (datoElegido() == Dato.FOTO) { abrirFotosCarpeta(); return; }
         if (datoElegido() == Dato.FOLIO_REVISAR) { corregirFolios(); return; }
         if (datoElegido() == Dato.COLOR) { tomarColores(); return; }
         if (datoElegido() == Dato.TIPO) {
@@ -959,8 +990,11 @@ public final class CompletarDatosDialog {
         FileChooser fc = new FileChooser();
         fc.setTitle("Foto de " + f.producto.getCodigo());
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imágenes (*.jpg, *.png)", "*.jpg", "*.jpeg", "*.png"));
+        File carpeta = com.sibim.util.CarpetaDeFotos.ultima();
+        if (carpeta != null) fc.setInitialDirectory(carpeta);
         File archivo = fc.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
         if (archivo == null) return;
+        com.sibim.util.CarpetaDeFotos.recordar(archivo);
         Producto p = f.producto;
         f.guardando = true;
         f.error = null;

@@ -1375,7 +1375,7 @@ public class CalidadDatosService {
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
         agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
         agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");
-        agregar(out, cuantos(bienes, Dato.FOTO), "bienes sin foto", "Completar datos", "productos", "completar:FOTO");
+        agregar(out, cuantos(bienes, Dato.FOTO), "bienes sin foto", "Fotos de una carpeta", "productos", "fotoscarpeta");
         agregar(out, ResguardoService.porResguardante(resguardos, bienes).stream().filter(p -> !p.sinResguardo().isEmpty()).count(),
             "personas con bienes sin resguardo", "Registrar en lote", "resguardos", "lote");
         agregar(out, conVariosResguardos(resguardos), "personas con varios resguardos en la misma área",

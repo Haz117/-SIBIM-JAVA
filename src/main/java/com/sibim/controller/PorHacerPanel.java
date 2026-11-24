@@ -280,7 +280,7 @@ final class PorHacerPanel {
         String a = p.abrir();
         // The late backup, an área waiting for an answer, bienes an área says aren't its own.
         if (a == null || "solicitudes".equals(a) || "observados".equals(a)) return Grupo.PRIMERO;
-        if (a.startsWith("completar:") || "formatos".equals(a) || "grupos".equals(a)) return Grupo.CAPTURA;
+        if (a.startsWith("completar:") || Set.of("formatos", "grupos", "fotoscarpeta").contains(a)) return Grupo.CAPTURA;
         if (Set.of("lote", "juntar", "etiquetas", "vehiculos", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
         return Grupo.RAPIDO;
     }

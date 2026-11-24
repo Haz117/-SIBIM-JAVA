@@ -55,6 +55,9 @@
                 <MenuItem fx:id="btnCompletarGrupos" text="Completar por grupos (mismo nombre)" onAction="#onCompletarGrupos">
                     <graphic><FontIcon iconLiteral="mdi2f-format-list-checks"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnFotosCarpeta" text="Fotos de una carpeta…" onAction="#onFotosCarpeta">
+                    <graphic><FontIcon iconLiteral="mdi2c-camera-burst"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnFacturasCarpeta" text="Leer las facturas de una carpeta…" onAction="#onFacturasCarpeta">
                     <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline"/></graphic>
                 </MenuItem>

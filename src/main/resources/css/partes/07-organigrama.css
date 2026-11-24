@@ -443,6 +443,36 @@
 .cnt-barra { -fx-pref-height: 5; -fx-min-height: 5; -fx-max-height: 5; }
 .cnt-barra .bar { -fx-background-color: #059669; -fx-background-insets: 0; -fx-padding: 2; -fx-background-radius: 3; }
 .cnt-barra .track { -fx-background-color: sibim-slate-200; -fx-background-insets: 0; -fx-background-radius: 3; }
+/* Fotos de una carpeta (24-nov-2026): the photo marked for the bien carries its number; the one in
+   view, a gray edge; one already given to another bien, dimmed with its número. */
+.fdc-mini {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 8;
+    -fx-border-width: 2;
+    -fx-padding: 3;
+    -fx-cursor: hand;
+}
+.fdc-mini:hover { -fx-border-color: sibim-indigo-300; }
+.fdc-mini-vista, .fdc-mini-vista:hover { -fx-border-color: sibim-slate-500; }
+.fdc-mini-marcada, .fdc-mini-marcada:hover { -fx-border-color: sibim-indigo; -fx-border-width: 3; -fx-background-color: #FDF7F8; }
+.fdc-num {
+    -fx-background-color: sibim-indigo;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-padding: 1 7;
+    -fx-background-radius: 9;
+}
+.fdc-usada-en {
+    -fx-background-color: rgba(15, 23, 42, 0.78);
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-padding: 1 6;
+    -fx-background-radius: 6;
+}
+.fdc-vista { -fx-background-color: sibim-slate-100; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; }
 
 .cnt-aviso {
     -fx-background-color: #FBF6EC;

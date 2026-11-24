@@ -317,6 +317,41 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         assertEquals(1, visibles(panel, ".cnt-fila"), "solo los grupos del área");
     }
 
+    /** 24-nov-2026: 418 photos for 241 bienes, one form at a time. The next photo comes marked;
+     *  → and Space mark another; a save that fails frees them and says so. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void fotosDeUnaCarpeta_laSiguienteVieneMarcada_yUnaQueFallaLasLibera(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        for (int i = 1; i <= 3; i++) {
+            java.awt.image.BufferedImage im = new java.awt.image.BufferedImage(40, 30, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            javax.imageio.ImageIO.write(im, "jpg", dir.resolve("IMG_" + i + ".jpg").toFile());
+        }
+        Producto a = bien("1", "SSPAO/1", "Ana", "Seguridad Pública");
+        a.setUbicacion("ALMACÉN");
+        Producto b = bien("2", "SSPAO/2", "Ana", "Seguridad Pública");
+        b.setUbicacion("ARMERÍA");
+        Producto conFoto = bien("3", "SSPAO/3", "Ana", "Seguridad Pública");
+        conFoto.setFotoUrl("https://x/a.jpg");
+        Platform.runLater(() -> FotosDeCarpetaDialog.show(List.of(b, a, conFoto), null, dir.toFile(), null));
+        DialogPane panel = abierto();
+        ListView<Object> lista = (ListView<Object>) panel.lookupAll(".cnt-lista").stream().findFirst().orElseThrow();
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> panel.lookupAll(".fdc-mini").size() == 3);
+        assertEquals(2, lista.getItems().size(), "solo los que no tienen foto");
+        assertEquals(1, visibles(panel, ".fdc-mini-marcada"), "la primera foto viene marcada para el primer bien");
+
+        for (KeyCode k : List.of(KeyCode.RIGHT, KeyCode.SPACE))
+            interact(() -> javafx.event.Event.fireEvent(lista, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", k, false, false, false, false)));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(2, visibles(panel, ".fdc-mini-marcada"), "→ y Espacio marcan la segunda");
+
+        // Without a database the save fails: the photos are free again and the bien says so.
+        interact(() -> javafx.event.Event.fireEvent(lista, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false)));
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> panel.lookupAll(".cell-badge-danger").stream().anyMatch(Node::isVisible));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(1, lista.getSelectionModel().getSelectedIndex(), "pasó al siguiente bien");
+        assertTrue(panel.lookupAll(".fdc-usada-en").stream().noneMatch(Node::isVisible), "ninguna quedó como de otro bien");
+    }
+
     @Test
     void completar_abreEnElDatoPedido() throws Exception {
         List<Producto> bienes = List.of(bien("1", "A/1", "ANA RUIZ", "Tesorería Municipal"));

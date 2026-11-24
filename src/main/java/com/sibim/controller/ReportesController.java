@@ -166,6 +166,10 @@ public class ReportesController {
                 null, "Exportar", pdfYExcel(
                     completo(() -> vehiculos.exportPdf(productoService.getAll())),
                     completo(() -> vehiculos.exportExcel(productoService.getAll())))));
+            // 24-nov-2026: 312 bienes without a photo, taken bien by bien on visits.
+            listados.add(ReporteFila.crear("mdi2c-camera-outline", "purple", "Bienes sin foto, para tomarlas",
+                "Por área, en el orden de su ubicación, con su número anterior y una casilla, para llevarla al lugar; en ese orden salen en «Fotos de una carpeta».",
+                null, null, List.of(pdf(this::sinFotoPorArea))));
         }
         if (control) listados.add(ReporteFila.crear("mdi2d-delete-circle-outline", "slate", "Bienes Dados de Baja",
             "Bienes fuera del inventario activo; su historial se conserva para auditoría.",
@@ -274,6 +278,17 @@ public class ReportesController {
                 conFotos ? com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos() : 0, scene,
                 elegidos -> exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
                                                     : reporteService.exportInventarioSinFotos(elegidos), false)),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    /** The list to take the missing photos, of the áreas picked (only the ones with bienes without one). */
+    private void sinFotoPorArea() {
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> productoService.getAll().stream().filter(com.sibim.service.FotosDeCarpeta::sinFoto).toList(),
+            bienes -> elegirAreas(bienes, "mdi2c-camera-outline", "Bienes sin foto, para tomarlas", 0, scene,
+                elegidos -> exportar(() -> new com.sibim.service.ReporteFotosPorTomarService().exportPdf(elegidos), false)),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
