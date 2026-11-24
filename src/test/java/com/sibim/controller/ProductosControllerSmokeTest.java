@@ -139,4 +139,15 @@ class ProductosControllerSmokeTest extends ControllerSmokeTestBase {
         org.junit.jupiter.api.Assertions.assertTrue(x.getMinX() > caja.getMinX() + caja.getWidth() / 2 && x.getMaxX() <= caja.getMaxX() + 1,
             "a la derecha, dentro de la caja: " + x + " en " + caja);
     }
+
+    /** 19-nov-2026: «Más» had 14 options for reviewing the data in a row; now under three titles,
+     *  which are not options. */
+    @Test
+    void elMenuMas_porSecciones() {
+        javafx.scene.control.MenuButton mas = lookup("#btnMasBienes").query();
+        var titulos = mas.getItems().stream().filter(i -> i.getStyleClass().contains("menu-seccion")).toList();
+        assertEquals(java.util.List.of("Completar y corregir, con la factura", "Lo escrito de varias formas", "Repetidos"),
+            titulos.stream().map(javafx.scene.control.MenuItem::getText).toList());
+        assertTrue(titulos.stream().allMatch(javafx.scene.control.MenuItem::isDisable), "un título no se elige");
+    }
 }

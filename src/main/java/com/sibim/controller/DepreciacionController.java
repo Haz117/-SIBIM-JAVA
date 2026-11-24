@@ -183,20 +183,29 @@ public class DepreciacionController {
         colCategoria.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getCategoriaNombre() != null
                 ? c.getValue().getCategoriaNombre() : ""));
+        // The short name, the whole CONAC one on hover (19-nov-2026).
+        colCategoria.setCellFactory(col -> new javafx.scene.control.TableCell<>() {
+            @Override protected void updateItem(String v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(empty || v == null ? null : com.sibim.util.CategoriaCorta.de(v));
+                setTooltip(empty || v == null || v.isBlank() ? null : new javafx.scene.control.Tooltip(v));
+            }
+        });
         colArea.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
         colFechaAdq.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDate(c.getValue().getFechaAdquisicion())));
         colVidaUtil.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getVidaUtilAnios() + " años"));
+            new SimpleStringProperty(anios(c.getValue().getVidaUtilAnios())));
+        com.sibim.util.ColumnasLegibles.fijas(colRestante, colFechaAdq, colVidaUtil);
         colRestante.setCellValueFactory(c ->
             new SimpleStringProperty(vidaUtilRestante(c.getValue())));
         colRestante.setCellFactory(DialogUtil.badgeCellFactory(item -> {
             if (item == null || item.equals("—")) return null;
             if (item.equals("Cumplida")) return "cell-badge-danger";
-            if (item.endsWith("meses")) return "cell-badge-warning";
+            if (item.endsWith("mes") || item.endsWith("meses") || item.startsWith("Menos")) return "cell-badge-warning";
             try {
-                int anios = Integer.parseInt(item.replace(" años", ""));
+                int anios = Integer.parseInt(item.replaceAll("\\D.*", ""));
                 return anios <= 2 ? "cell-badge-warning" : "cell-badge-success";
             } catch (NumberFormatException ex) { return null; }
         }));
@@ -301,7 +310,14 @@ public class DepreciacionController {
         LocalDate hoy = LocalDate.now();
         if (!fechaTotal.isAfter(hoy)) return "Cumplida";
         long meses = ChronoUnit.MONTHS.between(hoy, fechaTotal);
-        return meses < 12 ? meses + " meses" : (meses / 12) + " años";
+        if (meses == 0) return "Menos de un mes";
+        return meses < 12 ? FormatUtils.plural(meses, "mes", "meses") : anios((int) (meses / 12));
+    }
+
+    /** «1 año», «3 años» (19-nov-2026: it said «1 años»). */
+    static String anios(Integer n) {
+        if (n == null) return "—";
+        return FormatUtils.plural(n, "año", "años");
     }
 
     /** Fecha en la que el bien llega a su valor residual (fin de su vida útil). */
@@ -640,7 +656,23 @@ public class DepreciacionController {
         }
     }
 
+    private static final class MontoCorto extends javafx.util.StringConverter<Number> {
+        @Override public String toString(Number n) { return n == null ? "" : montoCorto(n.doubleValue()); }
+        @Override public Number fromString(String s) { return null; }
+    }
+
+    /** «$30 M», «$850 mil», «$900»: the axis of a chart half as wide as before (19-nov-2026). */
+    static String montoCorto(double v) {
+        double a = Math.abs(v);
+        java.text.DecimalFormat uno = new java.text.DecimalFormat("#,##0.#");
+        if (a >= 1_000_000) return "$" + uno.format(v / 1_000_000) + " M";
+        if (a >= 1_000) return "$" + uno.format(v / 1_000) + " mil";
+        return "$" + uno.format(v);
+    }
+
     private void updateChart(List<Producto> bienes) {
+        if (chartTendencia.getYAxis() instanceof javafx.scene.chart.NumberAxis eje && !(eje.getTickLabelFormatter() instanceof MontoCorto))
+            eje.setTickLabelFormatter(new MontoCorto());
         chartTendencia.getData().clear();
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName("Valor proyectado del activo fijo");

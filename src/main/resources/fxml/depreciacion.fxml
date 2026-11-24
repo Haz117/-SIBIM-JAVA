@@ -141,30 +141,37 @@
     </HBox>
     </VBox>
 
-    <!-- ══ DISTRIBUCIÓN POR RANGO DE DEPRECIACIÓN ═══════════════════ -->
-    <VBox styleClass="card" spacing="12">
-        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-indigo"/>
-            <Label text="Distribución por Rango de Depreciación" styleClass="card-title"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Label fx:id="lblRangoTotal" text="" styleClass="muted"/>
-        </HBox>
-        <VBox fx:id="rangoBox" spacing="10"/>
-    </VBox>
-
-    <!-- ══ GRÁFICA DE TENDENCIA ═════════════════════════════════════ -->
-    <VBox styleClass="card" spacing="10">
-        <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <FontIcon iconLiteral="mdi2c-chart-line" styleClass="card-icon-indigo"/>
-            <Label text="Proyección del Valor del Activo Fijo" styleClass="card-title"/>
-        </HBox>
-        <LineChart fx:id="chartTendencia" prefHeight="240" animated="false">
-            <xAxis><CategoryAxis label="Año"/></xAxis>
-            <yAxis><NumberAxis label="Valor ($)"/></yAxis>
-        </LineChart>
-    </VBox>
+    <!-- ══ DISTRIBUCIÓN Y PROYECCIÓN, LADO A LADO ═════════════════════
+         19-nov-2026: one under the other they filled a 1366×689 screen and the table of bienes
+         was below them; side by side and lower, the table shows without scrolling. -->
+    <GridPane hgap="20">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50"/>
+        </columnConstraints>
+        <VBox styleClass="card" spacing="10" GridPane.columnIndex="0">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-indigo"/>
+                <Label text="Distribución por rango de depreciación" styleClass="card-title"/>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" spacing="6">
+                <Label fx:id="lblRangoTotal" text="" styleClass="muted"/>
+            </HBox>
+            <VBox fx:id="rangoBox" spacing="10"/>
+        </VBox>
+        <VBox styleClass="card" spacing="6" GridPane.columnIndex="1">
+            <padding><Insets top="16" right="18" bottom="10" left="18"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <FontIcon iconLiteral="mdi2c-chart-line" styleClass="card-icon-indigo"/>
+                <Label text="Proyección del valor en libros" styleClass="card-title"/>
+            </HBox>
+            <LineChart fx:id="chartTendencia" prefHeight="190" minHeight="170" animated="false" legendVisible="false">
+                <xAxis><CategoryAxis/></xAxis>
+                <yAxis><NumberAxis/></yAxis>
+            </LineChart>
+        </VBox>
+    </GridPane>
 
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">

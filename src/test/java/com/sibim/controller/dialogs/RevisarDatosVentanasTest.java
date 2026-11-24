@@ -262,6 +262,9 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         Platform.runLater(() -> ((Button) confirmar.lookupButton(si)).fire());
 
         WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> deshacer.getParent().isVisible());
+        // The list updates in its own turn of the FX thread: with the PC busy (24-nov-2026, the
+        // suite beside two captures) it could be checked before.
+        WaitForAsyncUtils.waitForFxEvents();
         assertEquals(0, lista.getItems().size(), "ese caso ya quedó");
 
         interact(deshacer::fire);
@@ -273,6 +276,47 @@ class RevisarDatosVentanasTest extends ApplicationTest {
     }
 
     /** From Inicio it opens on the dato somebody came to fill. */
+    /** 24-nov-2026: a name at a time with «Cambiar datos»; here each name is one row, with what
+     *  is already known written. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void grupos_unRenglonPorNombre_conLoQueYaSeSabe_yUnValorMaloNoSeGuarda() throws Exception {
+        List<Producto> bienes = new ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            Producto p = bien(String.valueOf(i), "SSP/" + i, "Ana", "Seguridad Pública");
+            p.setNombre("SILLA PLEGADIZA DE COLOR VERDE LIMON");
+            p.setClaveArmonizada("1.2.4.1.1.511");
+            bienes.add(p);
+        }
+        for (int i = 4; i <= 5; i++) {
+            Producto p = bien(String.valueOf(i), "TES/" + i, "Ana", "Tesorería Municipal");
+            p.setNombre("ESCUDO MOTIN");
+            bienes.add(p);
+        }
+        bienes.add(bien("6", "TES/6", "Ana", "Tesorería Municipal"));
+        Platform.runLater(() -> CompletarPorGruposDialog.show(bienes, null, null));
+        DialogPane panel = abierto();
+        assertEquals(2, visibles(panel, ".cnt-fila"), "un nombre con un solo bien no es grupo");
+        java.util.function.Function<String, TextField> campo = texto -> (TextField) panel.lookupAll(".form-input").stream()
+            .filter(n -> texto.equals(((TextField) n).getAccessibleText())).findFirst().orElseThrow(() -> new AssertionError(texto));
+        assertEquals("VERDE LIMON", campo.apply("Color de SILLA PLEGADIZA DE COLOR VERDE LIMON").getText(), "lo dice su nombre");
+        assertEquals("MUEBLE", campo.apply("Tipo de bien de SILLA PLEGADIZA DE COLOR VERDE LIMON").getText());
+        TextField vida = campo.apply("Vida útil de SILLA PLEGADIZA DE COLOR VERDE LIMON");
+        assertEquals("", vida.getText(), "la vida útil no se propone por su clave");
+
+        interact(() -> vida.setText("0"));
+        for (var tipo : List.of(KeyEvent.KEY_PRESSED, KeyEvent.KEY_RELEASED))
+            interact(() -> javafx.event.Event.fireEvent(vida, new KeyEvent(tipo, "", "", KeyCode.ENTER, false, false, false, false)));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(panel.lookupAll(".cell-badge-danger").stream().anyMatch(Node::isVisible), "dice qué está mal");
+        assertEquals(2, visibles(panel, ".cnt-fila"));
+
+        ComboBox<String> area = (ComboBox<String>) panel.lookupAll(".combo-box").stream().findFirst().orElseThrow();
+        interact(() -> area.setValue("Tesorería Municipal"));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(1, visibles(panel, ".cnt-fila"), "solo los grupos del área");
+    }
+
     @Test
     void completar_abreEnElDatoPedido() throws Exception {
         List<Producto> bienes = List.of(bien("1", "A/1", "ANA RUIZ", "Tesorería Municipal"));

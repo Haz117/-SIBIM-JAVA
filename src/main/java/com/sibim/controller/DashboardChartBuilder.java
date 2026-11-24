@@ -129,7 +129,8 @@ class DashboardChartBuilder {
             double pct = total.compareTo(BigDecimal.ZERO) > 0
                 ? cv.valor().doubleValue() / total.doubleValue() : 0;
 
-            Label nameLbl = new Label(cv.nombre());
+            // The short name; the whole one is in the tooltip below (19-nov-2026: «Equipo de Cómputo y de Tecn…»).
+            Label nameLbl = new Label(com.sibim.util.CategoriaCorta.de(cv.nombre()));
             nameLbl.getStyleClass().add("area-bar-name");
             nameLbl.setMinWidth(0);
             nameLbl.setMaxWidth(Double.MAX_VALUE);

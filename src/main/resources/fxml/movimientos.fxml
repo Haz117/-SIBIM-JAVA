@@ -253,14 +253,17 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colProducto"   text="Bien"    prefWidth="300" maxWidth="460" sortable="true" minWidth="190"/>
-            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="132" sortable="true" minWidth="124"/>
-            <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="66"  sortable="true" minWidth="60"/>
-            <TableColumn fx:id="colStock"      text="Qué cambió" prefWidth="176" sortable="false" minWidth="176"/>
-            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true" minWidth="110"/>
-            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="130" sortable="true" minWidth="90"/>
-            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="134"/>
-            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="120" sortable="true" minWidth="112"/>
+            <!-- 19-nov-2026: at 1366 the bien, the motivo («Separación d…») and the usuario («Administr…»)
+                 were cut while Cant. and Estado said «1» and «Aprobado» on every row. Motivo goes last
+                 and takes what is left; Estado is its icon (its word on hover); Cuándo is a date. -->
+            <TableColumn fx:id="colProducto"   text="Bien"        prefWidth="214" maxWidth="460" sortable="true" minWidth="170"/>
+            <TableColumn fx:id="colTipo"       text="Tipo"        prefWidth="126" sortable="true" minWidth="124"/>
+            <TableColumn fx:id="colCantidad"   text="Cant."       prefWidth="52"  sortable="true" minWidth="50" maxWidth="70"/>
+            <TableColumn fx:id="colStock"      text="Qué cambió"  prefWidth="158" sortable="false" minWidth="150"/>
+            <TableColumn fx:id="colFecha"      text="Cuándo"      prefWidth="110" sortable="true" minWidth="108" maxWidth="130"/>
+            <TableColumn fx:id="colUsuario"    text="Quién"       prefWidth="168" sortable="true" minWidth="160"/>
+            <TableColumn fx:id="colEstado"     text="Estado"      prefWidth="60"  sortable="true" minWidth="58" maxWidth="70"/>
+            <TableColumn fx:id="colMotivo"     text="Motivo"      prefWidth="200" sortable="true" minWidth="110"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

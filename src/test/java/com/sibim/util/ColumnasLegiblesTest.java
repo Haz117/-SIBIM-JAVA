@@ -19,7 +19,7 @@ class ColumnasLegiblesTest {
 
     private static double[] minimos(List<ColumnasLegibles.Columna> cols, double disponible) {
         double metas = 0, titulos = 0;
-        for (var c : cols) { metas += c.meta(); titulos += Math.min(c.titulo(), c.meta()); }
+        for (var c : cols) { metas += c.meta(); titulos += c.piso(); }
         return ColumnasLegibles.minimos(cols, disponible, metas, titulos);
     }
 
@@ -61,5 +61,24 @@ class ColumnasLegiblesTest {
         assertEquals(600, suma(w), 0.5, "ni falta ni sobra: la última columna queda a la vista");
         for (int i = 0; i < w.length; i++) assertTrue(w[i] >= mins[i], "columna " + i + ": " + w[i]);
         assertTrue(w[0] > w[1], "la que pidió más ancho (Nombre) se lleva más: " + w[0]);
+    }
+
+    /** 19-nov-2026: with «Texto: Grande» Movimientos read «Transfere…» and «13 nov 14…»: a fixed
+     *  column (a pill, a date) keeps all it asked for; the text ones give up what is missing. */
+    @Test
+    void unaColumnaFija_noSeEncoge() {
+        var tipo = new ColumnasLegibles.Columna(null, 140, 140, Double.MAX_VALUE, 50, true);
+        var motivo = col(300, 70);
+        double[] m = minimos(List.of(tipo, motivo), 300);
+        assertEquals(140, m[0], 0.01, "la etiqueta «Transferencia» entera");
+        assertEquals(160, m[1], 0.01, "el motivo cede lo que falta");
+    }
+
+    @Test
+    void elTextoGrande_haceCrecerLoQuePidenLasPantallas() {
+        assertEquals(1, EscalaTexto.factor(0));
+        assertEquals(1.15, EscalaTexto.factor(1));
+        assertEquals(1.3, EscalaTexto.factor(2));
+        assertEquals(1, EscalaTexto.factor(9), "fuera de rango, como Normal");
     }
 }

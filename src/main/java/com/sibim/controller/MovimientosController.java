@@ -48,6 +48,10 @@ public class MovimientosController {
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
     private static final Preferences STICKY =
         Preferences.userRoot().node("sibim/filters/movimientos");
+    /** The table's widths, sort and reset: by column position, and the columns moved on 19-nov-2026
+     *  (the old widths would land on other columns). */
+    private static final Preferences STICKY_TABLA =
+        Preferences.userRoot().node("sibim/filters/movimientos-tabla-2");
 
     @FXML private VBox rootPane;
     @FXML private FlowPane filterBar;
@@ -66,7 +70,7 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String>  colStock;
     @FXML private TableColumn<Movimiento, String>  colMotivo;
     @FXML private TableColumn<Movimiento, String>  colUsuario;
-    @FXML private TableColumn<Movimiento, String>  colFecha;
+    @FXML private TableColumn<Movimiento, java.time.LocalDateTime> colFecha;
     @FXML private TableColumn<Movimiento, String>  colEstado;
     @FXML private Label lblTotal;
     @FXML private ProgressIndicator spinner;
@@ -296,6 +300,7 @@ public class MovimientosController {
         MovimientosColumnSetup.configureUsuario(colUsuario);
         MovimientosColumnSetup.configureFecha(colFecha);
         MovimientosColumnSetup.configureEstado(colEstado);
+        com.sibim.util.ColumnasLegibles.fijas(colTipo, colCantidad, colFecha, colEstado);
         MovimientosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
 
         table.getSortOrder().clear();
@@ -327,9 +332,9 @@ public class MovimientosController {
         table.setPlaceholder(emptyState);
         DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
             List.of(colProducto, colTipo, colFecha));
-        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
-        DialogUtil.persistTableSort(table, STICKY, "sort");
-        DialogUtil.persistColumnWidths(table, STICKY, "colW");
+        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY_TABLA);
+        DialogUtil.persistTableSort(table, STICKY_TABLA, "sort");
+        DialogUtil.persistColumnWidths(table, STICKY_TABLA, "colW");
     }
 
     private void setupTipoChips() {

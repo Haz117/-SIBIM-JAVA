@@ -130,31 +130,60 @@ class MovimientosColumnSetup {
         col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
     }
 
-    static void configureFecha(TableColumn<Movimiento, String> col) {
-        col.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
+    /** A date, so it sorts as one: as text «31/10/2026» went above «13/11/2026» (19-nov-2026).
+     *  Shown short («Hoy 14:40», «13 nov 14:40»), the whole date on hover. */
+    static void configureFecha(TableColumn<Movimiento, java.time.LocalDateTime> col) {
+        col.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCreadoEn()));
+        col.setCellFactory(column -> new TableCell<>() {
+            private final Tooltip tip = new Tooltip();
+            @Override protected void updateItem(java.time.LocalDateTime t, boolean empty) {
+                super.updateItem(t, empty);
+                if (empty || t == null) { setText(null); setTooltip(null); return; }
+                setText(EtiquetasAuditoria.cuando(t, java.time.LocalDate.now()));
+                tip.setText(FormatUtils.formatDateTime(t));
+                setTooltip(tip);
+            }
+        });
+    }
+
+    /** What the Estado column says on hover and to a screen reader. */
+    static String estadoEnPalabras(String estado) {
+        return switch (estado == null ? "" : estado) {
+            case Movimiento.ESTADO_PENDIENTE -> "Pendiente: espera que el área lo reciba";
+            case Movimiento.ESTADO_RECHAZADO -> "Rechazado";
+            default -> "Aprobado";
+        };
     }
 
     static void configureEstado(TableColumn<Movimiento, String> col) {
-        // Shown as "Aprobado"/"Pendiente"/"Rechazado" to match every other status pill
-        // (Bienes: "Activo", "Agotado"…); the stored value stays upper-case.
-        col.setCellValueFactory(c -> new SimpleStringProperty(switch (c.getValue().getEstado()) {
-            case Movimiento.ESTADO_PENDIENTE -> "Pendiente";
-            case Movimiento.ESTADO_RECHAZADO -> "Rechazado";
-            default                          -> "Aprobado";
-        }));
-        col.setCellFactory(DialogUtil.iconBadgeCellFactory(
-            estado -> switch (estado) {
-                case "Pendiente"  -> "cell-badge-warning";
-                case "Rechazado"  -> "cell-badge-danger";
-                default           -> "cell-badge-success";
-            },
-            estado -> switch (estado) {
-                case "Pendiente"  -> "mdi2c-clock-outline";
-                case "Rechazado"  -> "mdi2c-close-circle-outline";
-                default           -> "mdi2c-check-circle-outline";
+        // The stored value (upper-case) sorts them; the cell is its icon, its word on hover:
+        // «Aprobado» on 120 of 123 rows took 120 px from the bien and the motivo (19-nov-2026).
+        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
+        col.setCellFactory(column -> new TableCell<>() {
+            private final org.kordamp.ikonli.javafx.FontIcon icono = new org.kordamp.ikonli.javafx.FontIcon();
+            private final Tooltip tip = new Tooltip();
+            { icono.setIconSize(18); setAlignment(Pos.CENTER); }
+            @Override protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                setText(null);
+                if (empty || estado == null) { setGraphic(null); setTooltip(null); setAccessibleText(null); return; }
+                icono.setIconLiteral(switch (estado) {
+                    case Movimiento.ESTADO_PENDIENTE -> "mdi2c-clock-outline";
+                    case Movimiento.ESTADO_RECHAZADO -> "mdi2c-close-circle-outline";
+                    default -> "mdi2c-check-circle-outline";
+                });
+                icono.getStyleClass().setAll("ikonli-font-icon", switch (estado) {
+                    case Movimiento.ESTADO_PENDIENTE -> "mov-estado-pendiente";
+                    case Movimiento.ESTADO_RECHAZADO -> "mov-estado-rechazado";
+                    default -> "mov-estado-aprobado";
+                });
+                String palabras = estadoEnPalabras(estado);
+                tip.setText(palabras);
+                setTooltip(tip);
+                setAccessibleText(palabras);
+                setGraphic(icono);
             }
-        ));
+        });
     }
 
     /** Row tints by movement type; new-row flash via pendingHighlightId. */

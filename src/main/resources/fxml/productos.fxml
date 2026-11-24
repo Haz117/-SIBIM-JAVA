@@ -43,21 +43,20 @@
                 <MenuItem fx:id="btnImportar" text="Importar bienes desde CSV o Excel" onAction="#onImportarCsv">
                     <graphic><FontIcon iconLiteral="mdi2u-upload-outline"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnEtiquetasArea" text="Etiquetas por área" onAction="#onEtiquetasArea">
+                    <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
+                </MenuItem>
+                <!-- Patrimonio's, by what they need at hand (19-nov-2026: 14 options in a row). -->
                 <SeparatorMenuItem fx:id="sepRevisarDatos"/>
+                <MenuItem fx:id="secFactura" text="Completar y corregir, con la factura" disable="true" styleClass="menu-seccion"/>
                 <MenuItem fx:id="btnCompletarDatos" text="Completar datos" onAction="#onCompletarDatos">
                     <graphic><FontIcon iconLiteral="mdi2c-clipboard-edit-outline"/></graphic>
                 </MenuItem>
-                <MenuItem fx:id="btnUnirPersonas" text="Unir personas repetidas" onAction="#onUnirPersonas">
-                    <graphic><FontIcon iconLiteral="mdi2a-account-multiple-check-outline"/></graphic>
+                <MenuItem fx:id="btnCompletarGrupos" text="Completar por grupos (mismo nombre)" onAction="#onCompletarGrupos">
+                    <graphic><FontIcon iconLiteral="mdi2f-format-list-checks"/></graphic>
                 </MenuItem>
-                <MenuItem fx:id="btnQuitarTitulos" text="Quitar títulos de los nombres (Lic., Ing.…)" onAction="#onQuitarTitulos">
-                    <graphic><FontIcon iconLiteral="mdi2c-card-account-details-outline"/></graphic>
-                </MenuItem>
-                <MenuItem fx:id="btnCostoLotes" text="Costo de los lotes (piezas × costo)" onAction="#onCostoLotes">
-                    <graphic><FontIcon iconLiteral="mdi2c-calculator-variant-outline"/></graphic>
-                </MenuItem>
-                <MenuItem fx:id="btnSeriesRepetidas" text="Series repetidas" onAction="#onSeriesRepetidas">
-                    <graphic><FontIcon iconLiteral="mdi2b-barcode-scan"/></graphic>
+                <MenuItem fx:id="btnFacturasCarpeta" text="Leer las facturas de una carpeta…" onAction="#onFacturasCarpeta">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline"/></graphic>
                 </MenuItem>
                 <MenuItem fx:id="btnMismaFactura" text="Copiar datos de la misma factura" onAction="#onMismaFactura">
                     <graphic><FontIcon iconLiteral="mdi2r-receipt"/></graphic>
@@ -65,26 +64,36 @@
                 <MenuItem fx:id="btnFolioFiscal" text="Folio fiscal a su lugar" onAction="#onFolioFiscal">
                     <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline"/></graphic>
                 </MenuItem>
-                <MenuItem fx:id="btnFacturasCarpeta" text="Leer las facturas de una carpeta…" onAction="#onFacturasCarpeta">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline"/></graphic>
-                </MenuItem>
                 <MenuItem fx:id="btnCostosDistintos" text="Costos distintos en la misma compra" onAction="#onCostosDistintos">
                     <graphic><FontIcon iconLiteral="mdi2s-scale-balance"/></graphic>
                 </MenuItem>
                 <MenuItem fx:id="btnResidual" text="Valor residual: el 15 % del costo" onAction="#onPonerResidual">
                     <graphic><FontIcon iconLiteral="mdi2c-cash-check"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnCostoLotes" text="Costo de los lotes (piezas × costo)" onAction="#onCostoLotes">
+                    <graphic><FontIcon iconLiteral="mdi2c-calculator-variant-outline"/></graphic>
+                </MenuItem>
+                <SeparatorMenuItem fx:id="sepEscrito"/>
+                <MenuItem fx:id="secEscrito" text="Lo escrito de varias formas" disable="true" styleClass="menu-seccion"/>
                 <MenuItem fx:id="btnUnirProveedores" text="Unir lo escrito de dos formas" onAction="#onUnirProveedores">
                     <graphic><FontIcon iconLiteral="mdi2s-spellcheck"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnUnirPersonas" text="Unir personas repetidas" onAction="#onUnirPersonas">
+                    <graphic><FontIcon iconLiteral="mdi2a-account-multiple-check-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnQuitarTitulos" text="Quitar títulos de los nombres (Lic., Ing.…)" onAction="#onQuitarTitulos">
+                    <graphic><FontIcon iconLiteral="mdi2c-card-account-details-outline"/></graphic>
+                </MenuItem>
+                <SeparatorMenuItem fx:id="sepRepetidos"/>
+                <MenuItem fx:id="secRepetidos" text="Repetidos" disable="true" styleClass="menu-seccion"/>
                 <MenuItem fx:id="btnJuntarBienes" text="Son el mismo bien (juntar dos registros)…" onAction="#onJuntarBienes">
                     <graphic><FontIcon iconLiteral="mdi2c-call-merge"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnSeriesRepetidas" text="Series repetidas" onAction="#onSeriesRepetidas">
+                    <graphic><FontIcon iconLiteral="mdi2b-barcode-scan"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnFotosRepetidas" text="Fotos repetidas" onAction="#onFotosRepetidas">
                     <graphic><FontIcon iconLiteral="mdi2i-image-multiple-outline"/></graphic>
-                </MenuItem>
-                <MenuItem fx:id="btnEtiquetasArea" text="Etiquetas por área" onAction="#onEtiquetasArea">
-                    <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
                 </MenuItem>
             </items>
         </MenuButton>

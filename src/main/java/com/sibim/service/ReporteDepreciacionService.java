@@ -96,7 +96,7 @@ public class ReporteDepreciacionService extends ReporteService {
                     if (!fechaTotal.isAfter(hoy)) restante = "Cumplida";
                     else {
                         long meses = java.time.temporal.ChronoUnit.MONTHS.between(hoy, fechaTotal);
-                        restante = meses < 12 ? meses + " meses" : (meses / 12) + " años";
+                        restante = meses == 0 ? "Menos de un mes" : meses < 12 ? FormatUtils.plural(meses, "mes", "meses") : FormatUtils.plural(meses / 12, "año", "años");
                     }
                 }
                 pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%.2f,%.2f,%s,\"%s\"%n",

@@ -50,6 +50,18 @@ class ColorEnNombreTest {
         assertNull(ColorEnNombre.de(null, null));
     }
 
+    /** 24-nov-2026: 30 bienes without color said «COLOR PERAL», «COLOR MADERA» or «COLOR MIEL»;
+     *  without «COLOR», «DE MADERA» is what it is made of. */
+    @Test
+    void peralMaderaYMiel_soloDespuesDeColor() {
+        assertEquals("PERAL", ColorEnNombre.de("MODULO EN L FABRICADO EN MELAMINA EN COLOR PERAL.", null));
+        assertEquals("MADERA", ColorEnNombre.de("MUEBLE DE FORMAICA PARA COMPUTADORA DE COLOR MADERA", null));
+        assertEquals("MIEL", ColorEnNombre.de("LIBRERO COLOR MIEL", null));
+        assertEquals("NEGRO", ColorEnNombre.de("SILLA DE MADERA COLOR NEGRO", null));
+        assertNull(ColorEnNombre.de("MESA DE MADERA", null));
+        assertFalse(ColorEnNombre.esColor("MADERA"));
+    }
+
     /** 18-nov-2026: a color was the tipo de bien of 7 bienes. */
     @Test
     void unTextoQueEsUnColor_porSuPrimeraPalabra() {

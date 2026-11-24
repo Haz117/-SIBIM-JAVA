@@ -48,7 +48,7 @@ class AlertasColumnSetup {
             long dias = ChronoUnit.DAYS.between(LocalDate.now(), fv);
             if (dias < 0) return new SimpleStringProperty("Vencido");
             if (dias == 0) return new SimpleStringProperty("Vence hoy");
-            return new SimpleStringProperty(dias + " días");
+            return new SimpleStringProperty(com.sibim.util.FormatUtils.plural(dias, "día", "días"));
         });
         colDias.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {

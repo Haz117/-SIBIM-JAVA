@@ -366,7 +366,7 @@ public final class ProductoDetailDialog {
 
             Integer pct = p.getPorcentajeDepreciado();
             String adqStr = p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—";
-            String vidaStr = p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " años" : "—";
+            String vidaStr = p.getVidaUtilAnios() != null ? FormatUtils.plural(p.getVidaUtilAnios(), "año", "años") : "—";
             String residualStr = p.getValorResidual() != null ? com.sibim.session.Permisos.pesos(p.getValorResidual()) : "$0.00";
 
             int dr = 0;

@@ -129,6 +129,7 @@ public class AuditoriaController {
         ajustando = true;
         DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
         AuditoriaColumnSetup.configure(table, colCuando, colSobre, colArea, colAccion, colQuien, colCambio, STICKY);
+        com.sibim.util.ColumnasLegibles.fijas(colCuando, colAccion);
         setupComboFilter(entidadFilter, TODAS_ENTIDADES, "entidad", auditRepo::findDistinctEntidades,
             EtiquetasAuditoria::entidadPlural);
         setupComboFilter(usuarioFilter, TODOS_USUARIOS, "usuario", auditRepo::findDistinctUsuarios, u -> u);

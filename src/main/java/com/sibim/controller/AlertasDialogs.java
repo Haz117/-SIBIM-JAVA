@@ -42,7 +42,7 @@ class AlertasDialogs {
         grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(new Label(p.getArea() != null ? p.getArea() : "—"), 1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha de vencimiento"), 0, r);
         grid.add(new Label(fv != null ? FormatUtils.formatDate(fv) : "—"), 1, r++);
-        Label diasLbl = new Label(fv == null ? "—" : dias < 0 ? "Vencido" : dias == 0 ? "Vence hoy" : dias + " días");
+        Label diasLbl = new Label(fv == null ? "—" : dias < 0 ? "Vencido" : dias == 0 ? "Vence hoy" : com.sibim.util.FormatUtils.plural(dias, "día", "días"));
         diasLbl.getStyleClass().add(fv != null && dias <= 3 ? "days-critical" : "days-warn");
         grid.add(DialogUtil.fieldLabel("Días restantes"), 0, r); grid.add(diasLbl, 1, r);
 

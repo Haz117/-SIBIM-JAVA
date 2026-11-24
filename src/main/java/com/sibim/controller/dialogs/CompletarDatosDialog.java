@@ -109,6 +109,18 @@ public final class CompletarDatosDialog {
         d.abrir();
     }
 
+    /** Inicio › Por hacer › «Tomar el color»: on «Sin color», with the review of the colors the
+     *  names say already open (24-nov-2026: 691 bienes). */
+    public static void showTomarColores(List<Producto> bienes, Runnable alCambiar) {
+        CompletarDatosDialog d = new CompletarDatosDialog(bienes, alCambiar);
+        d.inicial = Dato.COLOR;
+        d.alAbrir = d::tomarColores;
+        d.abrir();
+    }
+
+    /** Run once the window is up, or null. */
+    private Runnable alAbrir;
+
     private void abrir() {
         dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -134,6 +146,7 @@ public final class CompletarDatosDialog {
         cargarAreas();
         mostrarArea();
         Platform.runLater(areas::requestFocus);
+        if (alAbrir != null) Platform.runLater(alAbrir);
         dialog.showAndWait();
     }
 
@@ -292,7 +305,18 @@ public final class CompletarDatosDialog {
         ayuda.setGraphic(new FontIcon("mdi2k-keyboard-return"));
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
 
-        panel.getChildren().setAll(tituloArea, chips, barraConac, barraNombre, buscar, barraTodos, ayuda, lista);
+        // 24-nov-2026: 610 bienes in a week were filled a name at a time with «Cambiar datos».
+        Button porGrupos = new Button("Por grupos (mismo nombre)…");
+        porGrupos.setGraphic(new FontIcon("mdi2f-format-list-checks"));
+        porGrupos.getStyleClass().add("btn-secondary");
+        porGrupos.setMinWidth(Region.USE_PREF_SIZE);
+        porGrupos.setTooltip(new Tooltip("Vida útil, color y tipo, escritos una vez para todos los bienes con el mismo nombre"));
+        porGrupos.setOnAction(e -> abrirPorGrupos());
+        HBox.setHgrow(buscar, Priority.ALWAYS);
+        HBox barraBuscar = new HBox(10, buscar, porGrupos);
+        barraBuscar.setAlignment(Pos.CENTER_LEFT);
+
+        panel.getChildren().setAll(tituloArea, chips, barraConac, barraNombre, barraBuscar, barraTodos, ayuda, lista);
         VBox.setVgrow(panel, Priority.ALWAYS);
 
         HBox paso2 = TransferenciaArrastreDialog.paso(2, "Captura lo que falta");
@@ -300,6 +324,26 @@ public final class CompletarDatosDialog {
         VBox p = new VBox(8, paso2, vacio, panel);
         HBox.setHgrow(p, Priority.ALWAYS);
         return p;
+    }
+
+    /** «Por grupos»: on the área chosen; what it saves is what the rows have from then on. */
+    private void abrirPorGrupos() {
+        String area = areas.getSelectionModel().getSelectedItem();
+        CompletarPorGruposDialog.show(filas.stream().map(f -> f.producto).toList(), TODAS.equals(area) ? null : area, guardados -> {
+            if (guardados.isEmpty()) return;
+            Map<String, Producto> porId = new HashMap<>();
+            guardados.forEach(p -> porId.put(p.getId(), p));
+            for (Fila f : filas) {
+                Producto g = porId.get(f.producto.getId());
+                if (g != null) f.producto = g;
+            }
+            cambio = true;
+            vidaDeSuClave = null;
+            cargarAreas();
+            refiltrar();
+            actualizarConteos();
+            lista.refresh();
+        });
     }
 
     private void mostrarArea() {
@@ -1094,7 +1138,7 @@ public final class CompletarDatosDialog {
                 String k = CalidadDatosService.claveCorta(p.getClaveArmonizada());
                 Integer suya = k == null ? null : vidaDeSuClave().get(k);
                 Integer conac = VidaUtilConac.anios(p.getClaveArmonizada());
-                campo.setPromptText(suya != null ? "Su clave: " + suya + " años" : conac != null ? "CONAC: " + conac + " años" : "Años");
+                campo.setPromptText(suya != null ? "Su clave: " + FormatUtils.plural(suya, "año", "años") : conac != null ? "CONAC: " + FormatUtils.plural(conac, "año", "años") : "Años");
             }
             switch (dato) {
                 case PROVEEDOR -> campo.setPromptText("Proveedor");

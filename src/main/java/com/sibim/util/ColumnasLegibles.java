@@ -71,8 +71,21 @@ public final class ColumnasLegibles {
 
     /** A visible column: what the screen asked for (minimum and width), its maximum and
      *  what its title needs. */
-    record Columna(TableColumnBase<?, ?> col, double original, double pref, double max, double titulo) {
+    record Columna(TableColumnBase<?, ?> col, double original, double pref, double max, double titulo, boolean fija) {
+        Columna(TableColumnBase<?, ?> col, double original, double pref, double max, double titulo) {
+            this(col, original, pref, max, titulo, false);
+        }
         double meta() { return Math.max(original, titulo); }
+        /** What it can shrink to: its title; all it asked for when it holds a pill or a date. */
+        double piso() { return fija ? meta() : Math.min(titulo, meta()); }
+    }
+
+    private static final String FIJA = "columnasLegibles.fija";
+
+    /** Columns whose content doesn't shrink: a pill («Transferencia») or a date cut to
+     *  «Transfere…» or «13 nov 14…» says nothing (19-nov-2026, with «Texto: Grande»). */
+    public static void fijas(TableColumnBase<?, ?>... columnas) {
+        for (TableColumnBase<?, ?> c : columnas) if (c != null) c.getProperties().put(FIJA, Boolean.TRUE);
     }
 
     static void ajustar(TableView<?> tabla) {
@@ -83,9 +96,12 @@ public final class ColumnasLegibles {
         for (Node n : tabla.lookupAll(".column-header"))
             if (n instanceof TableColumnHeader h && h.getTableColumn() != null) cabeceras.put(h.getTableColumn(), h);
         List<Columna> cols = new ArrayList<>();
+        // What each screen asked for is in pixels for «Normal» text: with «Grande» a date or a pill
+        // («Transferencia», «Inicio de sesión») came out cut (19-nov-2026); it grows with the text.
+        double escala = EscalaTexto.factorActual();
         for (TableColumnBase<?, ?> col : tabla.getVisibleLeafColumns()) {
-            double original = (double) col.getProperties().computeIfAbsent(MIN_ORIGINAL, k -> col.getMinWidth());
-            double pref = (double) col.getProperties().computeIfAbsent(PREF_ORIGINAL, k -> col.getPrefWidth());
+            double original = escala * (double) col.getProperties().computeIfAbsent(MIN_ORIGINAL, k -> col.getMinWidth());
+            double pref = escala * (double) col.getProperties().computeIfAbsent(PREF_ORIGINAL, k -> col.getPrefWidth());
             double titulo = original;
             TableColumnHeader h = cabeceras.get(col);
             if (h != null && col.getText() != null && !col.getText().isBlank() && h.lookup(".label") instanceof Label t) {
@@ -93,12 +109,22 @@ public final class ColumnasLegibles {
                 boolean ordena = tabla.getSortOrder().contains(col);
                 titulo = Math.ceil(t.prefWidth(-1) + pad.getLeft() + pad.getRight() + (ordena ? FLECHA : 0) + 2);
             }
-            cols.add(new Columna(col, original, pref, col.getMaxWidth(), titulo));
+            cols.add(new Columna(col, original, pref, col.getMaxWidth(), titulo, Boolean.TRUE.equals(col.getProperties().get(FIJA))));
         }
         if (cols.isEmpty()) return;
         double metas = 0, titulos = 0;
-        for (Columna c : cols) { metas += c.meta(); titulos += Math.min(c.titulo(), c.meta()); }
-        if (titulos > disponible) return;   // not even the titles: as the screen wrote it
+        for (Columna c : cols) { metas += c.meta(); titulos += c.piso(); }
+        if (titulos > disponible) {
+            // Not even the titles: each column at least its title (and a fixed one all it asked
+            // for), and the table scrolls sideways. Depreciación with «Texto: Grande» read «Vida …».
+            for (Columna c : cols) {
+                double m = Math.ceil(c.piso());
+                if (c.col().getMaxWidth() < m) c.col().setMaxWidth(m);
+                c.col().setMinWidth(m);
+                if (c.col().getWidth() < m) c.col().setPrefWidth(m);
+            }
+            return;
+        }
         double[] mins = minimos(cols, disponible, metas, titulos);
         double[] anchos = anchos(cols, mins, disponible);
         for (int i = 0; i < cols.size(); i++) {
@@ -124,7 +150,7 @@ public final class ColumnasLegibles {
             Columna c = cols.get(i);
             if (niLosTitulos) m[i] = c.original();
             else {
-                double piso = Math.min(c.titulo(), c.meta());
+                double piso = c.piso();
                 m[i] = piso + (c.meta() - piso) * f;
             }
         }

@@ -1354,6 +1354,10 @@ public class CalidadDatosService {
             "Unirlos", "productos", "proveedores");
         agregar(out, sinTipoConSugerencia(bienes).size(), "bienes sin tipo de bien que por su clave CONAC son «MUEBLE»",
             "Poner MUEBLE", "productos", "tipo");
+        // 24-nov-2026: 691 bienes without color said it in their name, and taking it was only in
+        // Completar datos › Sin color.
+        agregar(out, conColorEnSuNombre(bienes), "bienes sin color que lo dicen en su nombre («… COLOR NEGRO»)",
+            "Tomar el color", "productos", "colores");
         agregar(out, CostoDeSuCompra.cuantos(CostoDeSuCompra.grupos(bienes)),
             "bienes con otro costo que sus iguales de la misma compra (a unos les falta el IVA)", "Revisarlos", "productos", "costos");
         agregar(out, sinResidual(bienes).size(), "bienes con costo y el valor residual en $0 (casi todos llevan el 15 %)",
@@ -1362,6 +1366,12 @@ public class CalidadDatosService {
             "Pasarlo a su lugar", "productos", "folio");
         agregar(out, cuantos(bienes, Dato.FOLIO_REVISAR), "folios fiscales mal escritos", "Revisarlos",
             "productos", "completar:FOLIO_REVISAR");
+        // 24-nov-2026: a week of «Cambiar datos» a name at a time (610 bienes in 20 rounds).
+        List<CompletarPorGrupos.Grupo> grupos = CompletarPorGrupos.grupos(bienes);
+        agregar(out, grupos.size(), "grupos de bienes con el mismo nombre ("
+                + com.sibim.util.FormatUtils.plural(grupos.stream().mapToInt(CompletarPorGrupos.Grupo::incompletos).sum(), "bien", "bienes")
+                + ") sin vida útil, color o tipo",
+            "Completar por grupos", "productos", "grupos");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
         agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
         agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");
@@ -1388,6 +1398,12 @@ public class CalidadDatosService {
             out.add(0, new PorHacer(sinRespaldo, "días sin respaldo de la base: revisa el respaldo diario de la PC de Patrimonio",
                 "Ver Configuración", "configuracion", null));
         return out;
+    }
+
+    /** The bienes in force without color whose name or description says it ({@link com.sibim.util.ColorEnNombre}). */
+    public static long conColorEnSuNombre(List<Producto> bienes) {
+        return bienes.stream().filter(p -> p.getFechaBaja() == null && falta(p, Dato.COLOR)
+            && com.sibim.util.ColorEnNombre.de(p.getNombre(), p.getDescripcion()) != null).count();
     }
 
     /** Written by scripts/respaldo_diario.ps1 after each backup: "2026-11-11T11:00:04|PC|1.03". */

@@ -37,6 +37,15 @@ public final class EscalaTexto {
     /** Buttons: about half as much, so a bar of them still fits. */
     static final double[] FACTORES_BOTONES = { 1.08, 1.15 };
 
+    /** How much bigger the text is now than with «Normal»: 1, 1.15 or 1.3. */
+    public static double factorActual() {
+        return factor(AccessibilityUtils.getTextScaleIndex());
+    }
+
+    static double factor(int indice) {
+        return indice <= 0 || indice > FACTORES.length ? 1 : FACTORES[indice - 1];
+    }
+
     private static final Pattern IMPORT = Pattern.compile("@import\\s+url\\(\"([^\"]+)\"\\)");
     private static final Pattern REGLA = Pattern.compile("([^{}]+)\\{([^{}]*)\\}");
     private static final Pattern TAMANO = Pattern.compile("-fx-font-size\\s*:\\s*([0-9.]+)px");

@@ -496,6 +496,10 @@
 
 /* ── Movimientos: número anterior → nuevo de una transferencia ── */
 .mov-numeros { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }
+/* Movimientos › Estado as its icon (19-nov-2026); its word on hover. */
+.mov-estado-aprobado  { -fx-icon-color: #047857; }
+.mov-estado-pendiente { -fx-icon-color: #B45309; }
+.mov-estado-rechazado { -fx-icon-color: sibim-indigo; }
 
 /* 18-nov-2026: what a secretaría's card says besides its bienes, value and resguardos —
    its data, what has no resguardo, how its áreas go, its dependencias. */

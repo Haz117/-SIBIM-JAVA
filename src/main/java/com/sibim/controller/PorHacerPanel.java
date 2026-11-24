@@ -130,6 +130,7 @@ final class PorHacerPanel {
             }
             fila.setAlignment(Pos.CENTER_LEFT);
             FlowPane tarjetas = new FlowPane(10, 10);
+            List<javafx.scene.Node> deLaFila = new java.util.ArrayList<>();
             for (PorHacer p : deEste) {
                 VBox t = tarjeta(p);
                 if (primera) {
@@ -138,8 +139,9 @@ final class PorHacerPanel {
                     t.getChildren().add(0, empieza);
                     primera = false;
                 }
-                tarjetas.getChildren().add(t);
+                deLaFila.add(t);
             }
+            conVerMas(tarjetas, g, deLaFila);
             if (!cuerpo.getChildren().isEmpty()) fila.setPadding(new javafx.geometry.Insets(6, 0, 0, 0));
             cuerpo.getChildren().addAll(fila, tarjetas);
         }
@@ -186,7 +188,7 @@ final class PorHacerPanel {
                 pistaGrupo.setMinHeight(Region.USE_PREF_SIZE);
                 col.getChildren().add(pistaGrupo);
             }
-            for (PorHacer p : deEste) col.getChildren().add(fila(p, primera, -1));
+            conVerMas(col, g, deEste.stream().<javafx.scene.Node>map(p -> fila(p, primera, -1)).toList());
             cols.add(col, c++, 0);
             javafx.scene.layout.GridPane.setValignment(col, javafx.geometry.VPos.TOP);
         }
@@ -198,6 +200,39 @@ final class PorHacerPanel {
         }
         if (c > 0) cuerpo.getChildren().add(cols);
         return cuerpo;
+    }
+
+    /** How many tasks of a kind show before «Ver N más» (19-nov-2026: «Se arreglan en un momento»
+     *  had 9 and pushed the inventory's numbers far down). One more than this shows whole. */
+    static final int A_LA_VISTA = 4;
+    private static final java.util.prefs.Preferences PREFS = java.util.prefs.Preferences.userNodeForPackage(DialogUtil.class);
+
+    /** How many of {@code total} tasks show at first, unless the kind was left open. */
+    static int aLaVista(int total, boolean abierta) {
+        return abierta || total <= A_LA_VISTA + 1 ? total : A_LA_VISTA;
+    }
+
+    /** The first tasks of a kind and «Ver N más» / «Ver menos» for the rest, remembered per kind. */
+    private static void conVerMas(javafx.scene.layout.Pane caja, Grupo g, List<javafx.scene.Node> tareas) {
+        String clave = "inicio.porhacer.todas." + g.name();
+        int n = aLaVista(tareas.size(), false);
+        if (n == tareas.size()) { caja.getChildren().addAll(tareas); return; }
+        List<javafx.scene.Node> resto = tareas.subList(n, tareas.size());
+        caja.getChildren().addAll(tareas.subList(0, n));
+        javafx.scene.control.Hyperlink mas = new javafx.scene.control.Hyperlink();
+        mas.getStyleClass().add("por-hacer-mas");
+        Runnable pintar = () -> {
+            boolean abierta = PREFS.getBoolean(clave, false);
+            caja.getChildren().removeAll(resto);
+            if (abierta) caja.getChildren().addAll(caja.getChildren().indexOf(mas), resto);
+            mas.setText(abierta ? "Ver menos" : "Ver " + resto.size() + " más");
+        };
+        caja.getChildren().add(mas);
+        mas.setOnAction(e -> {
+            PREFS.putBoolean(clave, !PREFS.getBoolean(clave, false));
+            pintar.run();
+        });
+        pintar.run();
     }
 
     /** One task as a row: its number on the left, what it is and what to do on the right. */
@@ -245,14 +280,15 @@ final class PorHacerPanel {
         String a = p.abrir();
         // The late backup, an área waiting for an answer, bienes an área says aren't its own.
         if (a == null || "solicitudes".equals(a) || "observados".equals(a)) return Grupo.PRIMERO;
-        if (a.startsWith("completar:") || "formatos".equals(a)) return Grupo.CAPTURA;
+        if (a.startsWith("completar:") || "formatos".equals(a) || "grupos".equals(a)) return Grupo.CAPTURA;
         if (Set.of("lote", "juntar", "etiquetas", "vehiculos", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
         return Grupo.RAPIDO;
     }
 
-    /** Inside a kind: the folio fiscal first, because then «misma factura» copies more. */
-    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "proveedores", "mismonombre", "factura",
-        "tipo", "costos", "residual", "unir", "titulos", "series", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "vehiculos", "equipos");
+    /** Inside a kind: the folio fiscal first, because then «misma factura» copies more; the colors the
+     *  names say right after, within the 4 in view (24-nov-2026: they depend on nothing else). */
+    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "colores", "proveedores", "mismonombre", "factura",
+        "tipo", "costos", "residual", "unir", "titulos", "series", "grupos", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "vehiculos", "equipos");
 
     static int orden(PorHacer p) {
         int i = p.abrir() == null ? -1 : ORDEN.indexOf(p.abrir());

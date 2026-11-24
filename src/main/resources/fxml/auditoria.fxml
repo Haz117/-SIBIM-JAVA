@@ -102,9 +102,9 @@
         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/></columnResizePolicy>
         <columns>
             <TableColumn fx:id="colCuando" text="Cuándo"      prefWidth="100" minWidth="96"/>
-            <TableColumn fx:id="colSobre"  text="Sobre qué"   prefWidth="225" minWidth="150"/>
+            <TableColumn fx:id="colSobre"  text="Sobre qué"   prefWidth="215" minWidth="150"/>
             <TableColumn fx:id="colArea"   text="Área"        prefWidth="125" minWidth="90"/>
-            <TableColumn fx:id="colAccion" text="Acción"      prefWidth="128" minWidth="124"/>
+            <TableColumn fx:id="colAccion" text="Acción"      prefWidth="142" minWidth="140"/>
             <TableColumn fx:id="colQuien"  text="Quién"       prefWidth="185" minWidth="90"/>
             <TableColumn fx:id="colCambio" text="Qué cambió"  prefWidth="330" minWidth="180"/>
         </columns>

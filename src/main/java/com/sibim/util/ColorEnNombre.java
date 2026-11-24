@@ -35,7 +35,9 @@ public final class ColorEnNombre {
             Map.entry("GRAFITO", "GRAFITO"), Map.entry("MAPLE", "MAPLE"), Map.entry("MORADO", "MORADO MORADA"),
             Map.entry("ROSA", "ROSA"), Map.entry("GUINDA", "GUINDA"), Map.entry("TURQUESA", "TURQUESA"),
             Map.entry("MARFIL", "MARFIL"), Map.entry("HUESO", "HUESO"), Map.entry("ROBLE", "ROBLE"),
-            Map.entry("CEREZO", "CEREZO"), Map.entry("MARRON", "MARRON"));
+            Map.entry("CEREZO", "CEREZO"), Map.entry("MARRON", "MARRON"),
+            // 24-nov-2026: «COLOR PERAL» (14 bienes sin color), «COLOR MADERA» (13), «COLOR MIEL» (3).
+            Map.entry("PERAL", "PERAL"), Map.entry("MADERA", "MADERA"), Map.entry("MIEL", "MIEL"));
         formas.forEach((color, escritos) -> { for (String f : escritos.split(" ")) COLORES.put(f, color); });
     }
 
@@ -45,7 +47,7 @@ public final class ColorEnNombre {
 
     /** Only after «COLOR»: alone they are often something else (a coffee maker, wine glasses…). */
     private static final Set<String> SOLO_CON_COLOR = Set.of("CAFE", "VINO", "CREMA", "ARENA", "NOGAL", "CHOCOLATE", "ROSA",
-        "HUESO", "ROBLE", "CEREZO", "MAPLE", "NARANJA", "PLATA", "MARRON", "GUINDA");
+        "HUESO", "ROBLE", "CEREZO", "MAPLE", "NARANJA", "PLATA", "MARRON", "GUINDA", "PERAL", "MADERA", "MIEL");
 
     /** The word before that says it is not the bien's color: «LUZ BLANCA», «LÍNEA BLANCA», «TINTA NEGRA». */
     private static final Set<String> ANTES_NO = Set.of("LINEA", "PINTURA", "TINTA", "LOMA", "HILO", "LUZ", "LUCES", "LED");

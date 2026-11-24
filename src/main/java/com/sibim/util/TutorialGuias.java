@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.37";
+    public static final String VERSION_NOVEDADES = "1.0.38";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -119,89 +119,40 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: menos tecleo en el formulario, el valor residual y el costo de su compra, las facturas en PDF, la situación de los vehículos, la Auditoría, la vida útil con el criterio del municipio, el tipo de bien de una lista, el Organigrama, los avisos, lo que se lee mejor y el teclado",
+                "Aquí está solo lo nuevo: completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
-                "Lo de versiones anteriores está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
-            p.add(paso("mdi2c-cursor-default-click-outline", GUINDA, GUINDA_D, "Menos tecleo en el formulario", "productos", "#btnEditar",
-                "Al editar un bien, el formulario abre en el paso donde guardaste el anterior (casi siempre «Patrimonio»)",
-                "Con el color vacío, si el nombre o la descripción del bien lo dicen, abajo aparece «Su nombre dice: NEGRO»: un clic lo pone",
-                "Con la vida útil vacía, abajo dice la que tiene la mayoría de los bienes de su clave CONAC («Como la mayoría de su clave CONAC: 5 años»): un clic la pone",
-                "Si «N° Factura» tiene el folio fiscal y «Folio fiscal» está vacío, abajo dice «Es el folio fiscal: pasarlo a «Folio fiscal»»: un clic",
-                "Para todos los folios de una vez: Bienes › Más › «Folio fiscal a su lugar» (hoy son más de 400)"));
-            p.add(probar(paso("mdi2c-cash-check", VERDE, VERDE_D, "El valor residual y el costo de su compra", "productos", "#btnMasBienes",
-                "Al poner el costo, el valor residual se escribe solo con el 15 % (como 285 de los 295 que ya lo tienen); si es otro, escríbelo encima",
-                "Si le sumas el IVA al costo, el valor residual del 15 % se recalcula; uno distinto que escribiste no se toca",
-                "Bienes › Más › «Valor residual: el 15 % del costo»: a todos los que tienen costo y el residual en $0, por categoría; antes ves cuánto cambia el valor en libros, y se deshace desde el aviso",
-                "Bienes › Más › «Costos distintos en la misma compra»: bienes iguales de una factura con otro costo; donde a unos les falta el IVA ya va marcado, y los demás los revisas con la factura"),
-                "Ver el valor residual", abrir("productos", "residual")));
-            p.add(paso("mdi2f-file-document-multiple-outline", GUINDA, GUINDA_D, "Las facturas en PDF", "productos", "#btnMasBienes",
-                "En el formulario, bajo el folio fiscal, «Leer la factura (XML o PDF)…» también lee el PDF: pone el folio fiscal, la fecha y el proveedor que falten",
-                "Del PDF no se lee el costo de cada pieza: lo escribes tú, y abajo dice el total de la factura para compararlo",
-                "Bienes › Más › «Leer las facturas de una carpeta…»: eliges la carpeta con los PDF (o XML) y cada factura se junta con sus bienes por el folio fiscal; un folio que quedó solo con su final («5BA08») se completa",
-                "Antes de guardar ves cada factura con lo que llena; si el proveedor no se leyó o salió mal, lo escribes ahí. Solo llena lo vacío y se deshace desde el aviso",
-                "Un PDF escaneado (una foto de la factura) no tiene texto y no se puede leer: la lista lo dice"));
-            p.add(paso("mdi2s-shield-lock-outline", DORADO, DORADO_D, "Auditoría, más clara", "auditoria", "#chipsAccion",
-                "Las acciones son etiquetas con su número («Actualización · 2,383», «Acceso fallido · 25»): un clic filtra, otro lo quita; las menos usadas están en «Más acciones»",
-                "Los filtros van en un renglón y el periodo en uno solo: Todo, Hoy, Últimos 7 días, Este mes o Entre fechas",
-                "Cada renglón dice cuándo («Hoy 09:29»), el número y nombre del bien, su área, quién y qué cambió («color: — → GRIS»); caben casi el doble",
-                "Doble clic o Enter abre el detalle: cada cambio en su renglón, Antes → Ahora, con «Copiar» y «Ver todo lo de DCM/17» (la historia completa de ese bien); también con clic derecho"));
-            p.add(probar(paso("mdi2c-car-cog", GUINDA, GUINDA_D, "La situación de los vehículos", "reportes", "#listaListados .report-row",
-                "Reportes › «Situación de los vehículos» (PDF o Excel): cada vehículo con sus placas, su estatus y si tiene tarjeta de circulación, seguro, tenencia pagada y verificación",
-                "Arriba dice cuántos están sin seguro, sin verificación, sin placas, descompuestos o retenidos, y la lista empieza por los que tienen algo pendiente",
-                "Sale de lo que la lista de vehículos de octubre dejó en la descripción de cada uno; para ponerlo al día, edita su descripción («Seguro: si.») o captura la póliza o la tarjeta en su formulario",
-                "En Inicio › Por hacer › «Para seguir» dice cuántos vehículos tienen algo pendiente"),
-                "Generar el reporte", abrir("reportes", "vehiculos")));
-            p.add(probar(paso("mdi2c-calendar-check-outline", DORADO, DORADO_D, "La vida útil, con el criterio del municipio", "productos", "#btnMasBienes",
-                "SIBIM propone la vida útil que tiene la mayoría de los bienes de cada clave CONAC: muebles 5 años, cómputo 3, vehículos 5, defensa 10",
-                "La tabla CONAC (muebles 10) solo se usa donde no hay una mayoría clara (10 bienes o más, y 7 de cada 10 iguales)",
-                "Así se propone al elegir la categoría de un bien nuevo, debajo del campo vacío y en Completar datos › Sin vida útil › «Revisar y aplicar»",
-                "Antes de aplicar ves cuántos bienes llevan cuántos años: cambia la depreciación y el valor en libros"),
-                "Abrir Completar datos", abrir("productos", "completar:VIDA_UTIL")));
-            p.add(paso("mdi2f-format-list-bulleted", VERDE, VERDE_D, "El tipo de bien, de una lista", "productos", "#btnEditar",
-                "Junto a «Tipo de bien» hay un botón con la lista de los tipos que ya se usan, cada uno una sola vez (MUEBLE, Camioneta, Motocicleta…); también en «Cambiar datos»",
-                "Se puede seguir escribiendo; «mueble» o «camion» quedan como en la lista al salir del campo",
-                "Si en el tipo se escribe un color («NEGRO»), lo avisa: el color va en «Color / Material»",
-                "«Unir lo escrito de dos formas» pasa los tipos que son un color al tipo de su clave CONAC, cuando el bien ya tiene su color"));
-            p.add(paso("mdi2s-sitemap", GUINDA, GUINDA_D, "El Organigrama dice más", "organigrama", "#btnVistaCards",
-                "En Tarjetas, cada secretaría dice qué tanto de sus bienes tiene costo, fecha y vida útil («faltan 118» abre Completar datos con esos), cuántos no tienen resguardo, cómo van sus áreas y sus dependencias con sus bienes",
-                "En Tabla, las columnas Datos completos, Sin resguardo y Sus áreas; Préstamos y Comodatos se ocultan mientras no haya ninguno",
-                "Con clic derecho en una secretaría de la tabla: «Completar sus datos» y «Ver los que no tienen resguardo»",
-                "En Acomodar, el número de bienes de cada dirección ya no se corta"));
-            p.add(paso("mdi2b-bell-ring-outline", DORADO, DORADO_D, "Avisos que dicen lo que te toca", "alertas", null,
-                "La campana cuenta lo que tú atiendes: los bienes que esperan el acuse de su área se ven en su lista, pero ya no la ponen en «99+»",
-                "Alertas › Pendientes cuenta primero los bienes sin resguardo vigente (hoy 256) y los sin resguardante; la etiqueta la confirman las áreas",
-                "Por área, primero las que tienen más bienes sin resguardo",
-                "En Depreciación, junto a «714 bienes con datos» dice cuántos no tienen costo, fecha o vida útil, con «completarlos»"));
-            p.add(paso("mdi2e-eye-outline", VERDE, VERDE_D, "Se lee mejor", null, null,
-                "Un texto que no cabe y termina en «…» (un nombre largo, un área, un resguardante) se lee completo al pasar el mouse, en todas las pantallas y ventanas",
-                "En Bienes, Garantía empieza oculta (casi ningún bien tiene; se vuelve a ver con clic derecho en los títulos) y Cantidad es más angosta: el nombre y la categoría tienen más espacio",
-                "La ficha de un bien sin costo capturado dice «Sin capturar» (y «—» en su PDF) en vez de «$0.00»; en el formulario, el Área se lee aunque no se cambie ahí",
-                "El «+» de «Nuevo Bien» y los demás botones guinda es blanco, «Guardar cambios» es de un verde que se lee mejor y la campana dice «99+»",
-                "En Depreciación, ordenar por porcentaje pone primero los de 100 %; en el Organigrama el resguardante se lee entero; en «Cambiar datos», «Cerrar» va junto a «Revisar los cambios»",
-                "Con «Texto: Grande» el formulario ya no sale más angosto y las explicaciones bajo el título pasan a una segunda línea",
-                "El ícono de SIBIM es la caja del inicio de sesión en el guinda nuevo, y el título de la ventana dice en qué pantalla estás («Bienes — SIBIM»)"));
-            p.add(paso("mdi2k-keyboard-outline", GUINDA, GUINDA_D, "Con el teclado", null, null,
-                "Tab ya no se queda en el buscador: las búsquedas recientes se abren con un clic o con ↓, y Tab las cierra",
-                "Se ve dónde estás (un aro guinda) en todas partes: botones, paginación, barra lateral, ligas, «Por recibir», periodos de Reportes y el Organigrama",
-                "En «Revisar mis bienes», las áreas responden con S «Sí es», N «No es» y E «Ya la tiene»; la lista pasa sola al siguiente",
-                "El lector de pantalla dice el nombre de cada botón, también «Mostrar contraseña» al entrar",
-                "F1 tiene la lista de atajos, con los nuevos: Ctrl+D (copiar del bien anterior), Alt+↓ (abrir la lista de un campo), ↓ en el buscador y S / N / E"));
+                "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
+            p.add(probar(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "Completar por grupos", "productos", "#btnMasBienes",
+                "Bienes › Más › «Completar por grupos (mismo nombre)»: cada renglón es un nombre con todos sus bienes («ESPOSAS SEMIRIGIDAS (MANO) · 71 bienes»)",
+                "Escribes la vida útil, el color y el tipo una sola vez y se ponen a los bienes del grupo que no los tienen; Enter guarda y pasa al siguiente grupo",
+                "Ya viene escrito lo que SIBIM sabe, y abajo dice de dónde salió: lo que tienen los otros bienes con ese nombre, el color que dice su nombre y MUEBLE por su clave CONAC. La vida útil solo viene escrita si los otros del mismo nombre ya la tienen",
+                "Se filtra por área o por lo que les falta; también está en Completar datos («Por grupos») y en Inicio › Por hacer. Cada guardado se deshace desde su aviso"),
+                "Abrir Completar por grupos", abrir("productos", "grupos")));
+            p.add(probar(paso("mdi2p-palette-outline", VERDE, VERDE_D, "El color que ya dice su nombre", "productos", "#btnMasBienes",
+                "Inicio › Por hacer › «Tomar el color»: los bienes sin color que lo dicen en su nombre o su descripción («SILLA PLEGADIZA DE COLOR VERDE LIMÓN»)",
+                "Ves cada bien con su color antes de guardar; quitas o cambias el que no sea, y se deshace desde el aviso",
+                "Ahora también lee «COLOR MADERA», «COLOR PERAL» y «COLOR MIEL»"),
+                "Revisar los colores", abrir("productos", "colores")));
+            p.add(paso("mdi2v-view-list-outline", VERDE, VERDE_D, "Más ordenado", "productos", "#btnMasBienes",
+                "Bienes › Más va por secciones: «Completar y corregir, con la factura», «Lo escrito de varias formas» y «Repetidos»",
+                "En Inicio › Por hacer, cada columna enseña sus 4 primeras tareas y «Ver 5 más» las demás; SIBIM recuerda si la dejaste abierta",
+                "Las categorías se leen cortas en la tabla de Bienes, en Inicio y en Depreciación («Cómputo», «Defensa», «Cámaras»); el nombre CONAC completo, al pasar el mouse y en los formatos"));
+            p.add(paso("mdi2s-swap-vertical", GUINDA, GUINDA_D, "Movimientos y Depreciación, a la vista", "movimientos", "#table",
+                "Movimientos: «Cuándo» dice «13 nov 14:40» y se ordena por fecha (como texto, el 31 de octubre quedaba arriba del 13 de noviembre); el motivo va al final con el espacio que sobra, y el estado es su ícono (su palabra al pasar el mouse)",
+                "Depreciación: la distribución y la proyección van lado a lado, y la tabla de bienes se ve sin bajar; la gráfica dice «$30 M»",
+                "Dice «1 año», «1 mes» y «1 día» (antes «1 años») en Depreciación, la ficha del bien, su PDF y las garantías de Alertas",
+                "El buscador de Resguardos dice entero lo que busca: «Persona, folio o código…» (el área está en su filtro)",
+                "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las etiquetas («Transferencia») y las fechas ya no se cortan, y si los títulos no caben la tabla se recorre de lado"));
             // Only what is new in this version; what came before is in the guides by topic (F2).
             enGrupo(p, 1, p.size(), NUEVO);
         } else {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Aquí está solo lo nuevo; lo de antes está en las guías por tema (F2), como «Mantener al día los bienes de mi área»",
                 "Cada paso te lleva a la pantalla y marca dónde está"));
-            p.add(paso("mdi2k-keyboard-outline", VERDE, VERDE_D, "Revisa tus bienes con el teclado", "dashboard", "#miAreaSection",
-                "En «Revisar mis bienes», muévete con ↑↓ y responde: S «Sí es», N «No es» (y escribes por qué), E «Ya la tiene»",
-                "La lista pasa sola al siguiente bien; cada respuesta se puede deshacer desde el aviso",
-                "Espacio marca el bien para responder varios juntos, y Enter abre «Completar»"));
-            p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Se lee mejor", null, null,
-                "Un texto que no cabe y termina en «…» (un nombre largo, un área, un resguardante) se lee completo al pasar el mouse",
-                "Con Tab se ve dónde estás (un aro guinda) y ya no se queda en el buscador: las búsquedas recientes se abren con un clic o con ↓",
-                "Con «Texto: Grande» las ventanas ya no salen más angostas, y el título de la ventana dice en qué pantalla estás",
-                "El lector de pantalla dice el nombre de cada botón, también «Mostrar contraseña» al entrar"));
+            p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Más fácil de leer", "productos", "#table",
+                "Las categorías se leen cortas en la tabla de Bienes («Cómputo», «Muebles», «Cámaras»); el nombre completo, al pasar el mouse",
+                "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan"));
             enGrupo(p, 1, p.size(), NUEVO);
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);
@@ -217,6 +168,13 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresVarios() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(paso("mdi2c-cursor-default-click-outline", GUINDA, GUINDA_D, "Menos tecleo en el formulario", "productos", "#btnEditar",
+                "Al editar un bien, el formulario abre en el paso donde guardaste el anterior (casi siempre «Patrimonio»)",
+                "Con el color vacío, si el nombre o la descripción del bien lo dicen, abajo aparece «Su nombre dice: NEGRO»: un clic lo pone",
+                "Con la vida útil vacía, abajo dice la que tiene la mayoría de los bienes de su clave CONAC («Como la mayoría de su clave CONAC: 5 años»): un clic la pone",
+                "Si «N° Factura» tiene el folio fiscal y «Folio fiscal» está vacío, abajo dice «Es el folio fiscal: pasarlo a «Folio fiscal»»: un clic",
+                "Para todos los folios de una vez: Bienes › Más › «Folio fiscal a su lugar»"));
             p.add(paso("mdi2f-file-code-outline", GUINDA, GUINDA_D, "El folio fiscal, sin teclearlo", "productos", "#btnEditar",
                 "Bajo el folio fiscal, «Leer la factura (XML o PDF)…»: eliges el XML y se llenan el folio fiscal, el número de factura, la fecha, el proveedor y el costo por pieza con su IVA",
                 "Solo llena lo que está vacío (un folio mal escrito sí lo cambia por el del XML) y dice abajo qué puso y qué dejó como estaba",
@@ -246,6 +204,30 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresCompletar() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(probar(paso("mdi2c-cash-check", VERDE, VERDE_D, "El valor residual y el costo de su compra", "productos", "#btnMasBienes",
+                "Al poner el costo, el valor residual se escribe solo con el 15 % (como 285 de los 295 que ya lo tienen); si es otro, escríbelo encima",
+                "Si le sumas el IVA al costo, el valor residual del 15 % se recalcula; uno distinto que escribiste no se toca",
+                "Bienes › Más › «Valor residual: el 15 % del costo»: a todos los que tienen costo y el residual en $0, por categoría; antes ves cuánto cambia el valor en libros, y se deshace desde el aviso",
+                "Bienes › Más › «Costos distintos en la misma compra»: bienes iguales de una factura con otro costo; donde a unos les falta el IVA ya va marcado, y los demás los revisas con la factura"),
+                "Ver el valor residual", abrir("productos", "residual")));
+            p.add(paso("mdi2f-file-document-multiple-outline", GUINDA, GUINDA_D, "Las facturas en PDF", "productos", "#btnMasBienes",
+                "En el formulario, bajo el folio fiscal, «Leer la factura (XML o PDF)…» también lee el PDF: pone el folio fiscal, la fecha y el proveedor que falten",
+                "Del PDF no se lee el costo de cada pieza: lo escribes tú, y abajo dice el total de la factura para compararlo",
+                "Bienes › Más › «Leer las facturas de una carpeta…»: eliges la carpeta con los PDF (o XML) y cada factura se junta con sus bienes por el folio fiscal; un folio que quedó solo con su final («5BA08») se completa",
+                "Antes de guardar ves cada factura con lo que llena; si el proveedor no se leyó o salió mal, lo escribes ahí. Solo llena lo vacío y se deshace desde el aviso",
+                "Un PDF escaneado (una foto de la factura) no tiene texto y no se puede leer: la lista lo dice"));
+            p.add(probar(paso("mdi2c-calendar-check-outline", DORADO, DORADO_D, "La vida útil, con el criterio del municipio", "productos", "#btnMasBienes",
+                "SIBIM propone la vida útil que tiene la mayoría de los bienes de cada clave CONAC: muebles 5 años, cómputo 3, vehículos 5, defensa 10",
+                "La tabla CONAC (muebles 10) solo se usa donde no hay una mayoría clara (10 bienes o más, y 7 de cada 10 iguales)",
+                "Así se propone al elegir la categoría de un bien nuevo, debajo del campo vacío y en Completar datos › Sin vida útil › «Revisar y aplicar»",
+                "Antes de aplicar ves cuántos bienes llevan cuántos años: cambia la depreciación y el valor en libros"),
+                "Abrir Completar datos", abrir("productos", "completar:VIDA_UTIL")));
+            p.add(paso("mdi2f-format-list-bulleted", VERDE, VERDE_D, "El tipo de bien, de una lista", "productos", "#btnEditar",
+                "Junto a «Tipo de bien» hay un botón con la lista de los tipos que ya se usan, cada uno una sola vez (MUEBLE, Camioneta, Motocicleta…); también en «Cambiar datos»",
+                "Se puede seguir escribiendo; «mueble» o «camion» quedan como en la lista al salir del campo",
+                "Si en el tipo se escribe un color («NEGRO»), lo avisa: el color va en «Color / Material»",
+                "«Unir lo escrito de dos formas» pasa los tipos que son un color al tipo de su clave CONAC, cuando el bien ya tiene su color"));
             p.add(probar(paso("mdi2c-content-duplicate", DORADO, DORADO_D, "Tomar de los del mismo nombre", "productos", "#btnMasBienes",
                 "En Completar datos, en Sin factura, Sin proveedor, Sin precio, Sin fecha o Sin vida útil, una barra dice cuántos bienes pueden tomar ese dato de los demás bienes con su mismo nombre, cuando todos dicen lo mismo",
                 "«Tomar de los del mismo nombre» enseña cada bien, lo que tomaría y de qué bienes sale; quita la marca a los que no sean de la misma compra",
@@ -291,6 +273,12 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresCorregir() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(paso("mdi2s-shield-lock-outline", DORADO, DORADO_D, "Auditoría, más clara", "auditoria", "#chipsAccion",
+                "Las acciones son etiquetas con su número («Actualización · 2,383», «Acceso fallido · 25»): un clic filtra, otro lo quita; las menos usadas están en «Más acciones»",
+                "Los filtros van en un renglón y el periodo en uno solo: Todo, Hoy, Últimos 7 días, Este mes o Entre fechas",
+                "Cada renglón dice cuándo («Hoy 09:29»), el número y nombre del bien, su área, quién y qué cambió («color: — → GRIS»); caben casi el doble",
+                "Doble clic o Enter abre el detalle: cada cambio en su renglón, Antes → Ahora, con «Copiar» y «Ver todo lo de DCM/17» (la historia completa de ese bien); también con clic derecho"));
             // In Novedades of 1.0.36 (published 18-nov-2026); here since 1.0.37.
             p.add(paso("mdi2r-rename-box", GUINDA, GUINDA_D, "El nombre nuevo, a los que se llamaban igual", "productos", "#btnEditar",
                 "Al cambiarle el nombre a un bien (por ejemplo, a como dice su factura), si otros bienes siguen con el nombre que tenía, SIBIM te los enseña para ponérselo también",
@@ -320,6 +308,26 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresComodo() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(paso("mdi2b-bell-ring-outline", DORADO, DORADO_D, "Avisos que dicen lo que te toca", "alertas", null,
+                "La campana cuenta lo que tú atiendes: los bienes que esperan el acuse de su área se ven en su lista, pero ya no la ponen en «99+»",
+                "Alertas › Pendientes cuenta primero los bienes sin resguardo vigente y los sin resguardante; la etiqueta la confirman las áreas",
+                "Por área, primero las que tienen más bienes sin resguardo",
+                "En Depreciación, junto a «714 bienes con datos» dice cuántos no tienen costo, fecha o vida útil, con «completarlos»"));
+            p.add(paso("mdi2e-eye-outline", VERDE, VERDE_D, "Se lee mejor", null, null,
+                "Un texto que no cabe y termina en «…» (un nombre largo, un área, un resguardante) se lee completo al pasar el mouse, en todas las pantallas y ventanas",
+                "En Bienes, Garantía empieza oculta (casi ningún bien tiene; se vuelve a ver con clic derecho en los títulos) y Cantidad es más angosta: el nombre y la categoría tienen más espacio",
+                "La ficha de un bien sin costo capturado dice «Sin capturar» (y «—» en su PDF) en vez de «$0.00»; en el formulario, el Área se lee aunque no se cambie ahí",
+                "El «+» de «Nuevo Bien» y los demás botones guinda es blanco, «Guardar cambios» es de un verde que se lee mejor y la campana dice «99+»",
+                "En Depreciación, ordenar por porcentaje pone primero los de 100 %; en el Organigrama el resguardante se lee entero; en «Cambiar datos», «Cerrar» va junto a «Revisar los cambios»",
+                "Con «Texto: Grande» el formulario ya no sale más angosto y las explicaciones bajo el título pasan a una segunda línea",
+                "El ícono de SIBIM es la caja del inicio de sesión en el guinda nuevo, y el título de la ventana dice en qué pantalla estás («Bienes — SIBIM»)"));
+            p.add(paso("mdi2k-keyboard-outline", GUINDA, GUINDA_D, "Con el teclado", null, null,
+                "Tab ya no se queda en el buscador: las búsquedas recientes se abren con un clic o con ↓, y Tab las cierra",
+                "Se ve dónde estás (un aro guinda) en todas partes: botones, paginación, barra lateral, ligas, «Por recibir», periodos de Reportes y el Organigrama",
+                "En «Revisar mis bienes», las áreas responden con S «Sí es», N «No es» y E «Ya la tiene»; la lista pasa sola al siguiente",
+                "El lector de pantalla dice el nombre de cada botón, también «Mostrar contraseña» al entrar",
+                "F1 tiene la lista de atajos, con los nuevos: Ctrl+D (copiar del bien anterior), Alt+↓ (abrir la lista de un campo), ↓ en el buscador y S / N / E"));
             p.add(paso("mdi2v-view-column-outline", VERDE, VERDE_D, "Más espacio, menos bajar", "dashboard", "#porHacerSection",
                 "En una pantalla ancha, el formulario del bien pone «Compra» junto a «El bien»: factura, folio, proveedor, costo, color, tipo y marca a la vista sin bajar",
                 "Abajo, «Dónde está» junto a «Mantenimiento» y «Vehículos»; Tab sigue el orden de la factura",
@@ -360,6 +368,12 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresAreas() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(paso("mdi2s-sitemap", GUINDA, GUINDA_D, "El Organigrama dice más", "organigrama", "#btnVistaCards",
+                "En Tarjetas, cada secretaría dice qué tanto de sus bienes tiene costo, fecha y vida útil («faltan 118» abre Completar datos con esos), cuántos no tienen resguardo, cómo van sus áreas y sus dependencias con sus bienes",
+                "En Tabla, las columnas Datos completos, Sin resguardo y Sus áreas; Préstamos y Comodatos se ocultan mientras no haya ninguno",
+                "Con clic derecho en una secretaría de la tabla: «Completar sus datos» y «Ver los que no tienen resguardo»",
+                "En Acomodar, el número de bienes de cada dirección ya no se corta"));
             p.add(probar(paso("mdi2c-call-split", DORADO, DORADO_D, "Separar un área en una nueva", "configuracion", null,
                 "Configuración › Áreas y prefijos: elige el área y pulsa «Separar en un área nueva…»",
                 "Escribe el nombre (el prefijo se sugiere solo) y marca qué bienes pasan; «Marcar los de…» marca todos los de una persona o de una ubicación",
@@ -373,6 +387,13 @@ final class TutorialGuias {
      *  «pon todo en novedades y lo viejo ponlo en modos normales en el tutorial»). */
     private static List<Paso> deVersionesAnterioresReportes() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(probar(paso("mdi2c-car-cog", GUINDA, GUINDA_D, "La situación de los vehículos", "reportes", "#listaListados .report-row",
+                "Reportes › «Situación de los vehículos» (PDF o Excel): cada vehículo con sus placas, su estatus y si tiene tarjeta de circulación, seguro, tenencia pagada y verificación",
+                "Arriba dice cuántos están sin seguro, sin verificación, sin placas, descompuestos o retenidos, y la lista empieza por los que tienen algo pendiente",
+                "Sale de lo que la lista de vehículos de octubre dejó en la descripción de cada uno; para ponerlo al día, edita su descripción («Seguro: si.») o captura la póliza o la tarjeta en su formulario",
+                "En Inicio › Por hacer › «Para seguir» dice cuántos vehículos tienen algo pendiente"),
+                "Generar el reporte", abrir("reportes", "vehiculos")));
             p.add(paso("mdi2c-car-outline", GUINDA, GUINDA_D, "Un solo vehículo o una sola área", "reportes", "#listaFormatos .report-row",
                 "Parque Vehicular › Generar: el anexo V.6 o el resguardo de uno o varios vehículos, no solo de todos",
                 "Entrega-Recepción (anexo V.4) › Generar: de una o varias áreas, o de todo el inventario; sale un bien por hoja, como el formato oficial",
@@ -383,6 +404,16 @@ final class TutorialGuias {
     /** Steps that were in an área's Novedades; in their guide since 1.0.36. */
     private static List<Paso> deVersionesAnterioresMisBienes() {
         List<Paso> p = new ArrayList<>();
+            // In Novedades of 1.0.37 (in every PC by 24-nov-2026); here since 1.0.38.
+            p.add(paso("mdi2k-keyboard-outline", VERDE, VERDE_D, "Revisa tus bienes con el teclado", "dashboard", "#miAreaSection",
+                "En «Revisar mis bienes», muévete con ↑↓ y responde: S «Sí es», N «No es» (y escribes por qué), E «Ya la tiene»",
+                "La lista pasa sola al siguiente bien; cada respuesta se puede deshacer desde el aviso",
+                "Espacio marca el bien para responder varios juntos, y Enter abre «Completar»"));
+            p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Se lee mejor", null, null,
+                "Un texto que no cabe y termina en «…» (un nombre largo, un área, un resguardante) se lee completo al pasar el mouse",
+                "Con Tab se ve dónde estás (un aro guinda) y ya no se queda en el buscador: las búsquedas recientes se abren con un clic o con ↓",
+                "Con «Texto: Grande» las ventanas ya no salen más angostas, y el título de la ventana dice en qué pantalla estás",
+                "El lector de pantalla dice el nombre de cada botón, también «Mostrar contraseña» al entrar"));
             p.add(paso("mdi2a-account-check-outline", GUINDA, GUINDA_D, "Tu usuario ya está escrito", null, null,
                 "Al abrir SIBIM en esta computadora, el usuario con el que entraste la última vez ya está escrito: solo pones la contraseña",
                 "Si es otra cuenta, escribe encima"));

@@ -110,6 +110,14 @@
 .timeline-icon { -fx-fill: #94A3B8; }
 .timeline-detail { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 
+/* A section title inside a menu (Bienes › Más, 19-nov-2026): not an option, a small heading. */
+.menu-item.menu-seccion:disabled { -fx-opacity: 1; -fx-padding: 8 12 3 12; }
+.menu-item.menu-seccion > .label {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
 /* Auditoría: «Más acciones», the same height as the acción chips beside it (19-nov-2026). */
 .audit-chip-mas { -fx-padding: 4 10 4 13; }
 .audit-chip-mas > .label { -fx-padding: 0; }

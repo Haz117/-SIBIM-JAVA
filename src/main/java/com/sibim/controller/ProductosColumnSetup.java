@@ -136,13 +136,15 @@ class ProductosColumnSetup {
             @Override
             protected void updateItem(String value, boolean empty) {
                 super.updateItem(value, empty);
-                setGraphic(null); setText(null);
+                setGraphic(null); setText(null); setTooltip(null);
                 if (empty || value == null || value.isBlank()) return;
                 Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
                 String catColor = (p != null && p.getCategoriaColor() != null)
                     ? p.getCategoriaColor() : "#9F2241";
                 String bgColor  = catColor + "14";
-                Label lbl = new Label(value);
+                // The short name («Cómputo»), the whole CONAC one on hover (19-nov-2026: «Equipo de D…», «Equipo de C…»).
+                Label lbl = new Label(com.sibim.util.CategoriaCorta.de(value));
+                setTooltip(new javafx.scene.control.Tooltip(value));
                 FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(value);
                 ico.setIconSize(16);
                 ico.setIconColor(javafx.scene.paint.Color.web(catColor));
