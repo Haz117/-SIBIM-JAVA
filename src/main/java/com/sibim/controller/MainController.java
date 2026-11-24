@@ -117,8 +117,6 @@ public class MainController {
 
     private SidebarManager      sidebarManager;
     private SidebarSections     sidebarSections;
-    /** The side menu's «Más»: what the height doesn't hold (24-nov-2026). */
-    private RepisaLateral       repisa;
     private NavRegistry         navRegistry;
     private MainStatusBarManager statusBarManager;
     private Object   currentController;
@@ -185,12 +183,6 @@ public class MainController {
             sidebar, sidebarBackdrop, outerStack,
             logoTextBox, userInfoVBox, btnToggleSidebar, navButtons);
         sidebarManager.setSections(sidebarSections);
-        if (sidebar.lookup(".sidebar-scroll") instanceof javafx.scene.control.ScrollPane navScroll) {
-            repisa = new RepisaLateral(sidebar, navScroll,
-                List.of(secNavegacion, secOperaciones, secReportes, secControl, secSistema),
-                navRegistry::byButton, sidebarManager::getActive, sidebarManager::isCollapsed, sidebarManager::refreshTab);
-            navButtons.add(repisa.boton());          // folds to its icon with the others
-        }
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
@@ -209,7 +201,6 @@ public class MainController {
         applyTextScaleClass();
         navRegistry.tuneTooltips(Duration.millis(700), Duration.millis(200));
         setupNavHover(navRegistry.buttons().toArray(new Button[0]));
-        if (repisa != null) setupNavHover(repisa.boton());
 
         // The áreas get a short menu: what only Patrimonio works with (catalogue,
         // movements, depreciation, physical count, resguardos, préstamos, comodatos, actas, bajas, audit)
@@ -466,14 +457,9 @@ public class MainController {
         navRegistry.byView(view).ifPresentOrElse(NavItem::run, () -> navigateTo(view, btnDashboard));
     }
 
-    /** The side menu's «Más» (tests look at what is in it). */
-    RepisaLateral repisa() { return repisa; }
-
-    /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning.
-     *  When the window's height sent it to «Más», «Más» is where it is. */
+    /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning. */
     public Button getNavButton(String view) {
-        Button b = navRegistry.byView(view).map(NavItem::button).orElse(null);
-        return repisa != null && repisa.estaEnMas(b) ? repisa.boton() : b;
+        return navRegistry.byView(view).map(NavItem::button).orElse(null);
     }
 
     private void navigateTo(String view, Button button) {
@@ -489,7 +475,6 @@ public class MainController {
             sidebarSections.reveal(button);      // unfold its section first so the active-tab marker lands right
             sidebarManager.setActive(button);
             sidebarSections.markActive(button);
-            if (repisa != null) repisa.programar();   // the page in use always stays in the side menu
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));

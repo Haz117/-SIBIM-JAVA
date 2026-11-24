@@ -156,33 +156,6 @@
 .nav-section-items { -fx-padding: 0; }
 .nav-list { -fx-spacing: 4; }
 
-/* «Más» (RepisaLateral, 24-nov-2026): the options the window's height doesn't hold. The row is
-   one more option; its counter says how many are in it, in the alerts' color only when one of
-   them carries a counter (Alertas, Préstamos). */
-/* With both classes: the alerts' counter (08-controles-barra-estado.css) is loaded after this file. */
-.alert-nav-badge.nav-mas-cuenta { -fx-background-color: sibim-slate-200; -fx-text-fill: sibim-slate-700; }
-.alert-nav-badge.nav-mas-cuenta.nav-mas-alerta { -fx-background-color: sibim-indigo-dark; -fx-text-fill: white; }
-.nav-btn.nav-mas-abierto,
-.nav-btn.nav-mas-abierto:hover { -fx-background-color: sibim-indigo-50; }
-.nav-btn.nav-mas-abierto .nav-icon { -fx-icon-color: sibim-indigo; }
-.nav-mas-menu { -fx-background-radius: 12; -fx-padding: 6 4; }
-.nav-mas-menu .menu-item { -fx-background-radius: 8; -fx-padding: 7 10; }
-.nav-mas-menu-icono { -fx-icon-size: 16; -fx-icon-color: sibim-slate-500; }
-.nav-mas-menu-texto { -fx-font-size: 13px; -fx-text-fill: sibim-slate-700; }
-.nav-mas-menu-atajo { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
-.nav-mas-menu-contador {
-    -fx-background-color: sibim-indigo-dark;
-    -fx-text-fill: white;
-    -fx-background-radius: 99;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-padding: 1 6;
-}
-.nav-mas-menu .menu-item:focused .nav-mas-menu-icono { -fx-icon-color: sibim-indigo; }
-.nav-mas-menu .menu-item:focused .nav-mas-menu-texto { -fx-text-fill: sibim-indigo-dark; }
-.nav-mas-menu-activa .nav-mas-menu-texto { -fx-font-weight: bold; -fx-text-fill: sibim-indigo-dark; }
-.nav-mas-menu-activa .nav-mas-menu-icono { -fx-icon-color: sibim-indigo; }
-
 /* ── Icon rail (sidebar collapsed) ───────────────────────────────────────────
    No headers here, so the groups are told apart only by the divider between them. Keep it
    minimal — the same plain line as when expanded — but darker and a bit thicker, with the same
