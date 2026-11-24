@@ -522,7 +522,9 @@ public class CalidadDatosService {
 
     public static boolean falta(Producto p, Dato dato) {
         return switch (dato) {
-            case PRECIO -> p.getPrecioCompra() == null || p.getPrecioCompra().signum() == 0;
+            // $1.00 is a costo written so as not to leave it empty (24-nov-2026: 10 bienes; 2 corrected
+            // that week to $244,479.65): it is still missing.
+            case PRECIO -> p.getPrecioCompra() == null || p.getPrecioCompra().compareTo(java.math.BigDecimal.ONE) <= 0;
             case FECHA -> p.getFechaAdquisicion() == null;
             case VIDA_UTIL -> p.getVidaUtilAnios() == null;
             case FOTO -> p.getFotoUrl() == null || p.getFotoUrl().isBlank();
@@ -1346,8 +1348,6 @@ public class CalidadDatosService {
             "Quitar títulos", "productos", "titulos");
         agregar(out, personasRepetidas(resguardos, bienes, distintas).size(), "personas con el nombre repetido", "Unir personas", "productos", "unir");
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
-        agregar(out, MismaFactura.pendientes(bienes).stream().mapToLong(c -> c.bienes().size()).sum(),
-            "datos que se pueden copiar de otro bien de la misma factura", "Copiar datos", "productos", "factura");
         agregar(out, DelMismoNombre.MISMO_NOMBRE.stream().mapToLong(d -> DelMismoNombre.propuestas(bienes, d).size()).sum(),
             "datos que ya dicen, todos igual, los demás bienes con el mismo nombre", "Revisarlos", "productos", "mismonombre");
         agregar(out, escritosDeDosFormas(bienes).size(), "proveedores, marcas, colores o tipos escritos de dos formas",
@@ -1359,6 +1359,7 @@ public class CalidadDatosService {
         List<LoSeguro.Propuesta> seguro = LoSeguro.proponer(bienes);
         agregar(out, LoSeguro.cambios(seguro), "cambios que SIBIM hace sin dudas: "
                 + seguro.stream().map(p -> switch (p.arreglo()) {
+                    case FACTURA -> "lo que ya tiene su factura";
                     case FOLIO -> "folio fiscal a su lugar";
                     case TIPO -> "MUEBLE";
                     case RESIDUAL -> "el 15 % de valor residual";

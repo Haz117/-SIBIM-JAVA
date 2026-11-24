@@ -170,6 +170,13 @@ public class ReportesController {
             listados.add(ReporteFila.crear("mdi2c-camera-outline", "purple", "Bienes sin foto, para tomarlas",
                 "Por área, en el orden de su ubicación, con su número anterior y una casilla, para llevarla al lugar; en ese orden salen en «Fotos de una carpeta».",
                 null, null, List.of(pdf(this::sinFotoPorArea))));
+            // 24-nov-2026: 83 bienes in estado MALO and 2 DEFICIENTE, to prepare their bajas with the áreas.
+            com.sibim.service.ReporteCandidatosBajaService candidatos = new com.sibim.service.ReporteCandidatosBajaService();
+            listados.add(ReporteFila.crear("mdi2d-delete-clock-outline", "slate", "Candidatos a baja",
+                "Los bienes en estado MALO o DEFICIENTE, por área y los más viejos primero, con su resguardante, años de uso, costo y valor en libros.",
+                null, "Exportar", pdfYExcel(
+                    completo(() -> candidatos.exportPdf(productoService.getAll())),
+                    completo(() -> candidatos.exportExcel(productoService.getAll())))));
         }
         if (control) listados.add(ReporteFila.crear("mdi2d-delete-circle-outline", "slate", "Bienes Dados de Baja",
             "Bienes fuera del inventario activo; su historial se conserva para auditoría.",

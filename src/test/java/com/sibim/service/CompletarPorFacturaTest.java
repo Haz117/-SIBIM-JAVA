@@ -56,6 +56,21 @@ class CompletarPorFacturaTest {
         assertEquals("BALA IP 4 MEGAPIXEL (3), POSTE DE MONITOREO", f.nombres());
     }
 
+    /** The 300 cámaras of one factura are not compared pair by pair; two fechas still split it. */
+    @Test
+    void unaCompraGrande_sinCompararParPorPar_yDosFechasLaSeparan() {
+        List<Producto> camaras = new ArrayList<>();
+        for (int i = 0; i < 300; i++) camaras.add(bien("BALA IP", "Seguridad Pública — C-2", "FAC 12345", null));
+        camaras.forEach(p -> p.setFechaAdquisicion(LocalDate.of(2026, 1, 20)));
+        assertTrue(CompletarPorFactura.unaSola(camaras));
+        assertEquals(1, CompletarPorFactura.separar(camaras).size());
+        camaras.get(0).setFechaAdquisicion(LocalDate.of(2025, 1, 20));
+        assertFalse(CompletarPorFactura.unaSola(camaras));
+        assertEquals(2, CompletarPorFactura.separar(camaras).size(), "otra fecha es otra compra");
+        List<Producto> cortas = List.of(bien("GRUA", "Obras Públicas", "139", null), bien("CPU", "Tesorería Municipal", "139", null));
+        assertFalse(CompletarPorFactura.unaSola(cortas), "un número corto se compara par por par");
+    }
+
     @Test
     void unNumeroCortoDeDosProveedores_sonDosCompras() {
         Producto grua = bien("GRUA", "Obras Públicas", "139", null);
@@ -130,6 +145,20 @@ class CompletarPorFacturaTest {
         todos.get(2).setFolioFiscal(null);
         Factura conFolio = CompletarPorFactura.facturas(todos).get(0);
         assertNotNull(CompletarPorFactura.deSuFactura(conFolio, leida).otraFactura(), "un PDF de otra factura se dice");
+    }
+
+    /** 24-nov-2026: «235 datos que se pueden copiar de otro bien de la misma factura» waited in Por hacer. */
+    @Test
+    void loSeguro_loQueYaTieneSuFactura_vaPrimero_yCuentaSusDatos() {
+        Producto con = bien("SILLA", "Tesorería Municipal", "FAC 12345", null);
+        con.setProveedor("MUEBLES DEL VALLE");
+        con.setFechaAdquisicion(LocalDate.of(2025, 5, 2));
+        Producto sin = bien("SILLA", "Tesorería Municipal", "FAC 12345", null);
+        List<LoSeguro.Propuesta> p = LoSeguro.proponer(List.of(con, sin));
+        assertEquals(LoSeguro.Arreglo.FACTURA, p.get(0).arreglo(), "guarda bien por bien: antes que los que cambian varios de golpe");
+        assertEquals(List.of(sin), p.get(0).bienes());
+        assertEquals(2, p.get(0).cambios(), "el proveedor y la fecha");
+        assertTrue(p.get(0).ejemplo().contains("FAC 12345"), p.get(0).ejemplo());
     }
 
     @Test

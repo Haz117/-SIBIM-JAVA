@@ -789,9 +789,14 @@ public final class ProductoDialogFactory {
     /** True when the price can be saved: under the limit, the one the bien already
      *  had, or confirmed by whoever typed it. */
     static boolean precioConfirmado(BigDecimal precio, Producto existing) {
-        if (precio.compareTo(PRECIO_A_CONFIRMAR) < 0) return true;
         if (existing != null && existing.getPrecioCompra() != null && existing.getPrecioCompra().compareTo(precio) == 0)
             return true;
+        if (precio.signum() > 0 && precio.compareTo(BigDecimal.ONE) <= 0)
+            return ConfirmacionUtil.elegir("Costo de " + com.sibim.util.FormatUtils.formatCurrency(precio),
+                "Un costo de " + com.sibim.util.FormatUtils.formatCurrency(precio) + " no es el de una factura: SIBIM lo sigue contando "
+                    + "como «sin precio» (en Completar datos y en Inicio). Si todavía no sabes el costo, déjalo vacío.\n\n¿Lo guardas así?",
+                "Guardarlo así", "Corregirlo");
+        if (precio.compareTo(PRECIO_A_CONFIRMAR) < 0) return true;
         return ConfirmacionUtil.elegir("Costo muy alto",
             "El costo de adquisición es de " + com.sibim.util.FormatUtils.formatCurrency(precio) + " por pieza, más de diez millones. "
                 + "Revisa que no le sobren ceros.\n\n¿Es correcto?", "Sí, es correcto", "Corregirlo");

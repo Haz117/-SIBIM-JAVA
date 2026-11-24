@@ -119,6 +119,7 @@ public final class CompletarPorFactura {
     /** {@link MismaFactura#compras} joins what may be one purchase; this keeps together only what is
      *  (a short number of two proveedores, two dates of one number, are two). */
     static List<List<Producto>> separar(List<Producto> posible) {
+        if (unaSola(posible)) return List.of(posible);
         int n = posible.size();
         int[] padre = new int[n];
         for (int i = 0; i < n; i++) padre[i] = i;
@@ -128,6 +129,27 @@ public final class CompletarPorFactura {
         Map<Integer, List<Producto>> g = new LinkedHashMap<>();
         for (int i = 0; i < n; i++) g.computeIfAbsent(raiz(padre, i), k -> new ArrayList<>()).add(posible.get(i));
         return new ArrayList<>(g.values());
+    }
+
+    /** Without comparing each pair (the 300 cámaras of one factura of the C-2 are 45,000 pairs): one
+     *  long factura number on all, or one folio fiscal on all, and no two fechas or folios that differ —
+     *  then {@link MismaFactura#mismaCompra} says yes to every pair. */
+    static boolean unaSola(List<Producto> posible) {
+        if (posible.size() < 2) return true;
+        Set<LocalDate> fechas = new HashSet<>();
+        Set<String> folios = new HashSet<>(), claves = new HashSet<>(), uuids = new HashSet<>();
+        boolean todosConUuid = true;
+        for (Producto p : posible) {
+            if (p.getFechaAdquisicion() != null) fechas.add(p.getFechaAdquisicion());
+            if (p.getFolioFiscal() != null && !p.getFolioFiscal().isBlank()) folios.add(p.getFolioFiscal().trim());
+            claves.add(String.valueOf(MismaFactura.clave(p.getNumeroFactura())));
+            String u = MismaFactura.uuid(p.getFolioFiscal());
+            if (u == null) todosConUuid = false; else uuids.add(u);
+        }
+        if (fechas.size() > 1) return false;
+        if (todosConUuid && uuids.size() == 1) return true;
+        String clave = claves.size() == 1 ? claves.iterator().next() : null;
+        return clave != null && !"null".equals(clave) && clave.length() > 6 && folios.size() <= 1;
     }
 
     private static int raiz(int[] padre, int i) {

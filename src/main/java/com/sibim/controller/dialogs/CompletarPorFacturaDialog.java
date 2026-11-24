@@ -120,7 +120,9 @@ public final class CompletarPorFacturaDialog {
 
         List<String> areas = new ArrayList<>(List.of(TODAS));
         Set<String> conFacturas = new HashSet<>();
-        for (Factura f : CompletarPorFactura.facturas(new ArrayList<>(porId.values()))) conFacturas.addAll(f.areas());
+        // Worked out once: «Todas las áreas» with everything missing is the list it opens on.
+        todasAlAbrir = CompletarPorFactura.facturas(new ArrayList<>(porId.values()));
+        for (Factura f : todasAlAbrir) conFacturas.addAll(f.areas());
         Areas.getAllAreaNames().stream().filter(conFacturas::contains).forEach(areas::add);
         conFacturas.stream().filter(a -> !areas.contains(a)).sorted().forEach(areas::add);
         area.getItems().setAll(areas);
@@ -177,9 +179,15 @@ public final class CompletarPorFacturaDialog {
         return p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área";
     }
 
+    /** The list it opens on, until something is saved or a filter changes. */
+    private List<Factura> todasAlAbrir;
+
     private void cargar() {
         filas.clear();
-        for (Factura f : CompletarPorFactura.facturas(new ArrayList<>(porId.values()), cuales(), campos())) filas.add(new Fila(f));
+        boolean comoAlAbrir = todasAlAbrir != null && TODAS.equals(area.getValue()) && campos().size() == Campo.values().length;
+        List<Factura> fs = comoAlAbrir ? todasAlAbrir : CompletarPorFactura.facturas(new ArrayList<>(porId.values()), cuales(), campos());
+        todasAlAbrir = null;
+        for (Factura f : fs) filas.add(new Fila(f));
         refiltrar();
         if (!visibles.isEmpty()) lista.scrollTo(0);
     }

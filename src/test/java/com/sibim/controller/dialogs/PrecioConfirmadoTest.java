@@ -20,4 +20,18 @@ class PrecioConfirmadoTest {
         assertTrue(ProductoDialogFactory.precioConfirmado(new BigDecimal("12500000"), ya),
             "guardar otro dato de un bien caro no vuelve a preguntar");
     }
+
+    /** 24-nov-2026: 10 bienes had $1.00 so as not to leave the costo empty; 2 were corrected that week. */
+    @Test
+    void unCostoDeUnPeso_siguePorCapturar_yElQueYaLoTeniaNoPregunta() {
+        Producto relleno = new Producto();
+        relleno.setPrecioCompra(new BigDecimal("1.00"));
+        assertTrue(com.sibim.service.CalidadDatosService.falta(relleno, com.sibim.service.CalidadDatosService.Dato.PRECIO),
+            "sale en Completar datos › Sin precio");
+        relleno.setPrecioCompra(new BigDecimal("1.01"));
+        assertFalse(com.sibim.service.CalidadDatosService.falta(relleno, com.sibim.service.CalidadDatosService.Dato.PRECIO));
+        relleno.setPrecioCompra(BigDecimal.ONE);
+        assertTrue(ProductoDialogFactory.precioConfirmado(new BigDecimal("1.00"), relleno),
+            "guardar otro dato de un bien que ya tenía $1.00 no pregunta");
+    }
 }

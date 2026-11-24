@@ -35,6 +35,7 @@ public final class LoSeguroDialog {
     }
 
     private final CalidadDatosService calidad = new CalidadDatosService();
+    private final com.sibim.service.ProductoService servicio = new com.sibim.service.ProductoService();
     private final List<Tarjeta> tarjetas = new ArrayList<>();
     private final Runnable alCambiar;
     private boolean cambio;
@@ -102,7 +103,9 @@ public final class LoSeguroDialog {
         t.marca.setText(p.arreglo().titulo);
         t.marca.getStyleClass().add("org-child-label");
         t.marca.selectedProperty().addListener((o, a, b) -> actualizarTotal());
-        Label cuantos = new Label(FormatUtils.plural(p.bienes().size(), "bien", "bienes"));
+        Label cuantos = new Label(p.arreglo() == LoSeguro.Arreglo.FACTURA
+            ? FormatUtils.plural(p.cambios(), "dato", "datos") + " en " + FormatUtils.plural(p.bienes().size(), "bien", "bienes")
+            : FormatUtils.plural(p.bienes().size(), "bien", "bienes"));
         cuantos.getStyleClass().addAll("cell-badge", "cell-badge-blue");
         cuantos.setMinWidth(Region.USE_PREF_SIZE);
         Region hueco = new Region();
@@ -144,7 +147,7 @@ public final class LoSeguroDialog {
 
     private void actualizarTotal() {
         List<Tarjeta> marcadas = tarjetas.stream().filter(t -> t.hecho == null && t.marca.isSelected()).toList();
-        int n = marcadas.stream().mapToInt(t -> t.propuesta.bienes().size()).sum();
+        int n = marcadas.stream().mapToInt(t -> t.propuesta.cambios()).sum();
         total.setText(marcadas.isEmpty() ? "Nada marcado" : FormatUtils.plural(marcadas.size(), "arreglo", "arreglos")
             + " · " + FormatUtils.plural(n, "cambio", "cambios"));
         aplicar.setDisable(marcadas.isEmpty());
@@ -153,8 +156,13 @@ public final class LoSeguroDialog {
     /** The bienes of a fix and what each one gets. */
     private void verCuales(Propuesta p) {
         ListView<String> l = new ListView<>();
-        for (Producto b : p.bienes()) {
+        for (com.sibim.service.MismaFactura.Cambio c : p.deSuFactura())
+            for (Producto b : c.bienes())
+                l.getItems().add(b.getCodigo() + " · " + b.getNombre() + " · " + Objects.requireNonNullElse(b.getArea(), "Sin área") + " — "
+                    + c.dato().etiqueta.toLowerCase(java.util.Locale.ROOT) + ": " + c.dato().texto(c.nuevo()) + " (factura " + c.factura() + ")");
+        for (Producto b : p.arreglo() == LoSeguro.Arreglo.FACTURA ? List.<Producto>of() : p.bienes()) {
             String que = switch (p.arreglo()) {
+                case FACTURA -> "";
                 case FOLIO -> "«" + Objects.requireNonNullElse(b.getNumeroFactura(), "").trim() + "» a «Folio fiscal»";
                 case TIPO -> "MUEBLE";
                 case RESIDUAL -> FormatUtils.formatCurrency(b.getPrecioCompra()) + " → "
@@ -190,7 +198,7 @@ public final class LoSeguroDialog {
         DialogUtil.runAsyncWithProgress(escena(), "Aplicando…",
             () -> {
                 for (Tarjeta t : marcadas) {
-                    try { resultado.put(t, LoSeguro.aplicar(calidad, t.propuesta)); }
+                    try { resultado.put(t, LoSeguro.aplicar(calidad, servicio, t.propuesta)); }
                     catch (Exception e) { resultado.put(t, e); }
                 }
                 return resultado;
@@ -203,8 +211,10 @@ public final class LoSeguroDialog {
                         t.hecho = h;
                         hechos += h.cuantos();
                         cambio = true;
-                        t.estado.setText("Hecho en " + FormatUtils.plural(h.cuantos(), "bien", "bienes"));
-                        t.estado.getStyleClass().setAll("cell-badge", "cell-badge-success");
+                        t.estado.setText("Hecho en " + FormatUtils.plural(h.cuantos(), "bien", "bienes")
+                            + (h.fallas().isEmpty() ? "" : "; " + FormatUtils.plural(h.fallas().size(), "no se pudo", "no se pudieron")));
+                        t.estado.setTooltip(h.fallas().isEmpty() ? null : new Tooltip(String.join("\n", h.fallas().subList(0, Math.min(10, h.fallas().size())))));
+                        t.estado.getStyleClass().setAll("cell-badge", h.fallas().isEmpty() ? "cell-badge-success" : "cell-badge-warning");
                         ver(t.deshacer, h.cuantos() > 0);
                     } else {
                         t.estado.setText("No se pudo: " + com.sibim.util.MensajeError.de((Exception) e.getValue()));
@@ -225,7 +235,7 @@ public final class LoSeguroDialog {
     private void deshacer(Tarjeta t) {
         if (t.hecho == null) return;
         t.deshacer.setDisable(true);
-        DialogUtil.runAsync(() -> LoSeguro.deshacer(calidad, t.hecho),
+        DialogUtil.runAsync(() -> LoSeguro.deshacer(calidad, servicio, t.hecho),
             n -> {
                 cambio = true;
                 t.estado.setText("Deshecho: " + FormatUtils.plural(n, "bien quedó", "bienes quedaron") + " como estaba");

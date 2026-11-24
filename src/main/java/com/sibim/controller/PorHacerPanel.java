@@ -38,11 +38,16 @@ final class PorHacerPanel {
     PorHacerPanel(VBox seccion) {
         this.seccion = seccion;
         CalidadDatosService calidad = new CalidadDatosService();
+        // Worked out in the background too, not only read: with the factura and «Lo seguro» cards
+        // (24-nov-2026) it takes some 2 s over 2,962 bienes, and on the FX thread Inicio froze that long.
         DialogUtil.runAsync(
-            () -> new Datos(new ProductoService().getAll(), new ResguardoService().getAll(),
-                calidad.personasDistintas(), new ConfiguracionRepository().findAll(), solicitudesBaja(), pcsAtrasadas()),
-            d -> pintar(conEquipos(d.pcsAtrasadas(), conSolicitudes(d.solicitudesBaja(),
-                CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config())))),
+            () -> {
+                Datos d = new Datos(new ProductoService().getAll(), new ResguardoService().getAll(),
+                    calidad.personasDistintas(), new ConfiguracionRepository().findAll(), solicitudesBaja(), pcsAtrasadas());
+                return conEquipos(d.pcsAtrasadas(), conSolicitudes(d.solicitudesBaja(),
+                    CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config())));
+            },
+            this::pintar,
             e -> { /* It is a shortcut: without it, Inicio is what it was. */ });
     }
 

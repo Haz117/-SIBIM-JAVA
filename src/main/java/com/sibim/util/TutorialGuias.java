@@ -124,10 +124,10 @@ final class TutorialGuias {
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
             p.add(probar(paso("mdi2c-check-decagram", VERDE, VERDE_D, "Lo seguro, de una vez", "productos", "#btnMasBienes",
-                "Inicio › Por hacer › «cambios que SIBIM hace sin dudas» (y Bienes › Más › «Lo seguro, de una vez…»): en una ventana, el folio fiscal a su lugar, MUEBLE a lo que no es vehículo, el 15 % de valor residual y el color que dice su nombre",
+                "Inicio › Por hacer › «cambios que SIBIM hace sin dudas» (y Bienes › Más › «Lo seguro, de una vez…»): en una ventana, lo que ya tiene su factura, el folio fiscal a su lugar, MUEBLE a lo que no es vehículo, el 15 % de valor residual y el color que dice su nombre",
                 "Cada uno dice a cuántos bienes y trae un ejemplo; «Ver cuáles» enseña la lista. Quita la marca a lo que no quieras y pulsa «Aplicar lo marcado»",
                 "Cada arreglo hecho tiene su «Deshacer»; el valor residual solo va a las categorías donde ya se usa el 15 % (las demás, en Bienes › Más › «Valor residual»)",
-                "Por eso en Por hacer ya no salen por separado «Poner MUEBLE», «Poner el 15 %», «Pasarlo a su lugar» ni «Tomar el color»"),
+                "Por eso en Por hacer ya no salen por separado «Copiar datos», «Poner MUEBLE», «Poner el 15 %», «Pasarlo a su lugar» ni «Tomar el color»"),
                 "Revisarlos", abrir("productos", "seguro")));
             p.add(probar(paso("mdi2r-receipt", GUINDA, GUINDA_D, "Completar por factura", "productos", "#btnMasBienes",
                 "Bienes › Más › «Completar por factura»: cada renglón es una factura con todos sus bienes («Factura 1215 · 54 bienes»)",
@@ -141,6 +141,10 @@ final class TutorialGuias {
                 "Un clic (o Espacio) marca la foto para el bien, o varias, como las de una patrulla. Enter la guarda como su foto principal y pasa al siguiente bien, con la siguiente foto ya marcada",
                 "← → cambian de foto y ↑ ↓ de bien; si el bien ya tenía foto, «Quitar las fotos que ya tiene» la reemplaza. Cada bien se deshace desde su aviso"),
                 "Abrir Fotos de una carpeta", abrir("productos", "fotoscarpeta")));
+            p.add(paso("mdi2d-delete-clock-outline", DORADO, DORADO_D, "Candidatos a baja", "reportes", "#listaListados .report-row",
+                "Reportes › «Candidatos a baja» (PDF o Excel): los bienes en estado MALO o DEFICIENTE, área por área y los más viejos primero",
+                "Cada uno con su número anterior, resguardante, fecha de adquisición, años de uso, costo y valor en libros; arriba, cuántos son y cuánto suman",
+                "Sirve para preparar las bajas con cada área; la baja sigue siendo la solicitud y el dictamen, en Bajas"));
             p.add(paso("mdi2c-camera-outline", VERDE, VERDE_D, "La lista para tomar las fotos", "reportes", "#listaListados .report-row",
                 "Reportes › «Bienes sin foto, para tomarlas» (también en «Fotos de una carpeta»): una hoja por área, en el orden de su ubicación, con su número anterior —el que trae pegado— y una casilla",
                 "Tómalas en ese orden: en «Fotos de una carpeta» los bienes salen igual y cada foto se propone para el que sigue",
@@ -149,7 +153,9 @@ final class TutorialGuias {
                 "En el formulario, la foto que agregas queda primero: es la principal, la que sale en la tabla y en los formatos; la que tenía sigue ahí hasta que la quites",
                 "La ventana para elegirla abre en la carpeta de la última foto, también en Completar datos › Sin foto",
                 "La carpeta de las facturas también se recuerda, aunque cierres SIBIM: «Leer la factura», «Leer las facturas de una carpeta» y «Completar por factura» abren ahí",
-                "Los números llevan su coma en todas partes: «1,693 bienes» (antes, en algunos avisos, «1693 bienes»)"));
+                "Los números llevan su coma en todas partes: «1,693 bienes» (antes, en algunos avisos, «1693 bienes»)",
+                "Un costo de $1.00 (escrito para no dejarlo vacío) cuenta como «sin precio»: sale en Completar datos › Sin precio, y el formulario pregunta antes de guardar uno así",
+                "Inicio ya no se queda quieto unos segundos mientras calcula Por hacer"));
             p.add(probar(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "Completar por grupos", "productos", "#btnMasBienes",
                 "Bienes › Más › «Completar por grupos (mismo nombre)»: cada renglón es un nombre con todos sus bienes («ESPOSAS SEMIRIGIDAS (MANO) · 71 bienes»)",
                 "Escribes la vida útil, el color y el tipo una sola vez y se ponen a los bienes del grupo que no los tienen; Enter guarda y pasa al siguiente grupo",
