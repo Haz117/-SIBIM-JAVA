@@ -49,8 +49,14 @@
                 <!-- Patrimonio's, by what they need at hand (19-nov-2026: 14 options in a row). -->
                 <SeparatorMenuItem fx:id="sepRevisarDatos"/>
                 <MenuItem fx:id="secFactura" text="Completar y corregir, con la factura" disable="true" styleClass="menu-seccion"/>
+                <MenuItem fx:id="btnLoSeguro" text="Lo seguro, de una vez…" onAction="#onLoSeguro">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-decagram"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnCompletarDatos" text="Completar datos" onAction="#onCompletarDatos">
                     <graphic><FontIcon iconLiteral="mdi2c-clipboard-edit-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnCompletarFactura" text="Completar por factura" onAction="#onCompletarFactura">
+                    <graphic><FontIcon iconLiteral="mdi2r-receipt"/></graphic>
                 </MenuItem>
                 <MenuItem fx:id="btnCompletarGrupos" text="Completar por grupos (mismo nombre)" onAction="#onCompletarGrupos">
                     <graphic><FontIcon iconLiteral="mdi2f-format-list-checks"/></graphic>

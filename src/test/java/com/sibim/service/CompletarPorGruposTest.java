@@ -163,14 +163,16 @@ class CompletarPorGruposTest {
     }
 
     @Test
-    void enPorHacer_losGruposYLosColoresQueDiceSuNombre() {
+    void enPorHacer_losGrupos_yLoSeguroConLosColoresQueDiceSuNombre() {
         List<Producto> todos = new ArrayList<>(varios(3, "SILLA PLEGADIZA DE COLOR VERDE LIMON", "DIF Municipal", "1.2.4.1.1.511"));
         todos.add(bien("ESCRITORIO COLOR NOGAL", "Tesorería Municipal", "1.2.4.1.1.511"));
         var lista = CalidadDatosService.porHacer(todos, List.of(), Set.of(), Map.of());
         var grupos = lista.stream().filter(x -> "grupos".equals(x.abrir())).findFirst().orElseThrow();
         assertEquals(1, grupos.cantidad());
         assertTrue(grupos.titulo().contains("(3 bienes)"), grupos.titulo());
-        assertEquals(4, lista.stream().filter(x -> "colores".equals(x.abrir())).findFirst().orElseThrow().cantidad());
+        var seguro = lista.stream().filter(x -> "seguro".equals(x.abrir())).findFirst().orElseThrow();
+        assertEquals(8, seguro.cantidad(), "MUEBLE a los 4 por su clave y el color de su nombre a los 4");
+        assertTrue(seguro.titulo().contains("el color del nombre"), seguro.titulo());
     }
 
     /** 18-nov-2026: «NEGRO» was the tipo of 6 sillas; it is not passed on to their twins. */

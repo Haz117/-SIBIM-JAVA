@@ -24,26 +24,24 @@ class PorHacerGruposTest {
         assertEquals(PorHacerPanel.Grupo.CAPTURA, PorHacerPanel.grupo(p("formatos")));
         assertEquals(PorHacerPanel.Grupo.SEGUIMIENTO, PorHacerPanel.grupo(p("etiquetas")));
 
-        List<String> rapidos = List.of(p("series"), p("unir"), p("factura"), p("proveedores"), p("folio")).stream()
+        List<String> rapidos = List.of(p("series"), p("unir"), p("factura"), p("proveedores"), p("seguro")).stream()
             .sorted(Comparator.comparingInt(PorHacerPanel::orden)).map(PorHacer::abrir).toList();
-        assertEquals(List.of("folio", "proveedores", "factura", "unir", "series"), rapidos);
+        assertEquals(List.of("seguro", "proveedores", "factura", "unir", "series"), rapidos, "lo seguro (con el folio fiscal) primero");
         List<String> captura = List.of(p("completar:PRECIO"), p("completar:FOLIO_REVISAR"), p("formatos")).stream()
             .sorted(Comparator.comparingInt(PorHacerPanel::orden)).map(PorHacer::abrir).toList();
         assertEquals(List.of("completar:FOLIO_REVISAR", "formatos", "completar:PRECIO"), captura);
     }
 
-    /** 24-nov-2026: «Completar por grupos» is captured with the bien in view; «Tomar el color» is
-     *  proposed by SIBIM and stays among the 4 in view. */
+    /** 24-nov-2026: «Completar por factura», «por grupos» and the photos are captured with the
+     *  factura or the bien in view, in that order; «Lo seguro» is proposed by SIBIM. */
     @Test
-    void losGruposSeCapturan_yElColorDelNombreSeVe() {
-        assertEquals(PorHacerPanel.Grupo.CAPTURA, PorHacerPanel.grupo(p("grupos")));
-        assertEquals(PorHacerPanel.Grupo.RAPIDO, PorHacerPanel.grupo(p("colores")));
-        List<String> captura = List.of(p("completar:PRECIO"), p("completar:FOLIO_REVISAR"), p("grupos")).stream()
+    void facturaGruposYFotosSeCapturan_yLoSeguroSePropone() {
+        for (String a : List.of("porfactura", "grupos", "fotoscarpeta"))
+            assertEquals(PorHacerPanel.Grupo.CAPTURA, PorHacerPanel.grupo(p(a)), a);
+        assertEquals(PorHacerPanel.Grupo.RAPIDO, PorHacerPanel.grupo(p("seguro")));
+        List<String> captura = List.of(p("completar:PRECIO"), p("completar:FOLIO_REVISAR"), p("grupos"), p("porfactura")).stream()
             .sorted(Comparator.comparingInt(PorHacerPanel::orden)).map(PorHacer::abrir).toList();
-        assertEquals(List.of("grupos", "completar:FOLIO_REVISAR", "completar:PRECIO"), captura);
-        List<String> rapidos = List.of(p("factura"), p("tipo"), p("mismonombre"), p("proveedores"), p("colores"), p("folio")).stream()
-            .sorted(Comparator.comparingInt(PorHacerPanel::orden)).map(PorHacer::abrir).toList();
-        assertEquals(List.of("folio", "colores", "proveedores", "mismonombre", "factura", "tipo"), rapidos);
+        assertEquals(List.of("porfactura", "grupos", "completar:FOLIO_REVISAR", "completar:PRECIO"), captura);
     }
 
     /** 19-nov-2026: «Se arreglan en un momento» had 9 tasks; 4 show and «Ver 5 más», but one more

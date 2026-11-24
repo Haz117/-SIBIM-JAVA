@@ -7,7 +7,7 @@ import com.sibim.service.FotosDeCarpeta.Foto;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteFotosPorTomarService;
 import com.sibim.util.AppColors;
-import com.sibim.util.CarpetaDeFotos;
+import com.sibim.util.CarpetaRecordada;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -113,7 +113,7 @@ public final class FotosDeCarpetaDialog {
 
     /** @param areaInicial the área to open on, or null for all */
     public static void show(List<Producto> bienes, String areaInicial, Runnable alCambiar) {
-        new FotosDeCarpetaDialog(bienes, alCambiar).abrir(areaInicial, CarpetaDeFotos.ultima());
+        new FotosDeCarpetaDialog(bienes, alCambiar).abrir(areaInicial, CarpetaRecordada.FOTOS.ultima());
     }
 
     /** @param carpetaInicial the folder to open with (the tests', not the one remembered on this PC) */
@@ -349,11 +349,11 @@ public final class FotosDeCarpetaDialog {
     private void elegirCarpeta() {
         DirectoryChooser dc = new DirectoryChooser();
         dc.setTitle("Carpeta con las fotos");
-        File ultima = carpeta != null ? carpeta : CarpetaDeFotos.ultima();
+        File ultima = carpeta != null ? carpeta : CarpetaRecordada.FOTOS.ultima();
         if (ultima != null && ultima.isDirectory()) dc.setInitialDirectory(ultima);
         File elegida = dc.showDialog(dialog.getDialogPane().getScene().getWindow());
         if (elegida == null) return;
-        CarpetaDeFotos.recordar(elegida);
+        CarpetaRecordada.FOTOS.recordar(elegida);
         leerCarpeta(elegida);
     }
 

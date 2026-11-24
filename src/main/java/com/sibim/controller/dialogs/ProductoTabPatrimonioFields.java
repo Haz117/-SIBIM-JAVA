@@ -406,9 +406,6 @@ class ProductoTabPatrimonioFields {
     final javafx.scene.control.Hyperlink lnkXml = new javafx.scene.control.Hyperlink("Leer la factura (XML o PDF)…");
     final Label lblXml = new Label();
 
-    /** Where the last factura was picked from, to open there the next time. */
-    private static java.io.File carpetaXml;
-
     /** «Leer la factura (XML o PDF)…»: picks the CFDI, or its PDF (19-nov-2026: Patrimonio has
      *  the facturas in PDF), and fills the purchase from it.
      *  @param costo the costo field (the other tab builds it)
@@ -421,10 +418,11 @@ class ProductoTabPatrimonioFields {
                 new javafx.stage.FileChooser.ExtensionFilter("Factura electrónica (XML o PDF)", "*.xml", "*.XML", "*.pdf", "*.PDF"),
                 new javafx.stage.FileChooser.ExtensionFilter("Solo XML", "*.xml", "*.XML"),
                 new javafx.stage.FileChooser.ExtensionFilter("Solo PDF", "*.pdf", "*.PDF"));
-            if (carpetaXml != null && carpetaXml.isDirectory()) fc.setInitialDirectory(carpetaXml);
+            java.io.File carpetaXml = com.sibim.util.CarpetaRecordada.FACTURAS.ultima();
+            if (carpetaXml != null) fc.setInitialDirectory(carpetaXml);
             java.io.File archivo = fc.showOpenDialog(grid.getScene() != null ? grid.getScene().getWindow() : null);
             if (archivo == null) return;
-            carpetaXml = archivo.getParentFile();
+            com.sibim.util.CarpetaRecordada.FACTURAS.recordar(archivo);
             if (archivo.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
                 mostrarXml("Leyendo el PDF…", false);
                 DialogUtil.runAsync(() -> {

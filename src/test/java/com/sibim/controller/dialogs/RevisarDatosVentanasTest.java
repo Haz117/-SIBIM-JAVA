@@ -352,6 +352,58 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         assertTrue(panel.lookupAll(".fdc-usada-en").stream().noneMatch(Node::isVisible), "ninguna quedó como de otro bien");
     }
 
+    /** 24-nov-2026: 214 facturas without the proveedor in any of their bienes; one row per factura. */
+    @Test
+    void porFactura_unRenglonPorFactura_conLoQueTienenSusOtrosBienes_yUnFolioMaloNoSeGuarda() throws Exception {
+        List<Producto> bienes = new ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            Producto p = bien(String.valueOf(i), "OP/" + i, "Ana", "Secretaría de Obras Públicas");
+            p.setNombre("REVOLVEDORA");
+            p.setNumeroFactura("FAC 12345");
+            bienes.add(p);
+        }
+        bienes.get(0).setProveedor("MAQUINARIA DEL CENTRO");
+        Producto otra = bien("4", "TES/4", "Ana", "Tesorería Municipal");
+        otra.setNumeroFactura("XYZ-98765");
+        bienes.add(otra);
+        bienes.add(bien("5", "TES/5", "Ana", "Tesorería Municipal"));
+        Platform.runLater(() -> CompletarPorFacturaDialog.show(bienes, null, null));
+        DialogPane panel = abierto();
+        assertEquals(2, visibles(panel, ".cnt-fila"), "un bien sin factura no es renglón");
+        java.util.function.Function<String, Node> control = texto -> panel.lookupAll(".form-input").stream()
+            .filter(n -> texto.equals(n.getAccessibleText())).findFirst().orElseThrow(() -> new AssertionError(texto));
+        assertEquals("MAQUINARIA DEL CENTRO", ((TextField) control.apply("Proveedor de la factura FAC 12345")).getText(),
+            "lo tiene otro bien de su factura");
+        TextField folio = (TextField) control.apply("Folio fiscal de la factura FAC 12345");
+        interact(() -> folio.setText("3822637C-8B6A"));
+        for (var tipo : List.of(KeyEvent.KEY_PRESSED, KeyEvent.KEY_RELEASED))
+            interact(() -> javafx.event.Event.fireEvent(folio, new KeyEvent(tipo, "", "", KeyCode.ENTER, false, false, false, false)));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(panel.lookupAll(".cell-badge-danger").stream().anyMatch(n -> n.isVisible()
+            && ((Label) n).getText().startsWith("El folio fiscal")), "dice qué tiene mal el folio");
+    }
+
+    /** 24-nov-2026: MUEBLE and the 15 % typed by hand while their tools waited in four cards. */
+    @Test
+    void loSeguro_cadaArregloConSuCasilla_yElTotalSigueALasMarcas() throws Exception {
+        Producto mueble = bien("1", "TES/1", "Ana", "Tesorería Municipal");
+        mueble.setNombre("ESCRITORIO COLOR NOGAL");
+        mueble.setClaveArmonizada("1.2.4.1.1.511");
+        Producto folio = bien("2", "SSPC/2", "Ana", "Seguridad Pública — C-2");
+        folio.setNumeroFactura("3822637C-8B6A-410A-B1C2-0123456789AB");
+        Platform.runLater(() -> LoSeguroDialog.show(List.of(mueble, folio), null));
+        DialogPane panel = abierto();
+        List<CheckBox> marcas = panel.lookupAll(".check-box").stream().map(n -> (CheckBox) n).toList();
+        assertEquals(List.of("El folio fiscal, a su lugar", "MUEBLE a lo que no es vehículo", "El color que dice su nombre"),
+            marcas.stream().map(CheckBox::getText).toList());
+        assertTrue(marcas.stream().allMatch(CheckBox::isSelected), "vienen marcados");
+        Label total = (Label) panel.lookupAll(".muted-sm").stream()
+            .filter(n -> n instanceof Label l && l.getText().contains("cambio")).findFirst().orElseThrow();
+        assertEquals("3 arreglos · 3 cambios", total.getText());
+        interact(() -> marcas.get(1).setSelected(false));
+        assertEquals("2 arreglos · 2 cambios", total.getText());
+    }
+
     @Test
     void completar_abreEnElDatoPedido() throws Exception {
         List<Producto> bienes = List.of(bien("1", "A/1", "ANA RUIZ", "Tesorería Municipal"));

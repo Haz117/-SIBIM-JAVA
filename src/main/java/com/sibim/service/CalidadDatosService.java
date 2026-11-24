@@ -1352,20 +1352,26 @@ public class CalidadDatosService {
             "datos que ya dicen, todos igual, los demás bienes con el mismo nombre", "Revisarlos", "productos", "mismonombre");
         agregar(out, escritosDeDosFormas(bienes).size(), "proveedores, marcas, colores o tipos escritos de dos formas",
             "Unirlos", "productos", "proveedores");
-        agregar(out, sinTipoConSugerencia(bienes).size(), "bienes sin tipo de bien que por su clave CONAC son «MUEBLE»",
-            "Poner MUEBLE", "productos", "tipo");
-        // 24-nov-2026: 691 bienes without color said it in their name, and taking it was only in
-        // Completar datos › Sin color.
-        agregar(out, conColorEnSuNombre(bienes), "bienes sin color que lo dicen en su nombre («… COLOR NEGRO»)",
-            "Tomar el color", "productos", "colores");
         agregar(out, CostoDeSuCompra.cuantos(CostoDeSuCompra.grupos(bienes)),
             "bienes con otro costo que sus iguales de la misma compra (a unos les falta el IVA)", "Revisarlos", "productos", "costos");
-        agregar(out, sinResidual(bienes).size(), "bienes con costo y el valor residual en $0 (casi todos llevan el 15 %)",
-            "Poner el 15 %", "productos", "residual");
-        agregar(out, folioEnFactura(bienes).size(), "bienes con el folio fiscal escrito en «Factura»",
-            "Pasarlo a su lugar", "productos", "folio");
+        // 24-nov-2026: four cards (MUEBLE, the 15 %, the folio in «Factura», the color of the name) waited
+        // while 441 MUEBLE and 174 residuals were typed by hand: one card, one window, each undone apart.
+        List<LoSeguro.Propuesta> seguro = LoSeguro.proponer(bienes);
+        agregar(out, LoSeguro.cambios(seguro), "cambios que SIBIM hace sin dudas: "
+                + seguro.stream().map(p -> switch (p.arreglo()) {
+                    case FOLIO -> "folio fiscal a su lugar";
+                    case TIPO -> "MUEBLE";
+                    case RESIDUAL -> "el 15 % de valor residual";
+                    case COLOR -> "el color del nombre";
+                }).collect(java.util.stream.Collectors.joining(", ")),
+            "Revisarlos", "productos", "seguro");
         agregar(out, cuantos(bienes, Dato.FOLIO_REVISAR), "folios fiscales mal escritos", "Revisarlos",
             "productos", "completar:FOLIO_REVISAR");
+        // 24-nov-2026: 214 facturas where no bien had the proveedor; one typed once for all its bienes.
+        List<CompletarPorFactura.Factura> facturas = CompletarPorFactura.facturas(bienes);
+        agregar(out, facturas.size(), "facturas a las que les falta proveedor, fecha o folio fiscal ("
+                + com.sibim.util.FormatUtils.plural(facturas.stream().mapToInt(CompletarPorFactura.Factura::incompletos).sum(), "bien", "bienes") + ")",
+            "Completar por factura", "productos", "porfactura");
         // 24-nov-2026: a week of «Cambiar datos» a name at a time (610 bienes in 20 rounds).
         List<CompletarPorGrupos.Grupo> grupos = CompletarPorGrupos.grupos(bienes);
         agregar(out, grupos.size(), "grupos de bienes con el mismo nombre ("
@@ -1398,12 +1404,6 @@ public class CalidadDatosService {
             out.add(0, new PorHacer(sinRespaldo, "días sin respaldo de la base: revisa el respaldo diario de la PC de Patrimonio",
                 "Ver Configuración", "configuracion", null));
         return out;
-    }
-
-    /** The bienes in force without color whose name or description says it ({@link com.sibim.util.ColorEnNombre}). */
-    public static long conColorEnSuNombre(List<Producto> bienes) {
-        return bienes.stream().filter(p -> p.getFechaBaja() == null && falta(p, Dato.COLOR)
-            && com.sibim.util.ColorEnNombre.de(p.getNombre(), p.getDescripcion()) != null).count();
     }
 
     /** Written by scripts/respaldo_diario.ps1 after each backup: "2026-11-11T11:00:04|PC|1.03". */

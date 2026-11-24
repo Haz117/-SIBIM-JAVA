@@ -62,9 +62,13 @@ public final class FormatUtils {
         return Character.toUpperCase(t.charAt(0)) + t.substring(1);
     }
 
+    /** «1 bien», «1,693 bienes»: with its thousands, as Inicio writes them (24-nov-2026: «Lo seguro»
+     *  said «4188 cambios» next to cards that say «4,188»). */
     public static String plural(long n, String singular, String plural) {
-        return n + " " + (n == 1 ? singular : plural);
+        return String.format(MILES, "%,d", n) + " " + (n == 1 ? singular : plural);
     }
+
+    private static final java.util.Locale MILES = java.util.Locale.forLanguageTag("es-MX");
 
     public static long diasHastaVencimiento(LocalDate fechaVencimiento) {
         if (fechaVencimiento == null) return Long.MAX_VALUE;

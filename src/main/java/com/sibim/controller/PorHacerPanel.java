@@ -280,15 +280,15 @@ final class PorHacerPanel {
         String a = p.abrir();
         // The late backup, an área waiting for an answer, bienes an área says aren't its own.
         if (a == null || "solicitudes".equals(a) || "observados".equals(a)) return Grupo.PRIMERO;
-        if (a.startsWith("completar:") || Set.of("formatos", "grupos", "fotoscarpeta").contains(a)) return Grupo.CAPTURA;
+        if (a.startsWith("completar:") || Set.of("formatos", "porfactura", "grupos", "fotoscarpeta").contains(a)) return Grupo.CAPTURA;
         if (Set.of("lote", "juntar", "etiquetas", "vehiculos", "equipos").contains(a)) return Grupo.SEGUIMIENTO;
         return Grupo.RAPIDO;
     }
 
-    /** Inside a kind: the folio fiscal first, because then «misma factura» copies more; the colors the
-     *  names say right after, within the 4 in view (24-nov-2026: they depend on nothing else). */
-    private static final List<String> ORDEN = List.of("solicitudes", "observados", "folio", "colores", "proveedores", "mismonombre", "factura",
-        "tipo", "costos", "residual", "unir", "titulos", "series", "grupos", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "vehiculos", "equipos");
+    /** Inside a kind: what SIBIM does without a doubt first (the folio fiscal to its place among it,
+     *  because then «misma factura» copies more), then what is reviewed. */
+    private static final List<String> ORDEN = List.of("solicitudes", "observados", "seguro", "proveedores", "mismonombre", "factura",
+        "costos", "residual", "unir", "titulos", "series", "porfactura", "grupos", "completar:FOLIO_REVISAR", "formatos", "lote", "juntar", "etiquetas", "vehiculos", "equipos");
 
     static int orden(PorHacer p) {
         int i = p.abrir() == null ? -1 : ORDEN.indexOf(p.abrir());

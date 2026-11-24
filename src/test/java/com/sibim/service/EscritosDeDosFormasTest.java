@@ -133,8 +133,9 @@ class EscritosDeDosFormasTest {
         List<Producto> bienes = new ArrayList<>(varios(3, p -> p.setClaveArmonizada("1.2.4.1.1.511")));
         bienes.addAll(marcas("TRUPER", 3, "TRUPPER", 1));
         var porHacer = CalidadDatosService.porHacer(bienes, List.of(), java.util.Set.of(), Map.of());
-        var mueble = porHacer.stream().filter(p -> "tipo".equals(p.abrir())).findFirst().orElseThrow();
-        assertEquals(3, mueble.cantidad(), "los 3 con clave; los 4 de marca no tienen clave: " + mueble);
+        var mueble = porHacer.stream().filter(p -> "seguro".equals(p.abrir())).findFirst().orElseThrow();
+        assertEquals(3, mueble.cantidad(), "MUEBLE a los 3 con clave; los 4 de marca no tienen clave: " + mueble);
+        assertTrue(mueble.titulo().contains("MUEBLE"), mueble.titulo());
         var unir = porHacer.stream().filter(p -> "proveedores".equals(p.abrir())).findFirst().orElseThrow();
         assertEquals(1, unir.cantidad());
         assertEquals("Unirlos", unir.accion());

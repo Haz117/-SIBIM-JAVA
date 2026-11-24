@@ -306,14 +306,21 @@ public final class CompletarDatosDialog {
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
 
         // 24-nov-2026: 610 bienes in a week were filled a name at a time with «Cambiar datos».
-        Button porGrupos = new Button("Por grupos (mismo nombre)…");
+        // Shown with the datos they fill: a name's vida útil, color and tipo; a factura's proveedor, fecha and folio.
+        porGrupos.setText("Por grupos (mismo nombre)…");
         porGrupos.setGraphic(new FontIcon("mdi2f-format-list-checks"));
         porGrupos.getStyleClass().add("btn-secondary");
         porGrupos.setMinWidth(Region.USE_PREF_SIZE);
         porGrupos.setTooltip(new Tooltip("Vida útil, color y tipo, escritos una vez para todos los bienes con el mismo nombre"));
         porGrupos.setOnAction(e -> abrirPorGrupos());
+        porFactura.setText("Por factura…");
+        porFactura.setGraphic(new FontIcon("mdi2r-receipt"));
+        porFactura.getStyleClass().add("btn-secondary");
+        porFactura.setMinWidth(Region.USE_PREF_SIZE);
+        porFactura.setTooltip(new Tooltip("Proveedor, fecha y folio fiscal, escritos una vez (o leídos de su PDF) para todos los bienes de una factura"));
+        porFactura.setOnAction(e -> abrirPorFactura());
         HBox.setHgrow(buscar, Priority.ALWAYS);
-        HBox barraBuscar = new HBox(10, buscar, porGrupos);
+        HBox barraBuscar = new HBox(10, buscar, porGrupos, porFactura);
         barraBuscar.setAlignment(Pos.CENTER_LEFT);
 
         panel.getChildren().setAll(tituloArea, chips, barraConac, barraNombre, barraBuscar, barraTodos, ayuda, lista);
@@ -347,24 +354,35 @@ public final class CompletarDatosDialog {
         });
     }
 
+    private final Button porGrupos = new Button(), porFactura = new Button();
+
+    /** «Por factura»: on the área chosen; what it saves is what the rows have from then on. */
+    private void abrirPorFactura() {
+        String area = areas.getSelectionModel().getSelectedItem();
+        CompletarPorFacturaDialog.show(filas.stream().map(f -> f.producto).toList(), TODAS.equals(area) ? null : area, this::tomarGuardados);
+    }
+
+    /** The rows take the bienes as a window opened from here saved them. */
+    private void tomarGuardados(java.util.Collection<Producto> guardados) {
+        if (guardados.isEmpty()) return;
+        Map<String, Producto> porId = new HashMap<>();
+        guardados.forEach(p -> porId.put(p.getId(), p));
+        for (Fila f : filas) {
+            Producto g = porId.get(f.producto.getId());
+            if (g != null) f.producto = g;
+        }
+        cambio = true;
+        vidaDeSuClave = null;
+        cargarAreas();
+        refiltrar();
+        actualizarConteos();
+        lista.refresh();
+    }
+
     /** «Por grupos»: on the área chosen; what it saves is what the rows have from then on. */
     private void abrirPorGrupos() {
         String area = areas.getSelectionModel().getSelectedItem();
-        CompletarPorGruposDialog.show(filas.stream().map(f -> f.producto).toList(), TODAS.equals(area) ? null : area, guardados -> {
-            if (guardados.isEmpty()) return;
-            Map<String, Producto> porId = new HashMap<>();
-            guardados.forEach(p -> porId.put(p.getId(), p));
-            for (Fila f : filas) {
-                Producto g = porId.get(f.producto.getId());
-                if (g != null) f.producto = g;
-            }
-            cambio = true;
-            vidaDeSuClave = null;
-            cargarAreas();
-            refiltrar();
-            actualizarConteos();
-            lista.refresh();
-        });
+        CompletarPorGruposDialog.show(filas.stream().map(f -> f.producto).toList(), TODAS.equals(area) ? null : area, this::tomarGuardados);
     }
 
     private void mostrarArea() {
@@ -374,6 +392,8 @@ public final class CompletarDatosDialog {
         if (area == null) return;
         tituloArea.setText(area);
         Dato dato = datoElegido();
+        ver(porGrupos, dato == Dato.VIDA_UTIL || dato == Dato.COLOR || dato == Dato.TIPO);
+        ver(porFactura, dato == Dato.PROVEEDOR || dato == Dato.FOLIO || dato == Dato.FECHA);
         // Another área or dato is another list: what was typed or marked belonged to the last one.
         for (Fila f : filas) { f.texto = ""; f.fecha = null; f.guardado = false; f.error = null; }
         // A folio to correct starts with what is written, to fix the character that is off.
@@ -990,11 +1010,11 @@ public final class CompletarDatosDialog {
         FileChooser fc = new FileChooser();
         fc.setTitle("Foto de " + f.producto.getCodigo());
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imágenes (*.jpg, *.png)", "*.jpg", "*.jpeg", "*.png"));
-        File carpeta = com.sibim.util.CarpetaDeFotos.ultima();
+        File carpeta = com.sibim.util.CarpetaRecordada.FOTOS.ultima();
         if (carpeta != null) fc.setInitialDirectory(carpeta);
         File archivo = fc.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
         if (archivo == null) return;
-        com.sibim.util.CarpetaDeFotos.recordar(archivo);
+        com.sibim.util.CarpetaRecordada.FOTOS.recordar(archivo);
         Producto p = f.producto;
         f.guardando = true;
         f.error = null;

@@ -110,14 +110,14 @@ final class GaleriaFotos {
     private void agregar() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Seleccionar imagen del bien");
-        java.io.File carpeta = com.sibim.util.CarpetaDeFotos.ultima();
+        java.io.File carpeta = com.sibim.util.CarpetaRecordada.FOTOS.ultima();
         if (carpeta != null) chooser.setInitialDirectory(carpeta);
         chooser.getExtensionFilters().add(
             new FileChooser.ExtensionFilter("Imágenes",
                 "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"));
         List<File> files = chooser.showOpenMultipleDialog(dialog.getOwner());
         if (files == null || files.isEmpty()) return;
-        com.sibim.util.CarpetaDeFotos.recordar(files.get(0));
+        com.sibim.util.CarpetaRecordada.FOTOS.recordar(files.get(0));
         List<String> nuevas = new java.util.ArrayList<>();
         for (File file : files) {
             if (ImageUtils.exceedsMaxSize(file)) {

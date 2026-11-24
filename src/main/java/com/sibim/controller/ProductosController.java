@@ -249,7 +249,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnCompletarGrupos, btnFotosCarpeta, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnFacturasCarpeta, btnCostosDistintos, btnResidual, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos,
+        for (MenuItem m : new MenuItem[]{btnLoSeguro, btnCompletarDatos, btnCompletarFactura, btnCompletarGrupos, btnFotosCarpeta, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnMismaFactura, btnFolioFiscal, btnFacturasCarpeta, btnCostosDistintos, btnResidual, btnUnirProveedores, btnJuntarBienes, btnFotosRepetidas, btnEtiquetasArea, sepRevisarDatos,
                 secFactura, sepEscrito, secEscrito, sepRepetidos, secRepetidos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
@@ -414,6 +414,8 @@ public class ProductosController {
         switch (abrir) {
             case "completar" -> Platform.runLater(this::onCompletarDatos);
             case "grupos"    -> Platform.runLater(this::onCompletarGrupos);
+            case "porfactura" -> Platform.runLater(this::onCompletarFactura);
+            case "seguro"    -> Platform.runLater(this::onLoSeguro);
             case "fotoscarpeta" -> Platform.runLater(this::onFotosCarpeta);
             // 24-nov-2026: 691 bienes without color said it in their name; straight to the review.
             case "colores"   -> Platform.runLater(() -> conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.showTomarColores(bienes, this::alCorregirDatos)));
@@ -598,6 +600,8 @@ public class ProductosController {
     @FXML private Label lblPistaAcciones;
     @FXML private MenuItem btnCompletarDatos;
     @FXML private MenuItem btnCompletarGrupos;
+    @FXML private MenuItem btnCompletarFactura;
+    @FXML private MenuItem btnLoSeguro;
     @FXML private MenuItem btnFotosCarpeta;
     @FXML private MenuItem btnUnirPersonas;
     @FXML private MenuItem btnQuitarTitulos;
@@ -608,8 +612,6 @@ public class ProductosController {
     @FXML private MenuItem btnResidual;
     @FXML private MenuItem btnCostosDistintos;
     @FXML private MenuItem btnFacturasCarpeta;
-    /** Where the facturas were read from the last time. */
-    private static java.io.File carpetaFacturas;
     @FXML private MenuItem btnUnirProveedores;
     @FXML private MenuItem btnFotosRepetidas;
     @FXML private MenuItem btnCostoLotes;
@@ -639,6 +641,18 @@ public class ProductosController {
     @FXML
     private void onFotosCarpeta() {
         conInventario(bienes -> com.sibim.controller.dialogs.FotosDeCarpetaDialog.show(bienes, null, this::alCorregirDatos));
+    }
+
+    /** The four fixes SIBIM makes without a doubt, in one window (24-nov-2026). */
+    @FXML
+    private void onLoSeguro() {
+        conInventario(bienes -> com.sibim.controller.dialogs.LoSeguroDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onCompletarFactura() {
+        conInventario(bienes -> com.sibim.controller.dialogs.CompletarPorFacturaDialog.show(bienes, null,
+            guardados -> { if (!guardados.isEmpty()) alCorregirDatos(); }));
     }
 
     @FXML
@@ -742,10 +756,11 @@ public class ProductosController {
     private void onFacturasCarpeta() {
         javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
         dc.setTitle("Carpeta con las facturas (PDF o XML)");
-        if (carpetaFacturas != null && carpetaFacturas.isDirectory()) dc.setInitialDirectory(carpetaFacturas);
+        java.io.File carpetaFacturas = com.sibim.util.CarpetaRecordada.FACTURAS.ultima();
+        if (carpetaFacturas != null) dc.setInitialDirectory(carpetaFacturas);
         java.io.File carpeta = dc.showDialog(table.getScene().getWindow());
         if (carpeta == null) return;
-        carpetaFacturas = carpeta;
+        com.sibim.util.CarpetaRecordada.FACTURAS.recordar(carpeta);
         javafx.scene.Scene scene = table.getScene();
         conInventario(bienes -> DialogUtil.runAsyncWithProgress(scene, "Leyendo las facturas de " + carpeta.getName() + "…",
             () -> {
