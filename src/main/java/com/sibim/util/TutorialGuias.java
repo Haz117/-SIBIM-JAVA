@@ -119,10 +119,15 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: lo seguro de una vez, completar por factura, las fotos de una carpeta, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
+                "Aquí está solo lo nuevo: el menú que siempre cabe, lo seguro de una vez, completar por factura, las fotos de una carpeta, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
+            p.add(paso("mdi2d-dots-horizontal", GUINDA, GUINDA_D, "El menú siempre cabe", null, null,
+                "Si la ventana es baja, las últimas opciones del menú de la izquierda pasan a «Más ●N», justo después de la última que cabe; ya no hay que bajar con la barra de desplazamiento",
+                "«Más» las enseña por sección, con su ícono, su aviso y su atajo; se abre con un clic, Enter o ↓, y se cierra con Escape o con un clic afuera",
+                "La pantalla en la que estás siempre se queda en el menú, y al agrandar la ventana todo regresa a su lugar, en su orden",
+                "Con el menú en íconos, primero se juntan un poco y solo si aun así no caben pasan a «Más»"));
             p.add(probar(paso("mdi2c-check-decagram", VERDE, VERDE_D, "Lo seguro, de una vez", "productos", "#btnMasBienes",
                 "Inicio › Por hacer › «cambios que SIBIM hace sin dudas» (y Bienes › Más › «Lo seguro, de una vez…»): en una ventana, lo que ya tiene su factura, el folio fiscal a su lugar, MUEBLE a lo que no es vehículo, el 15 % de valor residual y el color que dice su nombre",
                 "Cada uno dice a cuántos bienes y trae un ejemplo; «Ver cuáles» enseña la lista. Quita la marca a lo que no quieras y pulsa «Aplicar lo marcado»",
@@ -183,6 +188,9 @@ final class TutorialGuias {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Aquí está solo lo nuevo; lo de antes está en las guías por tema (F2), como «Mantener al día los bienes de mi área»",
                 "Cada paso te lleva a la pantalla y marca dónde está"));
+            p.add(paso("mdi2d-dots-horizontal", GUINDA, GUINDA_D, "El menú siempre cabe", null, null,
+                "Si la ventana es baja, las últimas opciones del menú de la izquierda pasan a «Más ●N»; ya no hay que bajar para encontrarlas",
+                "La pantalla en la que estás siempre se queda en el menú, y al agrandar la ventana todo regresa a su lugar"));
             p.add(paso("mdi2c-camera-plus-outline", VERDE, VERDE_D, "La foto nueva, la principal", null, null,
                 "Al poner una foto a un bien, la nueva queda primero: es la que se ve en la lista y en su ficha; la que tenía sigue ahí hasta que la quites",
                 "La ventana para elegirla abre en la carpeta de la última foto"));
