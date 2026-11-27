@@ -180,6 +180,8 @@ public class AlertasController implements Refreshable {
         AlertasColumnSetup.configureGarantias(colGaNombre, colGaCodigo, colGaFecha, colGaDias);
         colGaArea.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getArea() != null ? c.getValue().getArea() : ""));
+        com.sibim.util.CeldaArea.instalar(colGaArea);
+        com.sibim.util.CeldaArea.instalar(colMantArea);
         tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableMantenimiento.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
     }

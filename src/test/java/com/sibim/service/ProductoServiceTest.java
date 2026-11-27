@@ -363,6 +363,16 @@ class ProductoServiceTest {
             ProductoService.cambios(antes, despues));
     }
 
+    /** 26-nov-2026: a photo added beside the principal one read «Se guardó sin cambios». */
+    @Test void cambioDeFotos_diceCuantasEranYCuantasSon() {
+        assertEquals("fotos (1 → 2)", ProductoService.cambioDeFotos(List.of("a"), List.of("a", "b"), ""));
+        assertEquals("fotos (2 → 1)", ProductoService.cambioDeFotos(List.of("a", "b"), List.of("b"), "foto"));
+        assertEquals("una foto por otra", ProductoService.cambioDeFotos(List.of("a"), List.of("b"), "foto"));
+        assertEquals("", ProductoService.cambioDeFotos(List.of("a", "b"), List.of("b", "a"), "foto"), "solo cambió la principal");
+        assertEquals("", ProductoService.cambioDeFotos(List.of(), List.of("a"), "foto agregada"), "ya lo dice");
+        assertEquals("foto agregada", ProductoService.cambioDeFotos(List.of(), List.of("a"), ""));
+    }
+
     // ── Patrimonio regresa un aviso «No es del área» (9-nov-2026) ─────────────
 
     private Producto avisado(String id, String nota) {

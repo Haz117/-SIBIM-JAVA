@@ -400,6 +400,7 @@ public class ProductoService {
         }
         validate(p);
         String queCambio = antes != null ? cambios(antes, p) : "";
+        if (antes != null) queCambio = conSusFotos(queCambio, p);
 
         boolean codigoPorArea = isNew && AreaCodigos.tienePrefijo(p.getArea());
         Producto saved;
@@ -554,6 +555,37 @@ public class ProductoService {
         if (!java.util.Objects.equals(sinBlancos(antes.getFacturaUrl()), sinBlancos(despues.getFacturaUrl())))
             c.add("archivo de factura");
         return String.join(", ", c);
+    }
+
+    /** The photos beside the principal one aren't in the bien's row: adding one while the
+     *  principal stayed read «Se guardó sin cambios» in the Auditoría (26-nov-2026: SSP/21 and
+     *  SSP/51, each with a new photo). Only for a form that carries its photos; offline, as before. */
+    private String conSusFotos(String queCambio, Producto p) {
+        if (p.getFotosUrls() == null || p.getFotosUrls().isEmpty() || p.getId() == null
+                || com.sibim.db.DatabaseConfig.isOfflineMode()) return queCambio;
+        try {
+            String fotos = cambioDeFotos(productoRepo.findFotos(p.getId()), p.getFotosUrls(), queCambio);
+            if (fotos.isEmpty()) return queCambio;
+            // «fotos (1 → 2)» already says it: not also «foto» for the new principal.
+            List<String> partes = new ArrayList<>(queCambio.isEmpty() ? List.of() : List.of(queCambio.split(", ")));
+            if (!fotos.equals("foto agregada")) partes.remove("foto");
+            partes.add(fotos);
+            return String.join(", ", partes);
+        } catch (SQLException e) {
+            log.debug("Sin las fotos de antes de {}: {}", p.getId(), e.getMessage());
+            return queCambio;
+        }
+    }
+
+    /** «fotos (1 → 2)» when there are more or fewer, «una foto por otra» when as many but not the
+     *  same ones; nothing when what changed is only which one
+     *  is the principal, or a photo added to or taken from a bien without photos (that already
+     *  says «foto», «foto agregada» or «foto quitada»). */
+    static String cambioDeFotos(List<String> eran, List<String> son, String yaDice) {
+        List<String> a = eran == null ? List.of() : eran, b = son == null ? List.of() : son;
+        if (new java.util.HashSet<>(a).equals(new java.util.HashSet<>(b)) && a.size() == b.size()) return "";
+        if (a.isEmpty() || b.isEmpty()) return yaDice.contains("foto") ? "" : a.isEmpty() ? "foto agregada" : "foto quitada";
+        return a.size() == b.size() ? "una foto por otra" : "fotos (" + a.size() + " → " + b.size() + ")";
     }
 
     private static void valor(List<String> cambios, String campo, String antes, String despues) {

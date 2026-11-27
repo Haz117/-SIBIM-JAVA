@@ -261,6 +261,7 @@
                                   wrapText="true" maxWidth="240"/></tooltip>
             </Button>
             <Label fx:id="notifBadge" text="0" styleClass="notif-bell-badge"
+                   maxWidth="-Infinity" maxHeight="-Infinity"
                    visible="false" managed="false" mouseTransparent="true"
                    StackPane.alignment="TOP_RIGHT"/>
         </StackPane>

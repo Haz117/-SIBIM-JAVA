@@ -70,6 +70,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         colBien.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
         colAreaOrigen.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAreaOrigen()));
         colAreaDestino.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAreaDestino()));
+        com.sibim.util.CeldaArea.instalar(colAreaOrigen);
+        com.sibim.util.CeldaArea.instalar(colAreaDestino);
         colResponsable.setCellValueFactory(c -> {
             String n = c.getValue().getResponsableNombre();
             String cargo = c.getValue().getResponsableCargo();

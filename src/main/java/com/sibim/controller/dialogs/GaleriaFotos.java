@@ -51,7 +51,7 @@ final class GaleriaFotos {
         btnAgregarFoto.setOnAction(ev -> agregar());
 
         Label hint = new Label("La primera foto es la principal: la que sale en la tabla y en los formatos. "
-            + "La que agregas queda como principal; usa \"Principal\" en otra foto para cambiarla.");
+            + "La que agregas queda como principal; «Hacer principal» en otra foto la cambia.");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted-sm");
 
@@ -80,9 +80,13 @@ final class GaleriaFotos {
             iv.setStyle("-fx-cursor: hand;");
             Tooltip.install(iv, new Tooltip("Ver en grande, con la serie del bien"));
             com.sibim.util.AccessibilityUtils.asButton(iv, "Ver la foto " + (i + 1) + " en grande");
-            Button btnDel = new Button("×");
-            btnDel.getStyleClass().add("btn-secondary");
-            btnDel.setMinSize(20, 20); btnDel.setMaxSize(20, 20);
+            // 27-nov-2026: as a btn-secondary of 20 × 20 its padding left no room for the «×» and it
+            // was an empty white circle; «Principal» was gray text over the photo. Now a dark round
+            // button with its icon and a guinda tag (.galeria-*, 07-organigrama.css).
+            Button btnDel = new Button();
+            btnDel.setGraphic(new FontIcon("mdi2c-close"));
+            btnDel.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+            btnDel.getStyleClass().add("galeria-quitar");
             btnDel.setAccessibleText("Quitar esta foto");
             btnDel.setTooltip(new Tooltip("Quitar esta foto"));
             btnDel.setOnAction(ev -> {
@@ -91,24 +95,29 @@ final class GaleriaFotos {
             });
             StackPane cell = new StackPane(iv, btnDel);
             StackPane.setAlignment(btnDel, Pos.TOP_RIGHT);
+            StackPane.setMargin(btnDel, new javafx.geometry.Insets(3));
             cell.getStyleClass().add("dlg-img-box");
             cell.setPrefSize(110, 80);
+            cell.getStyleClass().add("galeria-foto");
             if (i == 0) {
                 Label badge = new Label("Principal");
-                badge.getStyleClass().addAll("muted-sm");
+                badge.getStyleClass().add("galeria-principal");
+                badge.setMouseTransparent(true);
                 StackPane.setAlignment(badge, Pos.BOTTOM_LEFT);
+                StackPane.setMargin(badge, new javafx.geometry.Insets(4));
                 cell.getChildren().add(badge);
             } else {
                 // A photo added later goes last, and the table and the formats
                 // show the first one: without this the new photo never appeared.
-                Button btnPrincipal = new Button("Principal");
-                btnPrincipal.getStyleClass().add("btn-secondary");
+                Button btnPrincipal = new Button("Hacer principal");
+                btnPrincipal.getStyleClass().add("galeria-hacer-principal");
                 btnPrincipal.setTooltip(new Tooltip("Usar esta foto como la principal (la que sale en la tabla y en los formatos)"));
                 btnPrincipal.setOnAction(ev -> {
                     fotos.add(0, fotos.remove(i));
                     cambio();
                 });
                 StackPane.setAlignment(btnPrincipal, Pos.BOTTOM_LEFT);
+                StackPane.setMargin(btnPrincipal, new javafx.geometry.Insets(4));
                 cell.getChildren().add(btnPrincipal);
             }
             galeria.getChildren().add(cell);

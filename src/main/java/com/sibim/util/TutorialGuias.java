@@ -119,7 +119,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: lo seguro de una vez, completar por factura, las fotos de una carpeta, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y las tablas con «Texto: Grande»",
+                "Aquí está solo lo nuevo: lo seguro de una vez, completar por factura, las fotos de una carpeta y la foto junto a su serie, los candidatos a baja, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y lo que se ve mejor",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
@@ -184,6 +184,14 @@ final class TutorialGuias {
                 "Dice «1 año», «1 mes» y «1 día» (antes «1 años») en Depreciación, la ficha del bien, su PDF y las garantías de Alertas",
                 "El buscador de Resguardos dice entero lo que busca: «Persona, folio o código…» (el área está en su filtro)",
                 "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las etiquetas («Transferencia») y las fechas ya no se cortan, y si los títulos no caben la tabla se recorre de lado"));
+            // 27-nov-2026: «mejora en UX, UI y diseño para que se vea mejor».
+            p.add(paso("mdi2e-eye-check-outline", GUINDA, GUINDA_D, "Se ve mejor", "productos", "#table",
+                "En las fotos del formulario, la × para quitar una ya se ve (era un círculo blanco vacío); la principal dice «Principal» en guinda y las demás traen «Hacer principal»",
+                "Las subáreas se distinguen aunque no quepan en la columna: «S. Pública — C-2» y «Armamento» en vez de «Seguridad Pública ...» en todas; el nombre completo, al pasar el mouse",
+                "La campana de abajo enseña su número en la esquina, sin taparla",
+                "Los números de Inicio, de Completar datos y del pie de las tablas llevan su coma: «2,968 resultados»",
+                "La Auditoría dice «fotos (1 → 2)» cuando se agrega una foto y la principal no cambia (antes: «Se guardó sin cambios»)",
+                "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla"));
             // Only what is new in this version; what came before is in the guides by topic (F2).
             enGrupo(p, 1, p.size(), NUEVO);
         } else {
@@ -196,7 +204,8 @@ final class TutorialGuias {
             p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Más fácil de leer", "productos", "#table",
                 "Las categorías se leen cortas en la tabla de Bienes («Cómputo», «Muebles», «Cámaras»); el nombre completo, al pasar el mouse",
                 "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan",
-                "En «Actualizar datos», un clic en una foto la abre en grande con la serie y el resguardante del bien abajo, para ver que sea la suya"));
+                "En «Actualizar datos», un clic en una foto la abre en grande con la serie y el resguardante del bien abajo, para ver que sea la suya",
+                "La × para quitar una foto ya se ve; la principal dice «Principal» y las demás traen «Hacer principal»"));
             enGrupo(p, 1, p.size(), NUEVO);
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);
@@ -508,8 +517,9 @@ final class TutorialGuias {
                 "Si alguien más se sienta sin cerrar sesión: menú de tu cuenta › «Cambiar quién usa la cuenta»"));
         p.add(new Paso("mdi2v-view-dashboard-outline", GUINDA, GUINDA_D, "Inicio", "Ctrl + 1", "dashboard", null, null, null,
             SessionManager.isAdmin() ? new String[]{
-                "Los recuadros son clicables: llevan directo a lo que cuentan",
-                "Da clic en una categoría de la gráfica para ver sus bienes"
+                "«Por hacer» dice lo que le falta al inventario, con su número y en orden: «Empieza aquí» es lo primero, y un clic abre la ventana que lo resuelve",
+                "Lo que SIBIM puede arreglar sin dudas está en una sola tarjeta: «Lo seguro, de una vez»",
+                "Los recuadros son clicables: llevan directo a lo que cuentan"
             } : new String[]{
                 "«Pendientes de tu área»: tus tres pasos, con el botón del que te toca",
                 "«Datos por completar» abre «Revisar mis bienes»: cada bien con su botón «Completar»",
@@ -522,9 +532,16 @@ final class TutorialGuias {
             SessionManager.isAdmin()
                 ? "Doble clic en una fila: foto, código QR e historial; desde ahí mismo, «Editar»"
                 : "Doble clic en una fila: foto, código QR e historial; desde ahí mismo, «Actualizar datos»",
-            "Busca mientras escribes y combina los filtros de categoría, área y estado"
+            "Busca mientras escribes, también por el número anterior, la serie o la factura, y combina los filtros de categoría, área y estado"
         }));
         if (SessionManager.isAdmin()) {
+            p.add(paso("mdi2d-dots-horizontal-circle-outline", GUINDA, GUINDA_D, "Muchos bienes a la vez", "productos", "#btnMasBienes",
+                "Bienes › «Más» junta lo que trabaja con muchos bienes: Completar datos, por factura, por grupos del mismo nombre, Fotos de una carpeta y Lo seguro",
+                "Va por secciones: completar y corregir con la factura, lo escrito de varias formas y los repetidos",
+                "Todo enseña antes qué va a cambiar, y se deshace desde el aviso"));
+            p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Organigrama y avance de las áreas", "organigrama", "#btnAvanceAreas",
+                "Cada secretaría y dirección con sus bienes, su valor y sus resguardos",
+                "«Avance de las áreas» dice cuáles ya entraron con su cuenta, revisaron sus bienes y pegaron sus etiquetas"));
             p.add(new Paso("mdi2s-swap-vertical", VERDE, VERDE_D, "Movimientos", "Ctrl + 5", "movimientos", null, null, null, new String[]{
                 "«Transferir bienes» los lleva a otra área, con su número nuevo y su resguardo",
                 "«Agregar o quitar» suma o resta piezas a un lote",
@@ -626,11 +643,11 @@ final class TutorialGuias {
     }
 
     private static Guia completarDatos() {
-        return new Guia("completar", "Completar los datos de los bienes", "Precio, fecha, vida útil y foto, sin abrir ficha por ficha", "mdi2c-clipboard-edit-outline", mas(List.of(
+        return new Guia("completar", "Completar los datos de los bienes", "Lo que le falta a cada bien, sin abrir ficha por ficha", "mdi2c-clipboard-edit-outline", mas(List.of(
             paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "1. Ábrelo y elige un área", "productos", "#btnMasBienes",
-                "Está en Bienes › Más › Completar datos",
+                "Está en Bienes › Más › Completar datos (y en Inicio › Por hacer)",
                 "El número junto a cada área es lo que le falta del dato elegido",
-                "Arriba eliges el dato: Sin precio, Sin fecha, Sin vida útil o Sin foto"),
+                "Arriba eliges el dato, en tres renglones: para los totales (precio, fecha, vida útil, foto), de la factura (proveedor, folio fiscal, factura) y del bien (color, tipo); solo salen los que faltan"),
             paso("mdi2k-keyboard-outline", GUINDA, GUINDA_D, "2. Escribe y pulsa Enter", "productos", "#btnMasBienes",
                 "Escribe el valor en la fila: Enter guarda y pasa al siguiente bien",
                 "El costo es por pieza, también en los lotes; al dar de alta un lote ves cuánto suma",
@@ -639,7 +656,12 @@ final class TutorialGuias {
                 "En «Sin vida útil» aparece «Revisar y aplicar»: propone la que tiene la mayoría de los bienes de su clave CONAC (o la tabla CONAC donde no hay mayoría)",
                 "Te muestra cuántos bienes por años antes de aplicar; cambia la depreciación",
                 "Equipo de defensa no tiene valor en el CONAC: busca «chaleco» y «Poner a todos» les pone los mismos años"),
-                "Abrir Completar datos", abrir("productos", "completar"))), deVersionesAnterioresCompletar()));
+                "Abrir Completar datos", abrir("productos", "completar")),
+            probar(paso("mdi2c-check-decagram", GUINDA, GUINDA_D, "4. De muchos a la vez", "productos", "#btnMasBienes",
+                "«Por factura»: escribes el proveedor, la fecha y el folio fiscal una vez para todos los bienes de una factura",
+                "«Por grupos»: la vida útil, el color y el tipo una vez para todos los bienes del mismo nombre",
+                "«Lo seguro, de una vez»: lo que SIBIM pone sin dudas (MUEBLE, el 15 % de valor residual, el color que dice su nombre…), revisado antes de aplicar"),
+                "Abrir Lo seguro", abrir("productos", "seguro"))), deVersionesAnterioresCompletar()));
     }
 
     private static Guia personasYSeries() {

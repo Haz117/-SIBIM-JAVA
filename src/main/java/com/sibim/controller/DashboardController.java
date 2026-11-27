@@ -358,7 +358,7 @@ public class DashboardController implements Refreshable {
             () -> productoService.countNuevosEnAnio(anioActual),
             nuevos -> {
                 if (nuevos > 0) {
-                    Label nuevosLbl = new Label("+" + nuevos + " registrados este año");
+                    Label nuevosLbl = new Label("+" + com.sibim.util.FormatUtils.miles(nuevos) + " registrados este año");
                     nuevosLbl.getStyleClass().add("muted-sm");
                     bienesInner.getChildren().add(nuevosLbl);
                 }

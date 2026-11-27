@@ -18,7 +18,8 @@ public final class PaginationUtils {
     private static void mostrarPagina(Label lblPage, int pagina, int totalPages, int from, int to, int total) {
         if (lblPage == null) return;
         lblPage.setText(total == 0 ? "—" : "Pág " + (pagina + 1) + " de " + totalPages);
-        String filas = total == 0 ? "Sin resultados" : (from + 1) + "–" + to + " de " + total;
+        String filas = total == 0 ? "Sin resultados"
+            : FormatUtils.miles(from + 1) + "–" + FormatUtils.miles(to) + " de " + FormatUtils.miles(total);
         if (lblPage.getTooltip() == null) lblPage.setTooltip(new Tooltip(filas));
         else lblPage.getTooltip().setText(filas);
     }
@@ -45,7 +46,7 @@ public final class PaginationUtils {
         table.setItems(FXCollections.observableArrayList(filteredData.subList(from, to)));
         AnimationUtils.staggerTableRows(table);
 
-        if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " " + singular : " " + plural));
+        if (lblTotal != null) lblTotal.setText(FormatUtils.plural(total, singular, plural));
         mostrarPagina(lblPage, clampedPage, totalPages, from, to, total);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
@@ -67,7 +68,7 @@ public final class PaginationUtils {
         int clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
         int from = clampedPage * pageSize;
         int to = Math.min(from + pageSize, totalFiltered);
-        if (lblTotal != null) lblTotal.setText(totalFiltered + (totalFiltered == 1 ? " " + singular : " " + plural));
+        if (lblTotal != null) lblTotal.setText(FormatUtils.plural(totalFiltered, singular, plural));
         mostrarPagina(lblPage, clampedPage, totalPages, from, to, totalFiltered);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);

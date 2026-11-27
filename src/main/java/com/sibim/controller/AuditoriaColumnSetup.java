@@ -69,6 +69,7 @@ final class AuditoriaColumnSetup {
 
         colSobre.setCellValueFactory(c -> new SimpleStringProperty(sobre(c.getValue())));
         colArea.setCellValueFactory(c -> new SimpleStringProperty(Objects.requireNonNullElse(lectura(c.getValue()).area(), "")));
+        com.sibim.util.CeldaArea.instalar(colArea);
 
         colAccion.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAccion()));
         // A compact pill with the action in words («Inicio de sesión», «Baja»).

@@ -73,6 +73,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         FichaPersona.columnaDeNombre(colResguardante);
         colArea.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getResguardanteArea() != null ? c.getValue().getResguardanteArea() : "—"));
+        com.sibim.util.CeldaArea.instalar(colArea);
         colFecha.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getCreadoEn() != null
                 ? FormatUtils.formatDate(c.getValue().getCreadoEn().toLocalDate()) : "—"));

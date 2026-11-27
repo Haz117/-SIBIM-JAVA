@@ -159,7 +159,9 @@ class ProductosColumnSetup {
     }
 
     static void configureArea(TableColumn<Producto, String> col) {
-        configureTextWithTooltip(col, Producto::getArea, null);
+        col.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            java.util.Objects.requireNonNullElse(c.getValue().getArea(), "")));
+        com.sibim.util.CeldaArea.instalar(col);
     }
 
     /** Who holds the bien (kept in sync with its active resguardo); a dash

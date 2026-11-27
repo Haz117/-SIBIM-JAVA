@@ -545,3 +545,41 @@
 .org-card-metricas .label { -fx-font-size: 11.5px; }
 .org-card-liga { -fx-font-size: 11.5px; -fx-border-width: 0; }
 .org-card-barra { -fx-pref-height: 7; }
+
+/* ── The photos of a bien in its form (GaleriaFotos), 27-nov-2026 ──
+   The × was a btn-secondary of 20 × 20 whose padding left no room for its sign (an empty white
+   circle), and «Principal» was gray text over the photo. */
+.galeria-quitar {
+    -fx-background-color: rgba(15, 23, 42, 0.68);
+    -fx-background-radius: 99;
+    -fx-padding: 3;
+    -fx-min-width: 22; -fx-min-height: 22; -fx-pref-width: 22; -fx-pref-height: 22;
+    -fx-max-width: 22; -fx-max-height: 22;
+    -fx-cursor: hand;
+}
+.galeria-quitar .ikonli-font-icon { -fx-icon-color: white; -fx-icon-size: 13; }
+.galeria-quitar:hover { -fx-background-color: sibim-indigo-dark; }
+.galeria-quitar:focused { -fx-background-color: sibim-indigo-dark; }
+.galeria-principal {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-background-radius: 99;
+    -fx-text-fill: white;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 7;
+}
+.galeria-hacer-principal {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 99;
+    -fx-border-color: sibim-indigo-dark;
+    -fx-border-radius: 99;
+    -fx-text-fill: sibim-indigo-dark;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 7;
+    -fx-cursor: hand;
+}
+.galeria-hacer-principal:hover, .galeria-hacer-principal:focused {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-text-fill: white;
+}

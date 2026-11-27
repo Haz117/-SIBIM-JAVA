@@ -1080,7 +1080,7 @@ public final class CompletarDatosDialog {
             icono.setIconLiteral(TODAS.equals(area) ? "mdi2p-package-variant" : FiltroArea.icono(area).getIconLiteral());
             nombre.setText(area);
             nombre.setTooltip(new Tooltip(area));
-            cuenta.setText(String.valueOf(porArea.getOrDefault(area, 0)));
+            cuenta.setText(com.sibim.util.FormatUtils.miles(porArea.getOrDefault(area, 0)));
             setGraphic(caja);
         }
     }

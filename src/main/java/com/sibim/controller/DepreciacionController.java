@@ -193,6 +193,7 @@ public class DepreciacionController {
         });
         colArea.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
+        com.sibim.util.CeldaArea.instalar(colArea);
         colFechaAdq.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDate(c.getValue().getFechaAdquisicion())));
         colVidaUtil.setCellValueFactory(c ->

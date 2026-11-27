@@ -68,6 +68,13 @@ public final class FormatUtils {
         return String.format(MILES, "%,d", n) + " " + (n == 1 ? singular : plural);
     }
 
+    /** «2,968»: a count with its thousands, as Por hacer and the chips write it (27-nov-2026:
+     *  Inicio said «2968» and «+2968 registrados este año» and Completar datos «1084» beside a
+     *  chip that said «Sin precio (1,084)»). */
+    public static String miles(long n) {
+        return String.format(MILES, "%,d", n);
+    }
+
     private static final java.util.Locale MILES = java.util.Locale.forLanguageTag("es-MX");
 
     public static long diasHastaVencimiento(LocalDate fechaVencimiento) {

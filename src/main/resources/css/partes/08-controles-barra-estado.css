@@ -149,7 +149,10 @@
     -fx-font-weight: bold;
     -fx-padding: 1.5 5;
     -fx-min-width: 16; -fx-min-height: 16;
-    -fx-max-width: 46;   /* «99+» fits, also with «Texto: Extra» (at 26 it read «...», 18-nov-2026) */
+    /* Its own size («1», «99+» also with «Texto: Extra»): the max-width of 46 put on 18-nov-2026 for
+       «99+» let the StackPane stretch it over the whole bell (27-nov-2026); the FXML keeps the
+       max at its pref size. */
+    -fx-translate-x: 3; -fx-translate-y: -1;
     -fx-alignment: CENTER;
     -fx-effect: none;
 }

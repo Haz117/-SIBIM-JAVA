@@ -218,9 +218,9 @@ public final class AnimationUtils {
         tl.play();
     }
 
-    /** Overload: plain {@code String.valueOf(long)} formatter. */
+    /** Overload: a count with its thousands («2,968»), as {@link FormatUtils#miles}. */
     public static void animateCount(Label label, long target, int durationMs) {
-        animateCount(label, target, durationMs, String::valueOf);
+        animateCount(label, target, durationMs, FormatUtils::miles);
     }
 
     /** An amount in centavos, to count up with a {@code BigDecimal.valueOf(v, 2)}
