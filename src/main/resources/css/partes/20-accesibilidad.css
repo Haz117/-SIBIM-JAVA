@@ -98,3 +98,6 @@
 .text-scale-xl .table-view .column-header .label {
     -fx-font-size: 16px;
 }
+/* The sidebar is 220 px whatever the size: at 16 px «Entrega-recepción» read «Entrega-recepci...»
+   with «Texto: Extra» (27-nov-2026). */
+.text-scale-xl .nav-btn { -fx-font-size: 15px; }

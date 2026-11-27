@@ -205,6 +205,7 @@ final class TutorialGuias {
                 "En Movimientos el bien tiene más espacio y «Quién» menos (su nombre completo, al pasar el mouse); las columnas de esa tabla vuelven a como vienen",
                 "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla",
                 "Abajo del menú tu nombre se lee completo, en dos renglones, y con «Texto: Grande» el botón «‹» para plegar el menú ya no queda cortado",
+                "Con «Texto: Extra»: «Entrega-recepción» cabe en el menú, el título de cada pantalla se lee entero (sus botones pasan a solo ícono antes de cortarlo) y en Movimientos se leen los números de cada transferencia",
                 "La Auditoría dice «fotos (1 → 2)» cuando se agrega una foto y la principal no cambia (antes: «Se guardó sin cambios»)"));
             // Only what is new in this version; what came before is in the guides by topic (F2).
             enGrupo(p, 1, p.size(), NUEVO);

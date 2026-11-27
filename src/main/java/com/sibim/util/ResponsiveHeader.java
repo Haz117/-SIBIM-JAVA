@@ -71,6 +71,8 @@ public final class ResponsiveHeader {
                 b.getProperties().put(ORIGINAL_DISPLAY, b.getContentDisplay());
                 (b.getStyleClass().contains("btn-primary") ? primary : secondary).add(b);
                 b.textProperty().addListener(o -> Platform.runLater(() -> update(header, secondary, primary)));
+                // Their size changes with «Texto: Grande / Extra» while the bar keeps its width.
+                b.fontProperty().addListener(o -> Platform.runLater(() -> update(header, secondary, primary)));
             } else if (HBox.getHgrow(c) == Priority.ALWAYS && c instanceof Region r) {
                 // The title block / spacer is what yields first. HBox shrinks every
                 // child when short on room, so a title that asks for its full text
@@ -78,6 +80,10 @@ public final class ResponsiveHeader {
                 // hgrow hand it whatever is left over instead.
                 r.setMinWidth(0);
                 r.setPrefWidth(isSpacer(r) ? 0 : flexMin);
+                // The title's font is set by the stylesheet after this runs, and again when the text
+                // size changes: measured once, «Depreciación de Activos» was cut by 3 px with «Extra».
+                if (r.lookup(".page-title") instanceof javafx.scene.control.Labeled t)
+                    t.fontProperty().addListener(o -> Platform.runLater(() -> update(header, secondary, primary)));
             } else if (c instanceof javafx.scene.control.Label l) {
                 l.setMinWidth(Region.USE_PREF_SIZE);   // counters like "36 resultados"
                 contadores.add(l);
@@ -118,6 +124,17 @@ public final class ResponsiveHeader {
         for (javafx.scene.control.Label l : contadores) l.setMinWidth(apretado ? 0 : Region.USE_PREF_SIZE);
     }
 
+    /** What the title block needs before the buttons give way: its title's own width, between
+     *  {@code flexMin} and 1.6 times it. A fixed 240 px cut «Depreciación de Activos» to
+     *  «Depreciación de Acti…» with «Texto: Extra» while its buttons kept their names (27-nov-2026). */
+    private static double espacioDelTitulo(Node bloque, double flexMin) {
+        Node titulo = bloque.lookup(".page-title");
+        if (titulo == null) return flexMin;
+        // With its «?» beside it when it has one (Depreciación): the row the title is in.
+        Node fila = titulo.getParent() instanceof HBox h && h != bloque ? h : titulo;
+        return Math.max(flexMin, Math.min(fila.prefWidth(-1), flexMin * 1.6));
+    }
+
     private static double requiredWidth(HBox header, List<ButtonBase> secondary, List<ButtonBase> primary,
                                         boolean secondaryCompact, boolean primaryCompact) {
         Insets in = header.getInsets();
@@ -129,8 +146,10 @@ public final class ResponsiveHeader {
             if (c instanceof ButtonBase b && secondary.contains(b)) total += buttonWidth(b, secondaryCompact);
             else if (c instanceof ButtonBase b && primary.contains(b)) total += buttonWidth(b, primaryCompact);
             else if (HBox.getHgrow(c) == Priority.ALWAYS)
-                total += isSpacer(c) ? 0 : (double) header.getProperties().getOrDefault(FLEX_MIN, TITLE_MIN);
-            else total += c.prefWidth(-1);
+                total += isSpacer(c) ? 0 : espacioDelTitulo(c, (double) header.getProperties().getOrDefault(FLEX_MIN, TITLE_MIN));
+            // What it takes: the header's icon asks for 22 px but its minimum is 44, and those 22 px
+            // left «Depreciación de Activos» 3 px short with «Texto: Extra» (27-nov-2026).
+            else total += Math.max(c.prefWidth(-1), c.minWidth(-1));
         }
         return total + header.getSpacing() * Math.max(0, managed - 1);
     }

@@ -301,7 +301,9 @@ public class MovimientosController {
         MovimientosColumnSetup.configureUsuario(colUsuario);
         MovimientosColumnSetup.configureFecha(colFecha);
         MovimientosColumnSetup.configureEstado(colEstado);
-        com.sibim.util.ColumnasLegibles.fijas(colTipo, colCantidad, colFecha, colEstado);
+        // «Qué cambió» too (27-nov-2026): with «Texto: Extra» it shrank to its title and the
+        // transfer's números read «SGM/54 → SOP/2…».
+        com.sibim.util.ColumnasLegibles.fijas(colTipo, colCantidad, colFecha, colEstado, colStock);
         MovimientosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
 
         table.getSortOrder().clear();
