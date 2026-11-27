@@ -268,7 +268,7 @@ public class DashboardController implements Refreshable {
         }
         if (veValores) chartBuilder.buildCategoriaChart(data.catValores());
         updateTrendIndicator(data);
-        updateNewBienesHint();
+        updateNewBienesHint(data.stats().total());
         updateTableReciente(data);
 
         if (chartsFirstLoad) {
@@ -349,7 +349,9 @@ public class DashboardController implements Refreshable {
         }
     }
 
-    private void updateNewBienesHint() {
+    /** «+N registrados este año» under the total; not when N is the total itself (27-nov-2026: the
+     *  whole inventory was loaded in October and it said «+2,968» under «2,968»). */
+    private void updateNewBienesHint(long total) {
         if (lblTotalBienes == null || !(lblTotalBienes.getParent() instanceof VBox bienesInner)) return;
         bienesInner.getChildren().removeIf(n -> n instanceof Label l
             && l.getText() != null && l.getText().contains("este año"));
@@ -357,7 +359,7 @@ public class DashboardController implements Refreshable {
         DialogUtil.runAsync(
             () -> productoService.countNuevosEnAnio(anioActual),
             nuevos -> {
-                if (nuevos > 0) {
+                if (nuevos > 0 && nuevos < total) {
                     Label nuevosLbl = new Label("+" + com.sibim.util.FormatUtils.miles(nuevos) + " registrados este año");
                     nuevosLbl.getStyleClass().add("muted-sm");
                     bienesInner.getChildren().add(nuevosLbl);

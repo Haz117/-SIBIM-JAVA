@@ -195,7 +195,7 @@
                         <tooltip><Tooltip text="Seleccionar archivo de imagen para el logotipo del ayuntamiento (PNG, JPG)"/></tooltip>
                     </Button>
                 </HBox>
-                <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
+                <Label text="Va en los formatos (PDF y Excel) de todas las computadoras. Vacío, llevan el logo del Gobierno Municipal 2024-2027 que trae SIBIM." styleClass="muted-sm" wrapText="true"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="2">
                 <HBox spacing="6" alignment="CENTER_LEFT">
