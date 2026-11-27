@@ -515,6 +515,7 @@ public final class TransferenciaArrastreDialog {
                 tarjetas.add(t);
                 fichas.getChildren().add(t);
             }
+            fichas.widthProperty().addListener((o, a, w) -> repartir(fichas, w.doubleValue()));
             tablero.getChildren().add(new VBox(8, titulo, fichas));
         }
         if (tablero.getChildren().isEmpty()) {
@@ -523,6 +524,20 @@ public final class TransferenciaArrastreDialog {
             tablero.getChildren().add(nada);
         }
         actualizarDestinos();
+    }
+
+    /** The narrowest a card of an área goes before one less fits in a row. */
+    static final double ANCHO_MIN_TARJETA = 200;
+
+    /** As many cards per row as fit at {@link #ANCHO_MIN_TARJETA}, sharing the whole width: at 250 px
+     *  each, two fitted in the 680 px of a laptop and a third of the board stayed empty (27-nov-2026). */
+    static void repartir(FlowPane fichas, double ancho) {
+        if (ancho <= 0) return;
+        double hueco = fichas.getHgap();
+        int columnas = Math.max(1, (int) ((ancho + hueco) / (ANCHO_MIN_TARJETA + hueco)));
+        double cada = Math.floor((ancho - hueco * (columnas - 1)) / columnas) - 1;
+        for (javafx.scene.Node n : fichas.getChildren())
+            if (n instanceof Region r) r.setPrefWidth(cada);
     }
 
     private HBox tarjeta(String area) {

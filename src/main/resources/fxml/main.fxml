@@ -226,7 +226,9 @@
                     <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
                 </StackPane>
                 <VBox fx:id="userInfoVBox" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" spacing="1">
-                    <Label fx:id="userNameLabel" styleClass="sidebar-username" maxWidth="Infinity" textOverrun="ELLIPSIS" wrapText="true" maxHeight="36"/>
+                    <!-- minHeight = its pref (up to the 36 of maxHeight): with an administrator's long menu the
+                         box was squeezed to one line, «Administrador del ...» (27-nov-2026). -->
+                    <Label fx:id="userNameLabel" styleClass="sidebar-username" maxWidth="Infinity" textOverrun="ELLIPSIS" wrapText="true" maxHeight="36" minHeight="-Infinity"/>
                     <Label fx:id="userRolLabel" styleClass="sidebar-userrole" maxWidth="Infinity" textOverrun="ELLIPSIS"/>
                 </VBox>
             </HBox>

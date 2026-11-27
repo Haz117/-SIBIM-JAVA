@@ -60,23 +60,206 @@ public class ReporteFichaTecnicaService extends ReporteService {
 
     public ReporteFichaTecnicaService() { super(); }
 
-    /** Set while writing the copy a QR downloads (see FichaPublica): anyone
-     *  who scans the label gets it, so it carries no amounts, no movement
-     *  history and no signature block — and its own QR is its link. */
-    private String enlacePublico;
+    /** Width of the ficha a QR downloads: a phone's screen, so it reads without zooming. */
+    static final float ANCHO_TELEFONO = 360f;
 
-    /** The ficha that the bien's QR downloads. {@code enlace} is where it will live. */
+    /** Tallest it starts; the page is then cut where its content ends. */
+    private static final float ALTO_INICIAL = 3000f;
+
+    /**
+     * The ficha that the bien's QR downloads ({@code enlace} is where it will live), made for the
+     * phone that scanned the label (27-nov-2026: it was the letter-size ficha without amounts, read
+     * at a tenth of its size on a phone, with a QR of its own to scan again and «—» in every empty
+     * field). One column the width of a phone, the photo large, what tells where the bien is and who
+     * holds it first, only the data it has, and whom to tell if it isn't where it should be. Anyone
+     * who scans the label can open it: no amounts, no history, no signatures.
+     */
     File exportFichaPublica(Producto p, String enlace) throws Exception {
-        enlacePublico = enlace;
-        try {
-            return exportFichaTecnica(p, List.of());
-        } finally {
-            enlacePublico = null;
+        String safeName = p.getCodigo() != null ? p.getCodigo().replaceAll("[^a-zA-Z0-9_\\-]", "_") : "bien";
+        File file = tempFile("ficha_qr_" + safeName, ".pdf");
+        PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        List<ImageData> fotos = FotosPdf.de(p, 4, 1000);
+
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, new PageSize(ANCHO_TELEFONO, ALTO_INICIAL))) {
+            doc.setMargins(0, 0, 0, 0);
+            doc.add(encabezadoTelefono(bold, reg));
+            doc.add(barra(DORADO, 3));
+
+            com.itextpdf.layout.element.Div cuerpo = new com.itextpdf.layout.element.Div()
+                .setMarginLeft(18).setMarginRight(18).setMarginTop(14);
+            String numero = ReporteParqueVehicularService.numeroDeInventario(p);
+            cuerpo.add(etiqueta("NÚMERO DE INVENTARIO", bold));
+            cuerpo.add(new Paragraph(numero != null ? numero : "—").setFont(bold).setFontSize(26f)
+                .setFontColor(GUINDA).setMargin(0).setMultipliedLeading(1f));
+            cuerpo.add(new Paragraph(recortar(mayus(p.getNombre()), 170)).setFont(bold).setFontSize(12.5f)
+                .setFontColor(OSCURO).setMultipliedLeading(1.2f).setMargin(0).setMarginTop(4));
+            Table chips = new Table(hay(p.getEstadoFisico()) ? 2 : 1).setMarginTop(8);
+            chips.addCell(chip(p.isDadoDeBaja() ? "DADO DE BAJA" : "ACTIVO", p.isDadoDeBaja() ? ROJO : VERDE, bold));
+            if (hay(p.getEstadoFisico()))
+                chips.addCell(chip("ESTADO: " + p.getEstadoFisico().toUpperCase(), colorEstadoFisico(p.getEstadoFisico()), bold));
+            cuerpo.add(chips);
+            cuerpo.add(fotosTelefono(fotos, bold, reg));
+
+            String[] depRes = ReporteEtiquetasService.departamentoYResguardo(p.getArea());
+            List<String[]> donde = new ArrayList<>();
+            donde.add(par("Área", depRes[1]));
+            if (!depRes[0].equalsIgnoreCase(depRes[1])) donde.add(par("Depende de", depRes[0]));
+            donde.add(par("Resguardante", p.getResguardante()));
+            donde.add(par("Ubicación", p.getUbicacion()));
+            seccionTelefono(cuerpo, "DÓNDE ESTÁ Y QUIÉN LO TIENE", donde, 1, bold, reg);
+
+            List<String[]> datos = new ArrayList<>(List.of(
+                par("Marca", p.getMarca()), par("Modelo", p.getModelo()),
+                par("No. de serie", p.getNumeroSerie()), par("Color", p.getColor()),
+                par("Categoría", p.getCategoriaNombre()), par("Tipo de bien", p.getTipoBien()),
+                par("No. de motor", p.getNoMotor()), par("Tarjeta de circulación", p.getNoTarjetaCirculacion()),
+                par("Póliza de seguro", p.getNoPolizaSeguro())));
+            if (p.getStockActual() > 1) datos.add(par("Cantidad", FormatUtils.plural(p.getStockActual(), "pieza", "piezas")));
+            seccionTelefono(cuerpo, "DATOS DEL BIEN", datos, 2, bold, reg);
+
+            List<String[]> compra = new ArrayList<>(List.of(
+                par("Adquirido", p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null),
+                par("Factura", p.getNumeroFactura()),
+                par("Proveedor", p.getProveedor()),
+                par("Garantía hasta", p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : null),
+                par("Próxima revisión", p.getProximaRevision() != null ? FormatUtils.formatDate(p.getProximaRevision()) : null)));
+            if (p.isDadoDeBaja()) {
+                compra.add(par("Fecha de baja", p.getFechaBaja() != null ? FormatUtils.formatDate(p.getFechaBaja()) : null));
+                compra.add(par("Motivo de baja", p.getMotivoBaja()));
+            }
+            seccionTelefono(cuerpo, "ADQUISICIÓN", compra, 2, bold, reg);
+
+            String obs = observaciones(p);
+            if (!obs.isBlank()) {
+                cuerpo.add(tituloTelefono("DESCRIPCIÓN", bold));
+                cuerpo.add(new Paragraph(recortar(obs, 700)).setFont(reg).setFontSize(10f).setFontColor(TEXTO)
+                    .setMultipliedLeading(1.3f).setMargin(0));
+            }
+
+            // Whom to tell: whoever finds the bien elsewhere or broken has the label in front of them.
+            String responsable = config("responsable", ""), correo = config("correo_contacto", "");
+            if (hay(responsable) || hay(correo)) {
+                Cell aviso = new Cell().setBackgroundColor(FONDO).setBorder(Border.NO_BORDER).setPadding(10)
+                    .add(new Paragraph("¿No está donde dice, o está dañado?").setFont(bold).setFontSize(10f)
+                        .setFontColor(OSCURO).setMargin(0))
+                    .add(new Paragraph("Avisa a " + (hay(responsable) ? responsable.trim() : "Patrimonio")
+                            + (hay(correo) ? ": " + correo.trim() : ""))
+                        .setFont(reg).setFontSize(9.5f).setFontColor(TEXTO).setMargin(0).setMarginTop(2));
+                cuerpo.add(new Table(1).useAllAvailableWidth().setMarginTop(16).addCell(aviso));
+            }
+            cuerpo.add(new Paragraph("Datos al " + FormatUtils.formatDateTime(LocalDateTime.now()) + " · SIBIM · " + orgName())
+                .setFont(reg).setFontSize(7.5f).setFontColor(TENUE).setTextAlignment(TextAlignment.CENTER)
+                .setMargin(0).setMarginTop(12));
+            doc.add(cuerpo);
+
+            // One page as long as what it says: cut where the content ended.
+            float fin = doc.getRenderer().getCurrentArea().getBBox().getTop();
+            float desde = Math.max(0, fin - 18);
+            pdfDoc.getPage(pdfDoc.getNumberOfPages())
+                .setMediaBox(new com.itextpdf.kernel.geom.Rectangle(0, desde, ANCHO_TELEFONO, ALTO_INICIAL - desde));
         }
+        return file;
+    }
+
+    private Table encabezadoTelefono(PdfFont bold, PdfFont reg) {
+        Table t = new Table(UnitValue.createPercentArray(new float[]{22, 78})).useAllAvailableWidth();
+        Cell logo = celda().setBackgroundColor(GUINDA).setPadding(12).setPaddingRight(0)
+            .setVerticalAlignment(VerticalAlignment.MIDDLE);
+        Image img = loadHeaderLogo();
+        if (img != null)
+            logo.add(new Table(1).useAllAvailableWidth().addCell(new Cell()
+                .add(img.setMaxHeight(38).setMaxWidth(56).setHorizontalAlignment(HorizontalAlignment.CENTER))
+                .setBackgroundColor(ColorConstants.WHITE).setPadding(3).setBorder(Border.NO_BORDER)));
+        t.addCell(logo);
+        t.addCell(celda().setBackgroundColor(GUINDA).setPadding(12).setVerticalAlignment(VerticalAlignment.MIDDLE)
+            .add(new Paragraph(orgName()).setFont(bold).setFontSize(10.5f).setFontColor(ColorConstants.WHITE)
+                .setMultipliedLeading(1.15f).setMargin(0))
+            .add(new Paragraph("Ficha del bien · Patrimonio municipal").setFont(reg).setFontSize(8.5f)
+                .setFontColor(GUINDA_CL).setMargin(0).setMarginTop(2)));
+        return t;
+    }
+
+    /** The principal photo the width of the screen, and the others small below it. */
+    private static Table fotosTelefono(List<ImageData> fotos, PdfFont bold, PdfFont reg) {
+        Table t = new Table(1).useAllAvailableWidth().setMarginTop(12);
+        Cell marco = new Cell().setPadding(4).setBackgroundColor(FONDO).setBorder(new SolidBorder(LINEA, 0.6f))
+            .setVerticalAlignment(VerticalAlignment.MIDDLE);
+        if (fotos.isEmpty()) {
+            marco.setHeight(70).add(new Paragraph("Sin fotografía").setFont(bold).setFontSize(10f).setFontColor(TENUE)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
+        } else {
+            marco.add(new Image(fotos.get(0)).scaleToFit(ANCHO_TELEFONO - 46, 320)
+                .setHorizontalAlignment(HorizontalAlignment.CENTER));
+        }
+        t.addCell(marco);
+        if (fotos.size() > 1) {
+            Table otras = new Table(UnitValue.createPercentArray(new float[]{1, 1, 1})).useAllAvailableWidth().setMarginTop(4);
+            for (int i = 1; i < 4; i++) {
+                // Only the photos it has: an empty gray box read as a photo missing.
+                Cell c = new Cell().setHeight(78).setPadding(2).setBorder(Border.NO_BORDER)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                if (i < fotos.size())
+                    c.setBackgroundColor(FONDO).setBorder(new SolidBorder(LINEA, 0.6f))
+                        .add(new Image(fotos.get(i)).scaleToFit(100, 72).setHorizontalAlignment(HorizontalAlignment.CENTER));
+                otras.addCell(c);
+            }
+            t.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0).add(otras));
+        }
+        return t;
+    }
+
+    private static Paragraph tituloTelefono(String texto, PdfFont bold) {
+        return new Paragraph(texto).setFont(bold).setFontSize(9f).setFontColor(GUINDA).setCharacterSpacing(0.4f)
+            .setMargin(0).setMarginTop(16).setPaddingBottom(4)
+            .setBorderBottom(new SolidBorder(DORADO, 1.2f));
+    }
+
+    /** A section with only the data the bien has (a «—» per empty field said nothing on a phone),
+     *  each one its label above its value; nothing at all when none is captured. */
+    private static void seccionTelefono(com.itextpdf.layout.element.Div cuerpo, String titulo, List<String[]> pares,
+                                        int columnas, PdfFont bold, PdfFont reg) {
+        List<String[]> con = pares.stream().filter(x -> hay(x[1])).toList();
+        if (con.isEmpty()) return;
+        cuerpo.add(tituloTelefono(titulo, bold));
+        Table t = new Table(columnas).useAllAvailableWidth();
+        // Two short data side by side; a long one (an área, a proveedor), or a short one without a
+        // short one after it, takes the whole row, so no row is left half empty.
+        for (int i = 0; i < con.size(); i++) {
+            boolean juntos = columnas > 1 && !largo(con.get(i)) && i + 1 < con.size() && !largo(con.get(i + 1));
+            if (juntos) {
+                t.addCell(datoTelefono(con.get(i), 1, bold, reg));
+                t.addCell(datoTelefono(con.get(++i), 1, bold, reg));
+            } else {
+                t.addCell(datoTelefono(con.get(i), columnas, bold, reg));
+            }
+        }
+        cuerpo.add(t);
+    }
+
+    private static boolean largo(String[] dato) {
+        return dato[1].trim().length() > 22;
+    }
+
+    private static Cell datoTelefono(String[] x, int columnas, PdfFont bold, PdfFont reg) {
+        return new Cell(1, columnas).setBorder(Border.NO_BORDER)
+            .setBorderBottom(new SolidBorder(LINEA, 0.6f)).setPadding(0).setPaddingTop(6).setPaddingBottom(6)
+            .setPaddingRight(8)
+            .add(new Paragraph(x[0].toUpperCase()).setFont(bold).setFontSize(7.5f).setFontColor(TENUE).setMargin(0))
+            .add(new Paragraph(x[1].trim()).setFont(reg).setFontSize(11.5f).setFontColor(OSCURO)
+                .setMultipliedLeading(1.2f).setMargin(0).setMarginTop(1));
+    }
+
+    private static String recortar(String s, int max) {
+        if (s == null) return "";
+        String t = s.trim();
+        return t.length() <= max ? t : t.substring(0, max - 1).trim() + "…";
     }
 
     private String pesos(BigDecimal valor) {
-        return enlacePublico != null ? null : com.sibim.session.Permisos.pesos(valor);
+        return com.sibim.session.Permisos.pesos(valor);
     }
 
     public File exportFichaTecnica(Producto p, List<Movimiento> movimientos) throws Exception {
@@ -108,7 +291,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
             }
             doc.add(cuadricula(datos, bold, reg));
 
-            doc.add(titulo(enlacePublico != null ? "ADQUISICIÓN" : "ADQUISICIÓN Y VALOR", bold));
+            doc.add(titulo("ADQUISICIÓN Y VALOR", bold));
             doc.add(cuadricula(adquisicion(p), bold, reg));
 
             String obs = observaciones(p);
@@ -121,7 +304,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
             if (movimientos != null && !movimientos.isEmpty())
                 doc.add(historial(movimientos, bold, reg));
 
-            if (enlacePublico == null) doc.add(firmas(p, bold, reg));
+            doc.add(firmas(p, bold, reg));
 
             // Pie fijo en el margen inferior de cada hoja
             String pie = "SIBIM · " + orgName() + " · Emitido el " + FormatUtils.formatDateTime(LocalDateTime.now());
@@ -222,8 +405,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         filaDato(datos, "Categoría", mayus(p.getCategoriaNombre()), bold, reg);
         der.add(datos);
 
-        byte[] qr = ReporteEtiquetasService.qrToPngBytes(enlacePublico != null
-            ? com.sibim.util.QrUtils.enlaceFicha(enlacePublico, p) : com.sibim.util.QrUtils.contenidoBien(p), 180);
+        byte[] qr = ReporteEtiquetasService.qrToPngBytes(com.sibim.util.QrUtils.contenidoBien(p), 180);
         if (qr != null) {
             Table qrT = new Table(UnitValue.createPercentArray(new float[]{30, 70})).useAllAvailableWidth()
                 .setMarginTop(8);
@@ -246,28 +428,21 @@ public class ReporteFichaTecnicaService extends ReporteService {
         l.add(par("No. de factura", p.getNumeroFactura()));
         l.add(par("Folio fiscal (UUID)", p.getFolioFiscal()));
         l.add(par("Proveedor", p.getProveedor()));
-        boolean conMontos = enlacePublico == null;
         // A lot: the piece's cost, how many, and the book value of all of them —
         // it used to mix one piece's depreciated value with the lot's total.
         boolean lote = p.getStockActual() > 1;
         if (lote) l.add(par("Cantidad", FormatUtils.plural(p.getStockActual(), "pieza", "piezas")));
         // A costo of 0 is one not captured (1,080 bienes on 18-nov-2026): «—», not «$0.00».
         boolean conCosto = p.getPrecioCompra() != null && p.getPrecioCompra().signum() > 0;
-        if (conMontos)
-            l.add(par(lote ? "Costo de adquisición por pieza" : "Costo de adquisición",
-                conCosto ? pesos(p.getPrecioCompra()) : null));
+        l.add(par(lote ? "Costo de adquisición por pieza" : "Costo de adquisición",
+            conCosto ? pesos(p.getPrecioCompra()) : null));
         BigDecimal enLibros = !conCosto ? null
             : p.getValorDepreciadoTotal() != null ? p.getValorDepreciadoTotal() : p.getValorTotal();
         l.add(par("Vida útil", p.getVidaUtilAnios() != null ? FormatUtils.plural(p.getVidaUtilAnios(), "año", "años") : null));
-        if (conMontos) {
-            l.add(par("Valor en libros", enLibros != null ? pesos(enLibros) : null));
-            if (conCosto && p.getPorcentajeDepreciado() != null && p.getValorDepreciadoTotal() != null)
-                l.add(par("Depreciación acumulada", pesos(p.getValorTotal().subtract(p.getValorDepreciadoTotal()))
-                    + "  (" + p.getPorcentajeDepreciado() + "%)"));
-        } else {
-            l.add(par("Garantía hasta", p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : null));
-            l.add(par("Próxima revisión", p.getProximaRevision() != null ? FormatUtils.formatDate(p.getProximaRevision()) : null));
-        }
+        l.add(par("Valor en libros", enLibros != null ? pesos(enLibros) : null));
+        if (conCosto && p.getPorcentajeDepreciado() != null && p.getValorDepreciadoTotal() != null)
+            l.add(par("Depreciación acumulada", pesos(p.getValorTotal().subtract(p.getValorDepreciadoTotal()))
+                + "  (" + p.getPorcentajeDepreciado() + "%)"));
         if (p.getCreadoEn() != null)
             l.add(par("Alta en SIBIM", FormatUtils.formatDate(p.getCreadoEn().toLocalDate())));
         if (p.isDadoDeBaja()) {

@@ -49,9 +49,10 @@ public class MovimientosController {
     private static final Preferences STICKY =
         Preferences.userRoot().node("sibim/filters/movimientos");
     /** The table's widths, sort and reset: by column position, and the columns moved on 19-nov-2026
-     *  (the old widths would land on other columns). */
+     *  (the old widths would land on other columns). -3 since 27-nov-2026: «Bien» got 40 px from
+     *  «Quién», and the widths every PC had saved by just using the screen would have kept it at 179. */
     private static final Preferences STICKY_TABLA =
-        Preferences.userRoot().node("sibim/filters/movimientos-tabla-2");
+        Preferences.userRoot().node("sibim/filters/movimientos-tabla-3");
 
     @FXML private VBox rootPane;
     @FXML private FlowPane filterBar;

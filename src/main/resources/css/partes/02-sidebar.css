@@ -328,3 +328,9 @@
     -fx-padding: 0 4;
     -fx-min-width: 17; -fx-min-height: 17;
 }
+
+/* The sidebar is 220 px wide whatever the text size: with «Texto: Grande» or «Extra» the name under
+   «SIBIM» grew and pushed the collapse button «‹» half out of the sidebar (27-nov-2026). Its header
+   keeps the «Normal» size, like the sidebar's buttons. */
+.text-scale-lg .sidebar-logo, .text-scale-xl .sidebar-logo { -fx-font-size: 17px; }
+.text-scale-lg .sidebar-app-sub, .text-scale-xl .sidebar-app-sub { -fx-font-size: 11px; }

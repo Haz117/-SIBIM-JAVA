@@ -119,7 +119,7 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Aquí está solo lo nuevo: lo seguro de una vez, completar por factura, las fotos de una carpeta y la foto junto a su serie, los candidatos a baja, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, y lo que se ve mejor",
+                "Aquí está solo lo nuevo: lo seguro de una vez, completar por factura, las fotos de una carpeta y la foto junto a su serie, los candidatos a baja, completar por grupos, el color que ya dice su nombre, lo que quedó más ordenado (Bienes › Más, Por hacer y las categorías), Movimientos y Depreciación, los QR hechos para el teléfono y lo que se ve mejor",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana",
                 "Lo de versiones anteriores (el valor residual, las facturas en PDF, la Auditoría, los vehículos…) está en las guías por tema (F2): «Corregir o registrar varios bienes seguidos», «Completar los datos de los bienes», «Encontrar y corregir bienes», «SIBIM más cómodo» y las demás"));
@@ -184,6 +184,12 @@ final class TutorialGuias {
                 "Dice «1 año», «1 mes» y «1 día» (antes «1 años») en Depreciación, la ficha del bien, su PDF y las garantías de Alertas",
                 "El buscador de Resguardos dice entero lo que busca: «Persona, folio o código…» (el área está en su filtro)",
                 "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las etiquetas («Transferencia») y las fechas ya no se cortan, y si los títulos no caben la tabla se recorre de lado"));
+            // 27-nov-2026: «los QR no muestran la información de manera correcta, se ve sin diseño».
+            p.add(paso("mdi2q-qrcode-scan", GUINDA, GUINDA_D, "Los QR, hechos para el teléfono", "productos", "#btnEtiqueta",
+                "El QR de las etiquetas abre en el teléfono una ficha de su ancho (antes, la hoja tamaño carta que había que agrandar): número, nombre, la foto grande, dónde está y quién lo tiene",
+                "Solo salen los datos que el bien tiene, sin «—» por cada uno vacío, y abajo a quién avisar si no está donde dice o está dañado",
+                "Las fichas ya publicadas se renuevan solas, una vez, la primera vez que Patrimonio abre esta versión",
+                "El QR chico de la etiqueta oficial dice «Resguardante:» y «Adquirido:» completos (antes «Resg:» y «Adq:»)"));
             // 27-nov-2026: «mejora en UX, UI y diseño para que se vea mejor».
             p.add(paso("mdi2e-eye-check-outline", GUINDA, GUINDA_D, "Se ve mejor", "productos", "#table",
                 "En las fotos del formulario, la × para quitar una ya se ve (era un círculo blanco vacío); la principal dice «Principal» en guinda y las demás traen «Hacer principal»",
@@ -191,7 +197,12 @@ final class TutorialGuias {
                 "La campana de abajo enseña su número en la esquina, sin taparla",
                 "Los números de Inicio, de Completar datos y del pie de las tablas llevan su coma: «2,968 resultados»",
                 "La Auditoría dice «fotos (1 → 2)» cuando se agrega una foto y la principal no cambia (antes: «Se guardó sin cambios»)",
-                "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla"));
+                "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla",
+                "La ficha del bien (doble clic en Bienes) ya no corta los textos largos, como la ubicación, y su nombre usa todo el ancho",
+                "En «Fotos de una carpeta» el nombre de cada bien se lee entero, bajo su número",
+                "Al transferir, las tarjetas de las áreas van de tres en tres en una laptop (antes de dos, con un tercio vacío): se encuentra el área sin bajar tanto",
+                "En Movimientos el bien tiene más espacio y «Quién» menos (su nombre completo, al pasar el mouse); las columnas de esa tabla vuelven a como vienen",
+                "Abajo del menú tu nombre se lee completo, en dos renglones, y con «Texto: Grande» el botón «‹» para plegar el menú ya no queda cortado"));
             // Only what is new in this version; what came before is in the guides by topic (F2).
             enGrupo(p, 1, p.size(), NUEVO);
         } else {
@@ -205,7 +216,9 @@ final class TutorialGuias {
                 "Las categorías se leen cortas en la tabla de Bienes («Cómputo», «Muebles», «Cámaras»); el nombre completo, al pasar el mouse",
                 "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan",
                 "En «Actualizar datos», un clic en una foto la abre en grande con la serie y el resguardante del bien abajo, para ver que sea la suya",
-                "La × para quitar una foto ya se ve; la principal dice «Principal» y las demás traen «Hacer principal»"));
+                "La × para quitar una foto ya se ve; la principal dice «Principal» y las demás traen «Hacer principal»",
+                "En «Revisar mis bienes» el nombre de cada bien tiene más espacio para reconocerlo",
+                "Abajo del menú el nombre de la cuenta se lee completo, y con «Texto: Grande» el botón «‹» para plegar el menú ya no queda cortado"));
             enGrupo(p, 1, p.size(), NUEVO);
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);

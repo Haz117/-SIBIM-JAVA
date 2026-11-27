@@ -93,11 +93,13 @@ public final class QrUtils {
     public static String contenidoEtiqueta(com.sibim.model.Producto p) {
         java.util.List<String> lineas = new java.util.ArrayList<>();
         lineas.add(codigoDe(p));
+        // Whole words (27-nov-2026): a phone shows this as it is, and «Resg:» and «Adq:» read as
+        // a code. When it doesn't fit, the date goes first.
         if (p.getResguardante() != null && !p.getResguardante().isBlank())
-            lineas.add("Resg: " + recortar(p.getResguardante(), 28));
+            lineas.add("Resguardante: " + recortar(p.getResguardante(), 28));
         if (p.getEstadoFisico() != null && !p.getEstadoFisico().isBlank())
             lineas.add("Estado: " + recortar(p.getEstadoFisico(), 12));
-        if (p.getFechaAdquisicion() != null) lineas.add("Adq: " + p.getFechaAdquisicion().format(FECHA));
+        if (p.getFechaAdquisicion() != null) lineas.add("Adquirido: " + p.getFechaAdquisicion().format(FECHA));
         // Nothing of that on record: at least what it is.
         if (lineas.size() == 1 && p.getNombre() != null && !p.getNombre().isBlank())
             lineas.add(recortar(p.getNombre(), 34));

@@ -146,14 +146,14 @@ class QrFichaTest {
         assertEquals("SGM-MM-3261-BIS-2024", QrUtils.codigoLeido(qr), "el escáner de SIBIM sigue leyendo solo el código");
         assertTrue(qr.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= QrUtils.MAX_BYTES_ETIQUETA, qr);
         assertTrue(qr.lines().count() >= 2, "más que el puro código: " + qr);
-        assertTrue(qr.contains("Resg: "), "quién lo tiene no viene impreso en la etiqueta: " + qr);
+        assertTrue(qr.contains("Resguardante: "), "quién lo tiene no viene impreso en la etiqueta: " + qr);
         assertFalse(qr.contains("Computadora"), "la descripción ya está impresa en la etiqueta: " + qr);
 
         com.sibim.model.Producto completo = new com.sibim.model.Producto();
         completo.setCodigo("MB-003"); completo.setNombre("Archivero metálico 4 gavetas");
         completo.setResguardante("Luis Mora"); completo.setEstadoFisico("REGULAR");
         completo.setFechaAdquisicion(java.time.LocalDate.of(2021, 11, 2));
-        assertEquals("MB-003\nResg: Luis Mora\nEstado: REGULAR\nAdq: 02/11/2021", QrUtils.contenidoEtiqueta(completo));
+        assertEquals("MB-003\nResguardante: Luis Mora\nEstado: REGULAR\nAdquirido: 02/11/2021", QrUtils.contenidoEtiqueta(completo));
 
         com.sibim.model.Producto sinDatos = new com.sibim.model.Producto();
         sinDatos.setCodigo("MB-004"); sinDatos.setNombre("Archivero metálico 4 gavetas");

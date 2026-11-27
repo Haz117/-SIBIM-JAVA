@@ -401,7 +401,9 @@ public final class RevisarBienesDialog {
         double[] anchos = atender
             ? new double[]{96, 220, 150, 140, 250, 285}
             : area == null ? new double[]{100, 200, 150, 120, 230, 130, 200}
-                           : new double[]{104, 260, 160, 150, 230, 140, 180};
+                           // An área's own list (27-nov-2026): «Bien» had 260 px («ARCHIVERO METALICO
+                           // CON 4 GAVET...») and what was left went to «Le falta», mostly «Nada».
+                           : new double[]{96, 340, 160, 150, 210, 130, 150};
         List<TableColumn<Producto, Producto>> cols = atender
             ? List.of(colCodigo, colBien, colArea, colResguardante, colRevision, colAtender)
             : List.of(colCodigo, colBien, colArea, colResguardante, colRevision, colEtiqueta, colFalta);

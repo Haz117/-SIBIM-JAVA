@@ -217,7 +217,9 @@ public final class ProductoDetailDialog {
 
         Label nameLbl = new Label(p.getNombre());
         nameLbl.getStyleClass().add("dlg-detail-name");
-        nameLbl.setWrapText(true); nameLbl.setMaxWidth(280);
+        // 27-nov-2026: at 280 px a long name took four lines beside an empty half of the card.
+        nameLbl.setWrapText(true); nameLbl.setMaxWidth(Double.MAX_VALUE);
+        nameLbl.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
 
         Label statusBadge = new Label(p.getEstado().getEtiqueta());
         statusBadge.getStyleClass().add(switch (p.getEstado()) {
@@ -296,7 +298,10 @@ public final class ProductoDetailDialog {
             Row row = rowList.get(i);
             Label key = DialogUtil.fieldLabel(row.key());
             Label val = new Label(row.val());
-            val.setWrapText(true); val.setMaxWidth(310);
+            // Its whole height (27-nov-2026: a Ubicación of two lines showed the second cut in half)
+            // and the column's whole width, not 310 px of it.
+            val.setWrapText(true); val.setMaxWidth(Double.MAX_VALUE);
+            val.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
             if (row.styleClass() != null) val.getStyleClass().add(row.styleClass());
             g.add(key, 0, i); g.add(val, 1, i);
         }

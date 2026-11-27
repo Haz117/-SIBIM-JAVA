@@ -638,10 +638,16 @@ public final class FotosDeCarpetaDialog {
         CeldaBien(ListView<Fila> lv) {
             codigo.getStyleClass().add("trf-codigo");
             codigo.setMinWidth(Region.USE_PREF_SIZE);
+            // 27-nov-2026: beside the código the name had 100-120 px («VENTILADOR DE T...»), and it is
+            // what is read against the photo: the código and its state on top, the name below on
+            // up to about three lines.
             nombre.getStyleClass().add("org-child-label");
-            nombre.setTextOverrun(OverrunStyle.ELLIPSIS);
+            nombre.setWrapText(true);
             nombre.setMinWidth(0);
-            HBox linea = new HBox(8, codigo, nombre);
+            nombre.setMinHeight(Region.USE_PREF_SIZE);
+            Region hueco = new Region();
+            HBox.setHgrow(hueco, javafx.scene.layout.Priority.ALWAYS);
+            HBox linea = new HBox(8, codigo, hueco, estado);
             linea.setAlignment(Pos.CENTER_LEFT);
             detalle.getStyleClass().add("org-table-sub");
             detalle.setTextOverrun(OverrunStyle.ELLIPSIS);
@@ -650,7 +656,7 @@ public final class FotosDeCarpetaDialog {
             serieYQuien.setTextOverrun(OverrunStyle.ELLIPSIS);
             serieYQuien.setMinWidth(0);
             estado.setMinWidth(Region.USE_PREF_SIZE);
-            caja = new VBox(3, linea, detalle, serieYQuien, estado);
+            caja = new VBox(3, linea, nombre, detalle, serieYQuien);
             caja.getStyleClass().add("cnt-fila");
             caja.setStyle("-fx-cursor: hand;");
             caja.maxWidthProperty().bind(lv.widthProperty().subtract(30));
@@ -663,7 +669,8 @@ public final class FotosDeCarpetaDialog {
             if (empty || f == null) { setGraphic(null); return; }
             Producto p = f.bien;
             codigo.setText(p.getCodigo());
-            nombre.setText(p.getNombre());
+            String n = p.getNombre() == null ? "" : p.getNombre().trim();
+            nombre.setText(n.length() > 90 ? n.substring(0, 89).trim() + "…" : n);
             nombre.setTooltip(new Tooltip(p.getNombre()));
             List<String> partes = new ArrayList<>();
             String anterior = com.sibim.util.ProductoUtils.inventarioAnterior(p);

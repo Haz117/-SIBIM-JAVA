@@ -366,8 +366,9 @@
    grey when the list lost focus to a card). */
 .trf-seleccion-activa { -fx-text-fill: sibim-indigo-darker; -fx-font-weight: bold; }
 .trf-tarjeta {
-    -fx-pref-width: 250;
-    -fx-min-width: 220;
+    /* Its width is shared out by TransferenciaArrastreDialog.repartir (27-nov-2026: at 250 px fixed
+       two fitted in a row of 680 and a third of the board stayed empty). */
+    -fx-min-width: 180;
     -fx-padding: 12 14;
     -fx-cursor: hand;
 }

@@ -66,6 +66,24 @@ class FichaPublicaTest {
             "la ficha interna sí conserva los montos: " + interna);
     }
 
+    /** 27-nov-2026: it was the letter-size ficha, read at a tenth of its size on the phone that
+     *  scanned the label. Now one page the width of a phone, as long as what it says, with no QR
+     *  of its own to scan again and no «—» for each empty field. */
+    @Test
+    void laFichaQueSeDescarga_esDelAnchoDeUnTelefono() throws Exception {
+        File f = new ReporteFichaTecnicaService().exportFichaPublica(bien(), "https://x/fichas/b-1.pdf");
+        try (PdfDocument d = new PdfDocument(new PdfReader(f))) {
+            assertEquals(1, d.getNumberOfPages());
+            var hoja = d.getPage(1).getPageSize();
+            assertEquals(ReporteFichaTecnicaService.ANCHO_TELEFONO, hoja.getWidth(), 0.5f);
+            assertTrue(hoja.getHeight() > 300 && hoja.getHeight() < 2000, "cortada donde acaba: " + hoja.getHeight());
+        }
+        String t = texto(f);
+        assertFalse(t.contains("Código QR del bien"), t);
+        assertFalse(t.contains("—"), "solo los datos que tiene: " + t);
+        assertTrue(t.contains("DÓNDE ESTÁ Y QUIÉN LO TIENE"), t);
+    }
+
     /** Quitar títulos changed ~1,000 bienes at once and each asked for a
      *  database connection at the same moment: they wait in line now, two at
      *  a time, and every one of them gets its turn. */

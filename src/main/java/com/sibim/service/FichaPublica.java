@@ -114,6 +114,22 @@ public final class FichaPublica {
         return publicada(p) ? QrUtils.enlaceFicha(url(p), p) : QrUtils.contenidoBien(p);
     }
 
+    /** The design the published fichas are written in. When it changes, the first administrator's
+     *  PC that opens the new version writes every published ficha again, once (SchedulerService):
+     *  a ficha is only rewritten when its bien changes, and labels already stuck on the bienes
+     *  would have gone on downloading the letter-size one (27-nov-2026). */
+    public static final String FORMATO = "telefono-2026-11-27";
+
+    /** Every bien in line to have its ficha written again, if it has one published
+     *  ({@link #actualizarLuego}: a HEAD to Storage, two at a time, in the background).
+     *  @return how many bienes were put in line */
+    public static int renovarTodas() throws java.sql.SQLException {
+        if (!SupabaseStorage.isAvailable()) return 0;
+        List<Producto> todos = new com.sibim.repository.ProductoRepository().findAll();
+        for (Producto p : todos) actualizarLuego(p.getId());
+        return todos.size();
+    }
+
     /** Brings the published ficha up to date after the bien changed. Does
      *  nothing for a bien whose ficha was never published. */
     public static void actualizarSiPublicada(Producto p) {

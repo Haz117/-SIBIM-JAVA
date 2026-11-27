@@ -69,6 +69,11 @@ public class SchedulerService {
 
             RespaldoAutomatico.ejecutarSiToca(hoyAvisos);
 
+            // The fichas the QR labels download, in this version's design: once, by one PC.
+            if (com.sibim.util.SupabaseStorage.isAvailable()
+                    && config.reclamar("fichas_publicas_formato", FichaPublica.FORMATO))
+                log.info("Fichas de los QR al formato {}: {} bienes en fila", FichaPublica.FORMATO, FichaPublica.renovarTodas());
+
             if (!"true".equals(config.get("reportes_habilitado", "false"))) return;
 
             String frecuencia = config.get("reportes_frecuencia", "MENSUAL");
