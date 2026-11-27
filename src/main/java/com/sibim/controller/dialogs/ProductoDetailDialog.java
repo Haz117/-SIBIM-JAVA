@@ -731,32 +731,17 @@ public final class ProductoDetailDialog {
     }
 
     private static void showQrPopup(Producto p, String contenido, Scene scene) {
-        javafx.scene.image.Image qrFull = QrUtils.generateQr(contenido, 300);
+        javafx.scene.image.Image qrFull = QrUtils.generateQr(contenido, 520);
         if (qrFull == null) return;
 
         ButtonType savePng = new ButtonType("Guardar PNG", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
-        dlg.setTitle("Código QR — " + p.getNombre());
+        dlg.setTitle("Código QR — " + p.getCodigo());
         dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        ImageView iv = new ImageView(qrFull);
-        iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
-        Label lblCodigo = new Label(p.getCodigo());
-        lblCodigo.getStyleClass().add("dlg-detail-value");
-        Label lblNombre = new Label(p.getNombre());
-        lblNombre.getStyleClass().add("muted-sm");
-
-        Label lblQueHace = new Label(QrUtils.queHace(contenido));
-        lblQueHace.getStyleClass().add("muted-sm");
-        lblQueHace.setWrapText(true);
-        lblQueHace.setMaxWidth(320);
-        lblQueHace.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre, lblQueHace);
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(16));
-        dlg.getDialogPane().setContent(new VBox(content));   // keeps its padding (the pane's content has 0)
+        dlg.getDialogPane().setPrefWidth(440);
+        dlg.getDialogPane().setContent(QrDelBien.vista(p, contenido, qrFull));
 
         dlg.showAndWait().ifPresent(result -> {
             if (result != savePng) return;

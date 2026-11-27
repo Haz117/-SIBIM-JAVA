@@ -40,6 +40,11 @@ public class ReporteEtiquetasService extends ReporteService {
 
     public ReporteEtiquetasService() { super(); }
 
+    /** Height of each QR label: four rows fit an A4 sheet with its footer. */
+    static final float QR_ALTO = 170f;
+    /** Side of the QR on those labels. */
+    private static final float QR_LADO = 86f;
+
     public File exportEtiquetasQrPdf(List<Producto> productos) throws Exception {
         if (productos.isEmpty()) return null;
         List<Producto> items = productos.size() > 200 ? productos.subList(0, 200) : productos;
@@ -52,53 +57,47 @@ public class ReporteEtiquetasService extends ReporteService {
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
             doc.setMargins(18, 14, 18, 14);
-            Table grid = new Table(3).useAllAvailableWidth();
+            // 27-nov-2026 («los QR se ven sin diseño»): each column took the width its text asked for —
+            // one label 560 px wide beside two of 180, QRs of different sizes, names of five lines.
+            // They are cut and stuck on the bienes: now all the same, three per row and twelve per
+            // sheet, with a dashed line to cut along, the número large in guinda as on the official one.
+            Table grid = new Table(UnitValue.createPercentArray(new float[]{1, 1, 1})).useAllAvailableWidth();
             grid.setMarginBottom(0);
+            String municipio = config("municipio", "").replaceAll(",.*$", "").trim().toUpperCase();
+            String arriba = (municipio.isEmpty() ? "" : municipio + " · ") + "BIENES MUNICIPALES";
 
             // Each QR downloads the bien's ficha (published now, so it is current);
             // without Storage it carries the data the label does not show.
             java.util.Map<String, String> contenidos = FichaPublica.publicar(items);
             for (Producto p : items) {
                 String contenido = contenidos.get(p.getId());
-                byte[] qrBytes = qrToPngBytes(contenido != null ? contenido : com.sibim.util.QrUtils.contenidoBien(p), 160);
+                if (contenido == null) contenido = com.sibim.util.QrUtils.contenidoBien(p);
+                byte[] qrBytes = qrToPngBytes(contenido, 200);
 
-                com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell();
-                card.setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(203, 213, 225), 0.5f));
-                card.setPadding(8).setMargin(3);
-                card.setKeepTogether(true);
-
-                if (qrBytes != null) {
-                    com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(
-                        com.itextpdf.io.image.ImageDataFactory.create(qrBytes));
-                    qrImg.setAutoScale(false).setWidth(80).setHeight(80)
-                         .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
-                    card.add(qrImg);
-                }
-
-                Paragraph codigoPar = new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—")
-                    .setFont(bold).setFontSize(8).setFontColor(ColorConstants.WHITE);
-                com.itextpdf.layout.element.Cell codBadge = new com.itextpdf.layout.element.Cell()
-                    .add(codigoPar).setBackgroundColor(headerBg).setPadding(2)
-                    .setBorder(null)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
-                Table codTable = new Table(1).useAllAvailableWidth().addCell(codBadge);
-                card.add(codTable);
-
-                card.add(new Paragraph(p.getNombre() != null ? p.getNombre() : "—")
-                    .setFont(bold).setFontSize(7.5f).setFontColor(new DeviceRgb(15, 23, 42))
-                    .setMarginTop(4).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-
-                if (p.getArea() != null && !p.getArea().isBlank()) {
-                    card.add(new Paragraph(p.getArea())
-                        .setFont(regular).setFontSize(6.5f).setFontColor(new DeviceRgb(100, 116, 139))
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-                }
-
+                Cell card = new Cell().setHeight(QR_ALTO).setPadding(8).setKeepTogether(true)
+                    .setBorder(new DashedBorder(new DeviceRgb(170, 178, 189), 0.6f))
+                    .setTextAlignment(TextAlignment.CENTER).setVerticalAlignment(VerticalAlignment.TOP);
+                card.add(new Paragraph(arriba).setFont(bold).setFontSize(5.8f).setCharacterSpacing(0.3f)
+                    .setFontColor(new DeviceRgb(100, 116, 139)).setMargin(0));
+                if (qrBytes != null)
+                    card.add(new Image(ImageDataFactory.create(qrBytes)).setAutoScale(false).setWidth(QR_LADO)
+                        .setHeight(QR_LADO).setHorizontalAlignment(HorizontalAlignment.CENTER).setMarginTop(3));
+                card.add(new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—").setFont(bold).setFontSize(15f)
+                    .setFontColor(headerBg).setMargin(0).setMarginTop(2).setMultipliedLeading(1f));
+                card.add(new Paragraph(recortar(mayus(p.getNombre(), "SIN DESCRIPCIÓN"), 95)).setFont(bold)
+                    .setFontSize(7f).setFontColor(new DeviceRgb(15, 23, 42)).setMultipliedLeading(1.15f)
+                    .setMargin(0).setMarginTop(2));
+                if (p.getArea() != null && !p.getArea().isBlank())
+                    card.add(new Paragraph(recortar(p.getArea().trim(), 48)).setFont(regular).setFontSize(6.5f)
+                        .setFontColor(new DeviceRgb(100, 116, 139)).setMargin(0).setMarginTop(2));
+                card.add(new Paragraph(contenido.startsWith("http") ? "Escanéalo para ver su ficha"
+                        : "Escanéalo para ver quién lo tiene").setFont(regular).setFontSize(5.8f)
+                    .setFontColor(new DeviceRgb(148, 163, 184)).setMargin(0).setMarginTop(3));
                 grid.addCell(card);
             }
             int rem = items.size() % 3;
             if (rem != 0) for (int i = rem; i < 3; i++)
-                grid.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
+                grid.addCell(new Cell().setBorder(Border.NO_BORDER).setHeight(QR_ALTO));
 
             doc.add(grid);
             addPdfFooter(doc, items.size());
@@ -303,17 +302,23 @@ public class ReporteEtiquetasService extends ReporteService {
         return tam;
     }
 
+    /** The QR as a PNG of at least {@code size} px a side, each module a whole number of pixels
+     *  and only its one-module quiet zone around it. Asked for {@code size} px directly, ZXing left
+     *  what didn't divide evenly as more white border: on a sheet of labels, each scaled to the same
+     *  square, the QRs came out of different sizes, and on the official label's 1.2 cm the code
+     *  itself got smaller than its box (27-nov-2026). */
     static byte[] qrToPngBytes(String content, int size) {
         if (content == null || content.isBlank()) return null;
         try {
-            BitMatrix matrix = new MultiFormatWriter().encode(
-                content, BarcodeFormat.QR_CODE, size, size,
+            BitMatrix modulos = new MultiFormatWriter().encode(
+                content, BarcodeFormat.QR_CODE, 0, 0,
                 java.util.Map.of(EncodeHintType.MARGIN, 1, EncodeHintType.CHARACTER_SET, "UTF-8"));
-            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size,
+            int n = modulos.getWidth(), k = Math.max(1, (int) Math.ceil(size / (double) n)), lado = n * k;
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(lado, lado,
                 java.awt.image.BufferedImage.TYPE_INT_RGB);
-            for (int x = 0; x < size; x++)
-                for (int y = 0; y < size; y++)
-                    img.setRGB(x, y, matrix.get(x, y) ? 0x000000 : 0xFFFFFF);
+            for (int x = 0; x < lado; x++)
+                for (int y = 0; y < lado; y++)
+                    img.setRGB(x, y, modulos.get(x / k, y / k) ? 0x000000 : 0xFFFFFF);
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             javax.imageio.ImageIO.write(img, "PNG", baos);
             return baos.toByteArray();

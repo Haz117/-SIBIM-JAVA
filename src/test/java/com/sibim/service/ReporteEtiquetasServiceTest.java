@@ -57,6 +57,38 @@ class ReporteEtiquetasServiceTest {
         assertFileProduced(service.exportEtiquetasQrPdf(List.of(activo, agotado, bajoStock)), ".pdf");
     }
 
+    /** 27-nov-2026: each column took the width its text asked for (one label 560 px wide beside two
+     *  of 180) and a long name made its row taller. They are cut and stuck: twelve the same per sheet. */
+    @Test void exportEtiquetasQrPdf_doceIgualesPorHoja() throws Exception {
+        List<Producto> trece = new java.util.ArrayList<>();
+        for (int i = 1; i <= 13; i++) {
+            Producto p = new Producto();
+            p.setId("q-" + i); p.setCodigo("QR/" + i); p.setArea("Seguridad Pública — Área Operativa");
+            p.setNombre(i % 3 == 0 ? "SILLA" : "CAMARA DE VIDEO BODY CAM MODELO SCW7 RESOLUCIÓN DE VIDEO 2560X1440@30FPS,"
+                + "2304X1296@30FPS,1920X1080@30FPS EN CÁMARA ADICIONAL, RESOLUCIÓN DE IMAGEN 36 MEGAPIXELES");
+            trece.add(p);
+        }
+        File f = service.exportEtiquetasQrPdf(trece);
+        try (var d = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(f))) {
+            assertEquals(2, d.getNumberOfPages(), "doce en la primera hoja, una en la segunda");
+        }
+    }
+
+    /** Asked for 200 px, ZXing left what didn't divide evenly as white border, so the same square
+     *  held QRs of different sizes: now only one module of margin, and whole pixels per module. */
+    @Test void elQr_soloUnModuloDeMargen() throws Exception {
+        for (String contenido : List.of("SSP/02", "https://x.supabase.co/storage/v1/object/public/sibim-fotos/fichas/"
+                + "0b7f1e6a-1c2d-4e5f-8a9b-0c1d2e3f4a5b.pdf#SSP/02")) {
+            var img = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(
+                ReporteEtiquetasService.qrToPngBytes(contenido, 200)));
+            assertEquals(img.getWidth(), img.getHeight());
+            assertTrue(img.getWidth() >= 200, contenido);
+            int k = 0;
+            while ((img.getRGB(k, k) & 0xFFFFFF) != 0) k++;   // the finder pattern starts after one module
+            assertEquals(0, img.getWidth() % k, "módulos de " + k + " px enteros: " + contenido);
+        }
+    }
+
     @Test void exportEtiquetasQrPdf_emptyList_returnsNull() throws Exception {
         assertNull(service.exportEtiquetasQrPdf(List.of()));
     }

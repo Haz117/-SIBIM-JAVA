@@ -5,16 +5,11 @@ import com.sibim.service.ReporteService;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.QrUtils;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 
@@ -136,30 +131,20 @@ final class ProductosExporter {
     }
 
     private static void showQrDialog(Scene scene, Producto producto, String contenido, Logger log) {
-        Image qrImg = QrUtils.generateQr(contenido, 300);
+        Image qrImg = QrUtils.generateQr(contenido, 520);
         if (qrImg == null) { NotificacionUtil.error(scene, "No se pudo generar el QR"); return; }
 
         ButtonType savePng = new ButtonType("Guardar PNG", ButtonBar.ButtonData.OK_DONE);
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Código QR — " + producto.getNombre());
+        dlg.setTitle("Código QR — " + producto.getCodigo());
         dlg.initOwner(scene.getWindow());
         dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
-        dlg.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
-        dlg.getDialogPane().setMinWidth(380);   // at the QR's width "Guardar PNG" was cut to "Guardar…"
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.getDialogPane().setPrefWidth(440);   // at the QR's width "Guardar PNG" was cut to "Guardar…"
         if (dlg.getDialogPane().lookupButton(savePng) instanceof javafx.scene.layout.Region b)
             b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
 
-        ImageView iv = new ImageView(qrImg);
-        iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
-        Label lblCodigo = new Label(producto.getCodigo());
-        lblCodigo.getStyleClass().add("dlg-detail-value");
-        Label lblNombre = new Label(producto.getNombre());
-        lblNombre.getStyleClass().add("muted-sm");
-
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre, queHaceElQr(contenido));
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(16));
-        dlg.getDialogPane().setContent(new VBox(content));   // keeps its padding (the pane's content has 0)
+        dlg.getDialogPane().setContent(com.sibim.controller.dialogs.QrDelBien.vista(producto, contenido, qrImg));
 
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isPresent() && result.get() == savePng) {
@@ -178,17 +163,6 @@ final class ProductosExporter {
                 }
             }
         }
-    }
-
-    /** One line under a QR saying what scanning it does, so nobody prints a
-     *  sheet of labels expecting the ficha and gets plain text (or the reverse). */
-    private static Label queHaceElQr(String contenido) {
-        Label l = new Label(QrUtils.queHace(contenido));
-        l.getStyleClass().add("muted-sm");
-        l.setWrapText(true);
-        l.setMaxWidth(320);
-        l.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-        return l;
     }
 
     // ── Resguardo PDF (bulk selection) ──────────────────────────────────────

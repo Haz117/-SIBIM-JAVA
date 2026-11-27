@@ -189,7 +189,9 @@ final class TutorialGuias {
                 "El QR de las etiquetas abre en el teléfono una ficha de su ancho (antes, la hoja tamaño carta que había que agrandar): número, nombre, la foto grande, dónde está y quién lo tiene",
                 "Solo salen los datos que el bien tiene, sin «—» por cada uno vacío, y abajo a quién avisar si no está donde dice o está dañado",
                 "Las fichas ya publicadas se renuevan solas, una vez, la primera vez que Patrimonio abre esta versión",
-                "El QR chico de la etiqueta oficial dice «Resguardante:» y «Adquirido:» completos (antes «Resg:» y «Adq:»)"));
+                "El QR chico de la etiqueta oficial dice «Resguardante:» y «Adquirido:» completos (antes «Resg:» y «Adq:»)",
+                "«Imprimir etiquetas QR (PDF)»: todas del mismo tamaño, doce por hoja con línea punteada para recortar, el número grande en guinda y el QR igual en todas (antes cada una medía lo que su texto pedía)",
+                "La ventana del QR (botón «QR» o el QR de la ficha) se ve como la etiqueta: el número grande, el nombre completo y su área"));
             // 27-nov-2026: «mejora en UX, UI y diseño para que se vea mejor».
             p.add(paso("mdi2e-eye-check-outline", GUINDA, GUINDA_D, "Se ve mejor", "productos", "#table",
                 "En las fotos del formulario, la × para quitar una ya se ve (era un círculo blanco vacío); la principal dice «Principal» en guinda y las demás traen «Hacer principal»",

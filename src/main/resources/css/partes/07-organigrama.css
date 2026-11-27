@@ -584,3 +584,16 @@
     -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
 }
+
+/* ── The QR of a bien in SIBIM (ProductosExporter.showQrDialog), as on its label, 27-nov-2026 ── */
+.qr-tarjeta {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 12;
+    -fx-border-style: segments(5, 4);
+    -fx-padding: 14 18 14 18;
+}
+.qr-codigo { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo; }
+.qr-nombre { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.qr-area   { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
