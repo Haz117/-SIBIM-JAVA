@@ -198,13 +198,14 @@ final class TutorialGuias {
                 "Las subáreas se distinguen aunque no quepan en la columna: «S. Pública — C-2» y «Armamento» en vez de «Seguridad Pública ...» en todas; el nombre completo, al pasar el mouse",
                 "La campana de abajo enseña su número en la esquina, sin taparla",
                 "Los números de Inicio, de Completar datos y del pie de las tablas llevan su coma: «2,968 resultados»",
-                "La Auditoría dice «fotos (1 → 2)» cuando se agrega una foto y la principal no cambia (antes: «Se guardó sin cambios»)",
-                "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla",
                 "La ficha del bien (doble clic en Bienes) ya no corta los textos largos, como la ubicación, y su nombre usa todo el ancho",
-                "En «Fotos de una carpeta» el nombre de cada bien se lee entero, bajo su número",
+                "En «Fotos de una carpeta» el nombre de cada bien se lee entero, bajo su número"));
+            p.add(paso("mdi2a-arrow-expand-horizontal", VERDE, VERDE_D, "Más espacio donde hacía falta", "movimientos", "#table",
                 "Al transferir, las tarjetas de las áreas van de tres en tres en una laptop (antes de dos, con un tercio vacío): se encuentra el área sin bajar tanto",
                 "En Movimientos el bien tiene más espacio y «Quién» menos (su nombre completo, al pasar el mouse); las columnas de esa tabla vuelven a como vienen",
-                "Abajo del menú tu nombre se lee completo, en dos renglones, y con «Texto: Grande» el botón «‹» para plegar el menú ya no queda cortado"));
+                "En Préstamos y Comodatos, con el resumen abierto en una laptop, la barra de abajo ya no se sale de la pantalla",
+                "Abajo del menú tu nombre se lee completo, en dos renglones, y con «Texto: Grande» el botón «‹» para plegar el menú ya no queda cortado",
+                "La Auditoría dice «fotos (1 → 2)» cuando se agrega una foto y la principal no cambia (antes: «Se guardó sin cambios»)"));
             // Only what is new in this version; what came before is in the guides by topic (F2).
             enGrupo(p, 1, p.size(), NUEVO);
         } else {

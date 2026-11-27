@@ -260,3 +260,7 @@
 }
 .tutorial-btn-probar .ikonli-font-icon { -fx-icon-color: sibim-indigo; }
 .tutorial-btn-probar:hover { -fx-background-color: #FDF4F5; }
+
+/* The points of a tutorial step, scrolling only when the window is too low for them (27-nov-2026). */
+.tutorial-scroll, .tutorial-scroll > .viewport { -fx-background-color: transparent; }
+.tutorial-scroll { -fx-padding: 0; -fx-background-insets: 0; -fx-border-width: 0; }

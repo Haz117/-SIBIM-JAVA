@@ -28,6 +28,9 @@ public final class TutorialOverlay {
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(TutorialOverlay.class);
     private static final double CARD_W  = 460;
+    /** What a step card needs besides its points (header, «Probarlo ahora», buttons, hint and the
+     *  margins around the card): the points get the rest of the window's height. */
+    private static final double ALTO_SIN_PUNTOS = 330;
     private static final double ARROW_W = 16;
     // HBox spacing = -2, so card body starts at (ARROW_W - 2) = 14 px from HBox left
 
@@ -340,6 +343,13 @@ public final class TutorialOverlay {
         VBox slideContent = new VBox(0, bulletBox);
         slideContent.setAlignment(Pos.CENTER_LEFT);
         slideContent.setMaxWidth(CARD_W - 44);
+        // A step taller than the window went out at the bottom with «Siguiente» and «Terminar»
+        // (27-nov-2026: «Se ve mejor» had 11 points on a laptop): its points scroll, the buttons stay.
+        javafx.scene.control.ScrollPane slideScroll = new javafx.scene.control.ScrollPane(slideContent);
+        slideScroll.getStyleClass().add("tutorial-scroll");
+        slideScroll.setFitToWidth(true);
+        slideScroll.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        slideScroll.maxHeightProperty().bind(outerStack.heightProperty().subtract(ALTO_SIN_PUNTOS));
 
         // ── Nav buttons ───────────────────────────────────────────────────────
         Button btnPrev = new Button("← Anterior");
@@ -367,7 +377,7 @@ public final class TutorialOverlay {
         btnProbar.setMaxWidth(Double.MAX_VALUE);
 
         // ── Card body VBox ────────────────────────────────────────────────────
-        VBox contentPad = new VBox(16, slideContent, btnProbar, btnRow, kbHint);
+        VBox contentPad = new VBox(16, slideScroll, btnProbar, btnRow, kbHint);
         contentPad.setAlignment(Pos.CENTER);
         contentPad.setPadding(new Insets(20, 24, 14, 24));
 
