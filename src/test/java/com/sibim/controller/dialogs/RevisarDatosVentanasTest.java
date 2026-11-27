@@ -352,6 +352,80 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         assertTrue(panel.lookupAll(".fdc-usada-en").stream().noneMatch(Node::isVisible), "ninguna quedó como de otro bien");
     }
 
+    /** 25-nov-2026: 95 photos of Seguridad Pública matched by hand by the serie the photo shows
+     *  (engraved on the esposas, on a chaleco's label) or the name written on the box. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void fotosDeUnaCarpeta_buscaPorSerieYPorPersona_yLasMuestraJuntoALaFoto(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.awt.image.BufferedImage im = new java.awt.image.BufferedImage(40, 30, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        javax.imageio.ImageIO.write(im, "jpg", dir.resolve("IMG_1.jpg").toFile());
+        Producto esposas = bien("1", "SSPAO/1", "PERSONA FICTICIA UNO", "Seguridad Pública");
+        esposas.setNumeroSerie("G999001");
+        Producto chaleco = bien("2", "SSPAO/2", "PERSONA PRUEBA DOS", "Seguridad Pública");
+        chaleco.setNumeroSerie("AX9990001");
+        Producto sinNada = bien("3", "SSPAO/3", null, "Seguridad Pública");
+        assertEquals("Serie G999001 · PERSONA FICTICIA UNO", FotosDeCarpetaDialog.paraComparar(esposas));
+        assertEquals("", FotosDeCarpetaDialog.paraComparar(sinNada));
+
+        Platform.runLater(() -> FotosDeCarpetaDialog.show(List.of(esposas, chaleco, sinNada), null, dir.toFile(), null));
+        DialogPane panel = abierto();
+        ListView<Object> lista = (ListView<Object>) panel.lookupAll(".cnt-lista").stream().findFirst().orElseThrow();
+        TextField buscar = (TextField) panel.lookupAll(".form-input").stream()
+            .filter(n -> n instanceof TextField t && t.getPromptText() != null && t.getPromptText().contains("serie"))
+            .findFirst().orElseThrow();
+        Label comparar = (Label) panel.lookup(".fdc-comparar");
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> lista.getItems().size() == 3);
+        assertTrue(comparar.isVisible());
+        assertEquals("Serie G999001 · PERSONA FICTICIA UNO", comparar.getText(), "lo del primer bien, junto a su foto");
+
+        interact(() -> buscar.setText("ax9990001"));
+        assertEquals(1, lista.getItems().size(), "la serie que trae la foto lo encuentra");
+        interact(() -> lista.getSelectionModel().select(0));
+        assertEquals("Serie AX9990001 · PERSONA PRUEBA DOS", comparar.getText());
+        interact(() -> buscar.setText("ficticia uno"));
+        assertEquals(1, lista.getItems().size(), "el nombre escrito en la caja también");
+        interact(() -> { buscar.setText(""); lista.getSelectionModel().select(2); });
+        assertFalse(comparar.isVisible(), "sin serie ni resguardante no hay nada que comparar");
+    }
+
+    /** 24 and 26-nov-2026: 9 chalecos had as their photo the label of another chaleco; the form
+     *  showed it at 110 × 80, with the serie on another tab. */
+    @Test
+    void fotoEnGrande_conSuSerie_yQuitarlaOHacerlaPrincipalCambiaLaGaleria(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        List<String> archivos = new ArrayList<>();
+        for (int i = 1; i <= 2; i++) {
+            java.nio.file.Path f = dir.resolve("foto" + i + ".png");
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(60, 40, java.awt.image.BufferedImage.TYPE_INT_RGB), "png", f.toFile());
+            archivos.add(f.toString());
+        }
+        FotoEnGrande.Pie pie = new FotoEnGrande.Pie("SSPAO/7 · CHALECO", "AL0000001", "ARMADURA FICTICIA GR-1", "PERSONA FICTICIA");
+        assertEquals("Serie AL0000001  ·  ARMADURA FICTICIA GR-1  ·  PERSONA FICTICIA", pie.datos());
+        assertEquals("", new FotoEnGrande.Pie("X", " ", null, "").datos());
+
+        java.util.concurrent.atomic.AtomicReference<FotoEnGrande.Resultado> r = new java.util.concurrent.atomic.AtomicReference<>();
+        Platform.runLater(() -> r.set(FotoEnGrande.show(escena.getWindow(), archivos, 1, pie)));
+        DialogPane panel = abierto();
+        assertEquals("Serie AL0000001  ·  ARMADURA FICTICIA GR-1  ·  PERSONA FICTICIA", ((Label) panel.lookup(".fdc-comparar")).getText());
+        Button quitar = panel.lookupAll(".button").stream().filter(n -> n instanceof Button b && b.getText() != null
+            && b.getText().startsWith("No es de este bien")).map(n -> (Button) n).findFirst().orElseThrow();
+        Button principal = panel.lookupAll(".button").stream().filter(n -> n instanceof Button b && "Usar como principal".equals(b.getText()))
+            .map(n -> (Button) n).findFirst().orElseThrow();
+        assertTrue(principal.isVisible(), "la segunda foto puede pasar a principal");
+        interact(() -> javafx.event.Event.fireEvent(panel, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.LEFT, false, false, false, false)));
+        assertFalse(principal.isVisible(), "← va a la primera, que ya es la principal");
+        interact(quitar::fire);
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> r.get() != null);
+        assertEquals(new FotoEnGrande.Resultado(0, FotoEnGrande.Accion.QUITAR), r.get());
+
+        // What it asked, applied to the form's photos.
+        java.util.concurrent.atomic.AtomicReference<GaleriaFotos> g = new java.util.concurrent.atomic.AtomicReference<>();
+        interact(() -> g.set(new GaleriaFotos(new ArrayList<>(archivos), new Dialog<Void>(), null)));
+        interact(() -> g.get().aplicar(new FotoEnGrande.Resultado(1, FotoEnGrande.Accion.PRINCIPAL)));
+        assertEquals(List.of(archivos.get(1), archivos.get(0)), g.get().fotos, "la elegida queda primero");
+        interact(() -> g.get().aplicar(new FotoEnGrande.Resultado(0, FotoEnGrande.Accion.QUITAR)));
+        assertEquals(List.of(archivos.get(0)), g.get().fotos, "la que no es de este bien sale");
+    }
+
     /** 24-nov-2026: 214 facturas without the proveedor in any of their bienes; one row per factura. */
     @Test
     void porFactura_unRenglonPorFactura_conLoQueTienenSusOtrosBienes_yUnFolioMaloNoSeGuarda() throws Exception {

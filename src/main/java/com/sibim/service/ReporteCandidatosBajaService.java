@@ -92,7 +92,8 @@ public class ReporteCandidatosBajaService extends ReporteService {
             for (var e : areas.entrySet()) {
                 doc.add(new Paragraph(e.getKey() + " · " + FormatUtils.plural(e.getValue().size(), "bien", "bienes"))
                     .setFontSize(10).setBold().setMarginTop(8).setMarginBottom(3).setKeepWithNext(true));
-                Table t = createPdfTable(COLUMNAS, new float[]{1.2f, 1.5f, 3.6f, 1.1f, 2.0f, 1.1f, 1.1f, 1.3f, 1.4f});
+                // Estado wide enough for «DEFICIENTE» in one line (at 1.1 it broke as «DEFICIENT / E»).
+                Table t = createPdfTable(COLUMNAS, new float[]{1.2f, 1.5f, 3.2f, 1.5f, 2.0f, 1.1f, 1.1f, 1.3f, 1.4f});
                 int i = 0;
                 for (Producto p : e.getValue()) {
                     boolean alt = (i++ % 2) == 1;

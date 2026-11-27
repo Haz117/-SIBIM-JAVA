@@ -46,11 +46,20 @@ public final class NombreNuevoDialog {
             despues.run();
             return;
         }
+        // Said «Solo a este» to this same change of name before, on this PC: not asked again.
+        if (NombreNuevo.yaDijoQueNo(recordados(), antes.getNombre(), guardado.getNombre())) {
+            despues.run();
+            return;
+        }
         DialogUtil.runAsync(() -> NombreNuevo.seLlamabanIgual(antes, guardado, servicio.getAll()),
             otros -> {
                 if (otros.isEmpty()) { despues.run(); return; }
                 Optional<List<Producto>> elegidos = show(antes, guardado, otros);
-                if (elegidos.isEmpty()) { despues.run(); return; }
+                if (elegidos.isEmpty()) {
+                    recordarQueNo(antes.getNombre(), guardado.getNombre());
+                    despues.run();
+                    return;
+                }
                 List<EditarVarios.Renglon> renglones = NombreNuevo.renglones(elegidos.get(), guardado.getNombre());
                 DialogUtil.runAsyncWithProgress(scene, "Cambiando el nombre…",
                     () -> EditarVarios.aplicar(servicio, renglones),
@@ -142,7 +151,8 @@ public final class NombreNuevoDialog {
 
         Label ayuda = new Label("Se guarda bien por bien, como en el formulario, y se deshace desde el aviso."
             + (deOtra > 0 ? " Este nombre lo tienen bienes de varias compras: van marcados solo los de la misma factura o folio fiscal; "
-                + "marca los demás que también lleven el nombre nuevo." : ""));
+                + "marca los demás que también lleven el nombre nuevo." : "")
+            + " Con «" + soloEste.getText() + "» no se vuelve a preguntar por este mismo cambio de nombre en esta PC.");
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
         ayuda.setMinHeight(Region.USE_PREF_SIZE);
@@ -175,6 +185,25 @@ public final class NombreNuevoDialog {
         if (r.isEmpty() || r.get() != ok) return Optional.empty();
         List<Producto> elegidos = otros.stream().filter(p -> poner.get(p).get()).toList();
         return elegidos.isEmpty() ? Optional.empty() : Optional.of(elegidos);
+    }
+
+    private static final String NODO = "sibim/nombre-nuevo", CLAVE = "solo-este";
+
+    /** The changes of name declined on this PC (see {@link NombreNuevo#yaDijoQueNo}). */
+    static String recordados() {
+        try {
+            return java.util.prefs.Preferences.userRoot().node(NODO).get(CLAVE, "");
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    static void recordarQueNo(String era, String ahora) {
+        try {
+            java.util.prefs.Preferences.userRoot().node(NODO).put(CLAVE, NombreNuevo.conRechazo(recordados(), era, ahora));
+        } catch (RuntimeException e) {
+            log.debug("No se pudo recordar «Solo a este»: {}", e.getMessage());
+        }
     }
 
     /** What tells one purchase from another: «Factura B 5630 · 29/07/2026 · SIMON…». */

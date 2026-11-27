@@ -30,6 +30,13 @@ final class GaleriaFotos {
     private final FlowPane galeria = new FlowPane(8, 8);
     private final Dialog<?> dialog;
     private final Runnable alCambiar;
+    /** What the large view shows under the photo: read when it opens, so a serie just typed counts. */
+    private java.util.function.Supplier<FotoEnGrande.Pie> pie = () -> null;
+
+    /** @param pie the bien's número, serie, marca and resguardante, as the form has them now */
+    void conPie(java.util.function.Supplier<FotoEnGrande.Pie> pie) {
+        this.pie = pie != null ? pie : () -> null;
+    }
 
     GaleriaFotos(List<String> fotos, Dialog<?> dialog, Runnable alCambiar) {
         this.fotos = fotos;
@@ -67,6 +74,12 @@ final class GaleriaFotos {
             } catch (Exception ex) {
                 iv.setImage(null);
             }
+            // A click opens it large, with the serie beside it (26-nov-2026: photos of a label read
+            // at 110 × 80 against a serie on another tab; 9 chalecos had another chaleco's label).
+            iv.setOnMouseClicked(ev -> verEnGrande(i));
+            iv.setStyle("-fx-cursor: hand;");
+            Tooltip.install(iv, new Tooltip("Ver en grande, con la serie del bien"));
+            com.sibim.util.AccessibilityUtils.asButton(iv, "Ver la foto " + (i + 1) + " en grande");
             Button btnDel = new Button("×");
             btnDel.getStyleClass().add("btn-secondary");
             btnDel.setMinSize(20, 20); btnDel.setMaxSize(20, 20);
@@ -105,6 +118,23 @@ final class GaleriaFotos {
     private void cambio() {
         redibujar();
         if (alCambiar != null) alCambiar.run();
+    }
+
+    private void verEnGrande(int desde) {
+        if (desde < 0 || desde >= fotos.size()) return;
+        javafx.stage.Window owner = dialog.getDialogPane().getScene() != null ? dialog.getDialogPane().getScene().getWindow() : null;
+        FotoEnGrande.Resultado r = FotoEnGrande.show(owner, List.copyOf(fotos), desde, pie.get());
+        aplicar(r);
+    }
+
+    /** What the large view asked for its photo: «Usar como principal» or «No es de este bien». */
+    void aplicar(FotoEnGrande.Resultado r) {
+        if (r == null || r.indice() < 0 || r.indice() >= fotos.size()) return;
+        switch (r.accion()) {
+            case PRINCIPAL -> { if (r.indice() > 0) { fotos.add(0, fotos.remove(r.indice())); cambio(); } }
+            case QUITAR -> { fotos.remove(r.indice()); cambio(); }
+            default -> { }
+        }
     }
 
     private void agregar() {

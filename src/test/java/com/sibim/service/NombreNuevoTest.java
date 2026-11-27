@@ -121,4 +121,29 @@ class NombreNuevoTest {
         assertEquals(2, EditarVarios.deshacer(servicio, r));
         assertEquals(ANTES, guardados.get(1).getNombre());
     }
+
+    /** 24 and 25-nov-2026: «ESPOSAS SEMIRIGIDAS (MANO)» → «ESPOSAS (MANO)» offered for the other
+     *  70 and declined six times, one esposas at a time as its photo showed. */
+    @Test
+    void soloAEste_seRecuerdaParaEseMismoCambio_yNoParaOtros() {
+        String era = "ESPOSAS SEMIRIGIDAS (MANO)", ahora = "ESPOSAS (MANO)";
+        assertFalse(NombreNuevo.yaDijoQueNo(null, era, ahora));
+        String r = NombreNuevo.conRechazo(null, era, ahora);
+        assertTrue(NombreNuevo.yaDijoQueNo(r, "esposas semirígidas  (mano)", "Esposas (mano)"),
+            "el mismo cambio, escrito con otras mayúsculas, acentos o espacios");
+        assertFalse(NombreNuevo.yaDijoQueNo(r, ahora, era), "el cambio de regreso es otro");
+        assertFalse(NombreNuevo.yaDijoQueNo(r, era, "ESPOSAS (MANOS)"), "otro nombre nuevo sí se pregunta");
+
+        String dos = NombreNuevo.conRechazo(r, "SILLA", "SILLA EJECUTIVA");
+        assertTrue(NombreNuevo.yaDijoQueNo(dos, era, ahora) && NombreNuevo.yaDijoQueNo(dos, "SILLA", "SILLA EJECUTIVA"));
+        assertEquals(dos, NombreNuevo.conRechazo(dos, "SILLA", "SILLA EJECUTIVA"), "repetirlo no lo duplica");
+        assertEquals(r, NombreNuevo.conRechazo(r, "SILLA", "silla"), "si el nombre no cambió no hay nada que recordar");
+
+        String muchos = null;
+        for (int i = 0; i < NombreNuevo.RECORDADOS + 20; i++) muchos = NombreNuevo.conRechazo(muchos, "BIEN " + i, "COSA " + i);
+        assertEquals(NombreNuevo.RECORDADOS, muchos.split("\n").length, "se quedan los más nuevos");
+        assertTrue(NombreNuevo.yaDijoQueNo(muchos, "BIEN " + (NombreNuevo.RECORDADOS + 19), "COSA " + (NombreNuevo.RECORDADOS + 19)));
+        assertFalse(NombreNuevo.yaDijoQueNo(muchos, "BIEN 0", "COSA 0"));
+        assertTrue(muchos.length() <= java.util.prefs.Preferences.MAX_VALUE_LENGTH);
+    }
 }

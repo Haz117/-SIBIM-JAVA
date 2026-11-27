@@ -141,6 +141,12 @@ final class TutorialGuias {
                 "Un clic (o Espacio) marca la foto para el bien, o varias, como las de una patrulla. Enter la guarda como su foto principal y pasa al siguiente bien, con la siguiente foto ya marcada",
                 "← → cambian de foto y ↑ ↓ de bien; si el bien ya tenía foto, «Quitar las fotos que ya tiene» la reemplaza. Cada bien se deshace desde su aviso"),
                 "Abrir Fotos de una carpeta", abrir("productos", "fotoscarpeta")));
+            p.add(probar(paso("mdi2b-barcode", GUINDA, GUINDA_D, "La foto, junto a su serie", "productos", "#btnMasBienes",
+                "En «Fotos de una carpeta», el buscador también encuentra por la serie que trae la foto (la grabada en unas esposas, la de la etiqueta de un chaleco) y por el nombre escrito en la caja",
+                "Cada bien de la lista y la foto grande dicen su serie y su resguardante, para compararlos con lo que se lee en la foto",
+                "En el formulario, un clic en una foto la abre en grande con la serie, la marca y el resguardante del bien abajo; un clic en la foto la enseña a su tamaño real, para leer una serie pequeña",
+                "Si la foto es de otro bien (la etiqueta de otro chaleco), «No es de este bien: quitarla»; se quita al guardar el bien, y «Cancelar» la deja"),
+                "Abrir Fotos de una carpeta", abrir("productos", "fotoscarpeta")));
             p.add(paso("mdi2d-delete-clock-outline", DORADO, DORADO_D, "Candidatos a baja", "reportes", "#listaListados .report-row",
                 "Reportes › «Candidatos a baja» (PDF o Excel): los bienes en estado MALO o DEFICIENTE, área por área y los más viejos primero",
                 "Cada uno con su número anterior, resguardante, fecha de adquisición, años de uso, costo y valor en libros; arriba, cuántos son y cuánto suman",
@@ -155,6 +161,7 @@ final class TutorialGuias {
                 "La carpeta de las facturas también se recuerda, aunque cierres SIBIM: «Leer la factura», «Leer las facturas de una carpeta» y «Completar por factura» abren ahí",
                 "Los números llevan su coma en todas partes: «1,693 bienes» (antes, en algunos avisos, «1693 bienes»)",
                 "Un costo de $1.00 (escrito para no dejarlo vacío) cuenta como «sin precio»: sale en Completar datos › Sin precio, y el formulario pregunta antes de guardar uno así",
+                "Al cambiarle el nombre a un bien, si respondes «Solo a …» cuando ofrece el nombre nuevo a los que se llamaban igual, ya no vuelve a preguntar por ese mismo cambio en esta PC (antes salía cada vez, por ejemplo con cada par de esposas)",
                 "Inicio ya no se queda quieto unos segundos mientras calcula Por hacer"));
             p.add(probar(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "Completar por grupos", "productos", "#btnMasBienes",
                 "Bienes › Más › «Completar por grupos (mismo nombre)»: cada renglón es un nombre con todos sus bienes («ESPOSAS SEMIRIGIDAS (MANO) · 71 bienes»)",
@@ -188,7 +195,8 @@ final class TutorialGuias {
                 "La ventana para elegirla abre en la carpeta de la última foto"));
             p.add(paso("mdi2e-eye-outline", GUINDA, GUINDA_D, "Más fácil de leer", "productos", "#table",
                 "Las categorías se leen cortas en la tabla de Bienes («Cómputo», «Muebles», «Cámaras»); el nombre completo, al pasar el mouse",
-                "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan"));
+                "Con «Texto: Grande» o «Extra», las columnas de las tablas crecen con la letra: las fechas y las etiquetas ya no se cortan",
+                "En «Actualizar datos», un clic en una foto la abre en grande con la serie y el resguardante del bien abajo, para ver que sea la suya"));
             enGrupo(p, 1, p.size(), NUEVO);
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);

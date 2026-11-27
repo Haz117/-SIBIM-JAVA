@@ -80,4 +80,44 @@ public final class NombreNuevo {
     public static List<EditarVarios.Renglon> renglones(List<Producto> bienes, String nombre) {
         return EditarVarios.revisar(bienes, List.of(EditarVarios.Cambio.fijo(EditarVarios.Dato.NOMBRE, nombre)));
     }
+
+    // ── «Solo a este», remembered (26-nov-2026) ───────────────────────────────
+
+    /** How many changes of name declined are kept: the newest ones. */
+    static final int RECORDADOS = 200;
+
+    /** Whether «Solo a este» was already said to this very change of name: on 24 and 25-nov-2026,
+     *  renaming the esposas that were not semirígidas as their photo showed, «ESPOSAS SEMIRIGIDAS
+     *  (MANO)» → «ESPOSAS (MANO)» was offered for the other 70 six times and declined six times.
+     *  @param recordados what {@link #conRechazo} last returned (null when nothing yet) */
+    public static boolean yaDijoQueNo(String recordados, String era, String ahora) {
+        if (recordados == null || recordados.isEmpty()) return false;
+        String par = par(era, ahora);
+        if (par == null) return false;
+        for (String l : recordados.split("\n")) if (l.equals(par)) return true;
+        return false;
+    }
+
+    /** {@code recordados} with this change of name first; the oldest go once there are
+     *  {@link #RECORDADOS} or they no longer fit in a preference (8 KB). */
+    public static String conRechazo(String recordados, String era, String ahora) {
+        String par = par(era, ahora);
+        List<String> lineas = new ArrayList<>();
+        if (par != null) lineas.add(par);
+        if (recordados != null && !recordados.isEmpty())
+            for (String l : recordados.split("\n")) if (!l.isEmpty() && !l.equals(par)) lineas.add(l);
+        while (lineas.size() > RECORDADOS) lineas.remove(lineas.size() - 1);
+        String s = String.join("\n", lineas);
+        while (s.length() > java.util.prefs.Preferences.MAX_VALUE_LENGTH && lineas.size() > 1) {
+            lineas.remove(lineas.size() - 1);
+            s = String.join("\n", lineas);
+        }
+        return s;
+    }
+
+    /** «ERA\tAHORA», each as {@link CalidadDatosService#claveTexto}: the same letters and numbers. */
+    private static String par(String era, String ahora) {
+        String a = CalidadDatosService.claveTexto(era), b = CalidadDatosService.claveTexto(ahora);
+        return a.isEmpty() || b.isEmpty() || a.equals(b) ? null : a + "\t" + b;
+    }
 }

@@ -103,6 +103,9 @@ public final class FotosDeCarpetaDialog {
     private final VBox sinCarpeta = new VBox(10);
     private final ScrollPane mosaicoScroll = new ScrollPane(mosaico);
     private final Label paraQuien = new Label();
+    /** The serie and the resguardante of the bien chosen, to read them against the photo: a label's
+     *  serie, the name written on the box (25-nov-2026: 95 photos of Seguridad Pública matched so). */
+    private final Label comparar = new Label();
     private final CheckBox reemplazar = new CheckBox("Quitar las fotos que ya tiene");
     private final Button guardar = new Button("Guardar y siguiente");
 
@@ -170,7 +173,8 @@ public final class FotosDeCarpetaDialog {
         area.valueProperty().addListener((o, a, b) -> cargarBienes());
         soloSinFoto.setSelected(true);
         soloSinFoto.selectedProperty().addListener((o, a, b) -> cargarBienes());
-        buscar.setPromptText("Número o nombre…");
+        buscar.setPromptText("Número, nombre, serie o persona…");
+        buscar.setTooltip(new Tooltip("También la serie que trae la foto (una etiqueta, unas esposas) o el nombre escrito en la caja"));
         buscar.getStyleClass().add("form-input");
         buscar.textProperty().addListener((o, a, b) -> refiltrar());
         Hyperlink imprimir = new Hyperlink("Lista para tomarlas (PDF)");
@@ -212,11 +216,28 @@ public final class FotosDeCarpetaDialog {
 
     private void refiltrar() {
         Fila antes = lista.getSelectionModel().getSelectedItem();
-        visibles.setAll(DialogUtil.coincidencias(filas,
-            f -> Objects.requireNonNullElse(f.bien.getCodigo(), "") + " " + Objects.requireNonNullElse(f.bien.getNombre(), "")
-                + " " + Objects.requireNonNullElse(com.sibim.util.ProductoUtils.inventarioAnterior(f.bien), ""),
-            buscar.getText()));
+        visibles.setAll(DialogUtil.coincidencias(filas, f -> textoDeBusqueda(f.bien), buscar.getText()));
         if (antes != null && visibles.contains(antes)) lista.getSelectionModel().select(antes);
+    }
+
+    /** What the search box looks in: número, name, old número, and what a photo can show of its
+     *  bien: the serie (engraved on a pair of esposas, printed on a chaleco's label) and the
+     *  resguardante (written on the box): 24 and 25-nov-2026, 95 photos of Seguridad Pública
+     *  were matched by hand by them. */
+    static String textoDeBusqueda(Producto p) {
+        return String.join(" ", Objects.requireNonNullElse(p.getCodigo(), ""), Objects.requireNonNullElse(p.getNombre(), ""),
+            Objects.requireNonNullElse(com.sibim.util.ProductoUtils.inventarioAnterior(p), ""),
+            Objects.requireNonNullElse(p.getNumeroSerie(), ""), Objects.requireNonNullElse(p.getResguardante(), ""));
+    }
+
+    /** «Serie G999001 · JUAN PÉREZ»: what to read against the photo; empty without either. */
+    static String paraComparar(Producto p) {
+        List<String> partes = new ArrayList<>();
+        String serie = Objects.requireNonNullElse(p.getNumeroSerie(), "").trim();
+        if (!serie.isEmpty()) partes.add("Serie " + serie);
+        String quien = Objects.requireNonNullElse(p.getResguardante(), "").trim();
+        if (!quien.isEmpty()) partes.add(quien);
+        return String.join(" · ", partes);
     }
 
     private Fila elegida() {
@@ -255,6 +276,11 @@ public final class FotosDeCarpetaDialog {
         paraQuien.getStyleClass().add("trf-paso-titulo");
         paraQuien.setWrapText(true);
         paraQuien.setMinHeight(Region.USE_PREF_SIZE);
+        comparar.getStyleClass().add("fdc-comparar");
+        comparar.setWrapText(true);
+        comparar.setMinHeight(Region.USE_PREF_SIZE);
+        comparar.setGraphic(new FontIcon("mdi2b-barcode"));
+        comparar.setTooltip(new Tooltip("La serie y el resguardante del bien elegido, para compararlos con lo que dice la foto"));
         reemplazar.setTooltip(new Tooltip("Sin marcar, las que ya tiene quedan después de las nuevas"));
         guardar.setGraphic(new FontIcon("mdi2c-content-save-outline"));
         guardar.getStyleClass().add("btn-primary");
@@ -267,7 +293,7 @@ public final class FotosDeCarpetaDialog {
         HBox acciones = new HBox(10, guardar, reemplazar);
         acciones.setAlignment(Pos.CENTER_LEFT);
 
-        VBox p = new VBox(8, TransferenciaArrastreDialog.paso(2, "Su foto"), vistaCaja, vistaNombre, paraQuien, acciones, teclas);
+        VBox p = new VBox(8, TransferenciaArrastreDialog.paso(2, "Su foto"), vistaCaja, vistaNombre, paraQuien, comparar, acciones, teclas);
         HBox.setHgrow(p, Priority.ALWAYS);
         p.setMinWidth(300);
         return p;
@@ -283,6 +309,9 @@ public final class FotosDeCarpetaDialog {
         boolean tiene = b != null && !FotosDeCarpeta.sinFoto(b.bien) && b.nuevas == 0;
         reemplazar.setVisible(tiene);
         reemplazar.setManaged(tiene);
+        String datos = b == null ? "" : paraComparar(b.bien);
+        comparar.setText(datos);
+        ver(comparar, !datos.isEmpty());
         if (b == null) {
             paraQuien.setText("Elige un bien de la lista");
             guardar.setDisable(true);
@@ -602,6 +631,7 @@ public final class FotosDeCarpetaDialog {
         private final Label codigo = new Label();
         private final Label nombre = new Label();
         private final Label detalle = new Label();
+        private final Label serieYQuien = new Label();
         private final Label estado = new Label();
         private final VBox caja;
 
@@ -616,8 +646,11 @@ public final class FotosDeCarpetaDialog {
             detalle.getStyleClass().add("org-table-sub");
             detalle.setTextOverrun(OverrunStyle.ELLIPSIS);
             detalle.setMinWidth(0);
+            serieYQuien.getStyleClass().add("org-table-sub");
+            serieYQuien.setTextOverrun(OverrunStyle.ELLIPSIS);
+            serieYQuien.setMinWidth(0);
             estado.setMinWidth(Region.USE_PREF_SIZE);
-            caja = new VBox(3, linea, detalle, estado);
+            caja = new VBox(3, linea, detalle, serieYQuien, estado);
             caja.getStyleClass().add("cnt-fila");
             caja.setStyle("-fx-cursor: hand;");
             caja.maxWidthProperty().bind(lv.widthProperty().subtract(30));
@@ -639,6 +672,10 @@ public final class FotosDeCarpetaDialog {
             if (TODAS.equals(area.getValue())) partes.add(areaDe(p));
             detalle.setText(String.join(" · ", partes));
             detalle.setTooltip(new Tooltip(detalle.getText()));
+            String datos = paraComparar(p);
+            serieYQuien.setText(datos);
+            serieYQuien.setTooltip(datos.isEmpty() ? null : new Tooltip(datos));
+            ver(serieYQuien, !datos.isEmpty());
             estado.getStyleClass().setAll("cell-badge", f.error != null ? "cell-badge-danger"
                 : f.guardando ? "cell-badge-blue" : f.nuevas > 0 ? "cell-badge-success" : "cell-badge-muted");
             estado.setText(f.error != null ? f.error : f.guardando ? "Guardando…"

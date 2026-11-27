@@ -473,6 +473,9 @@
     -fx-background-radius: 6;
 }
 .fdc-vista { -fx-background-color: sibim-slate-100; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; }
+/* The serie and resguardante to read against the photo: legible at a glance, not a hint. */
+.fdc-comparar { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-700; -fx-graphic-text-gap: 6; }
+.fdc-comparar .ikonli-font-icon { -fx-icon-color: sibim-slate-500; -fx-icon-size: 16; }
 
 .cnt-aviso {
     -fx-background-color: #FBF6EC;

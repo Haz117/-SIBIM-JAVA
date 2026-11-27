@@ -61,6 +61,13 @@ public final class ActualizarBienDialog {
         if (fotosIniciales.isEmpty() && bien.getFotoUrl() != null && !bien.getFotoUrl().isBlank())
             fotosIniciales.add(bien.getFotoUrl());
         GaleriaFotos galeria = new GaleriaFotos(fotosIniciales, dialog, null);
+        galeria.conPie(() -> new FotoEnGrande.Pie(
+            String.join(" · ", java.util.stream.Stream.of(bien.getCodigo(), bien.getNombre())
+                .filter(s -> s != null && !s.isBlank()).map(String::trim).toList()),
+            bien.getNumeroSerie(),
+            String.join(" ", java.util.stream.Stream.of(bien.getMarca(), bien.getModelo())
+                .filter(s -> s != null && !s.isBlank()).map(String::trim).toList()),
+            bien.getResguardante()));
 
         var grid = DialogUtil.formGrid(120);
         int r = 0;

@@ -45,6 +45,8 @@ class ProductoTabInfoFields {
     final Label lblAreaHint;
     final Label lblAreaBloqueada;
     final List<String> fotosHolder;
+    /** Its photos; ProductoDialogFactory gives it the serie and resguardante of the other tab. */
+    final GaleriaFotos galeria;
     final String[] facturaHolder;
 
     ProductoTabInfoFields(
@@ -303,7 +305,7 @@ class ProductoTabInfoFields {
                 && !existing.getFotoUrl().isBlank()) {
             fotosIniciales.add(existing.getFotoUrl());
         }
-        GaleriaFotos galeria = new GaleriaFotos(fotosIniciales, dialog,
+        galeria = new GaleriaFotos(fotosIniciales, dialog,
             () -> { if (markDirtyRef[0] != null) markDirtyRef[0].run(); });
         fotosHolder = galeria.fotos;
         VBox imgSection = galeria.nodo;

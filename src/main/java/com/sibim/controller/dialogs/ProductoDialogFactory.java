@@ -196,6 +196,14 @@ public final class ProductoDialogFactory {
         if (com.sibim.session.Permisos.editaFichaCompleta())
             patrimonioTab.ofrecerAnterior(BienAnterior.get(), existing != null ? existing.getId() : null);
         patrimonioTab.ofrecerXml(stockTab.fPrecioC, () -> infoTab.fNombre.getText());
+        // The photo in large, with what the form says now of the bien, to read it against the photo.
+        infoTab.galeria.conPie(() -> new FotoEnGrande.Pie(
+            String.join(" · ", java.util.stream.Stream.of(infoTab.fCodigo.getText(), infoTab.fNombre.getText())
+                .filter(s -> s != null && !s.isBlank()).map(String::trim).toList()),
+            patrimonioTab.fNumeroSerie.getText(),
+            String.join(" ", java.util.stream.Stream.of(patrimonioTab.fMarca.getText(), patrimonioTab.fModelo.getText())
+                .filter(s -> s != null && !s.isBlank()).map(String::trim).toList()),
+            patrimonioTab.fResguardante.getText()));
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
